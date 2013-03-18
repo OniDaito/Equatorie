@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 '''
 A basic model of the Equatorie in Pygame with Python3
 '''
@@ -80,7 +82,7 @@ class Equatorie():
 
     r = math.asin(p1.dot(p0))
 
-    print(math.degrees(r))
+    #print(math.degrees(r))
 
     # Draw deferent
     pygame.draw.circle(surf, (255,0,0), self.deferent, self.face_width / 3)
