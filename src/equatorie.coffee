@@ -36,7 +36,7 @@ class Equatorie
     @c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0,0,25))
     @top_node.add(@c)
 
-    @light = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0,0.0,25.0), new CoffeeGL.Colour.RGB(1.0,1.0,1.0) );
+    @light = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0,5.0,25.0), new CoffeeGL.Colour.RGB(1.0,1.0,1.0) );
 
     @light2 = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0,15.0,5.0), new CoffeeGL.Colour.RGB(1.0,1.0,1.0) );
 
@@ -54,7 +54,7 @@ class Equatorie
       @angle = 0
     m = new CoffeeGL.Quaternion()
     m.fromAxisAngle(new CoffeeGL.Vec3(0,1,0), @angle)
-    @light.pos = m.transVec(@light.pos)
+    m.transVec3(@light.pos)
 
   
   draw : () =>
@@ -62,13 +62,12 @@ class Equatorie
     GL.clearColor(0.15, 0.15, 0.15, 1.0)
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT)
 
-    @shader?.setUniform3v("uAmbientLightingColor", new CoffeeGL.Colour.RGB(0.05,0.05,0.05))
+    @shader?.setUniform3v("uAmbientLightingColor", new CoffeeGL.Colour.RGB(0.15,0.15,0.15))
 
     @c.update()
 
     @top_node.draw() if @top_node?
   
-
 eq = new Equatorie()
 
-cgl = new CoffeeGL.App('webgl-canvas', eq.init, eq.draw, eq.update)
+cgl = new CoffeeGL.App('webgl-canvas', eq, eq.init, eq.draw, eq.update)

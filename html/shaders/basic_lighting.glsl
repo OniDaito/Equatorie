@@ -2,11 +2,11 @@
 {{ShaderLibrary.Basic}}
 {{ShaderLibrary.BasicCamera}}
 {{ShaderLibrary.BasicVertexNormals}}
+{{ShaderLibrary.BasicTexture}}
 
-attribute vec2 aVertexTexCoord;
+
 uniform vec3 uPointLightPos[10];
 varying vec4 vPointLightPos[10];
-varying vec2 vTextureCoord;
 varying vec4 vTransformedNormal;
 varying vec4 vPosition;
 varying vec4 vEyePosition;
@@ -16,7 +16,7 @@ void main(void) {
   vPosition =   uModelMatrix * vec4(aVertexPosition, 1.0);
   gl_Position =  uProjectionMatrix * uCameraMatrix * vPosition;
 
-  vTextureCoord = aVertexTexCoord;
+  vTexCoord = aVertexTexCoord;
 
   for (int i=0; i < 10; i++){
      if (i >= uNumLights)
@@ -30,10 +30,12 @@ void main(void) {
 }
 
 ##>FRAGMENT
+precision mediump float;
+
 {{ShaderLibrary.Basic}}
 {{ShaderLibrary.BasicVertexNormals}}
+{{ShaderLibrary.BasicTexture}}
 
-varying vec2 vTextureCoord;
 varying vec4 vTransformedNormal;
 varying vec4 vPosition;
 varying vec4 vEyePosition;
@@ -51,8 +53,6 @@ uniform vec3 uPointLightDiffuse[10];
 uniform vec3 uPointLightSpecular[10];
 uniform vec3 uPointLightAttenuation[10];
 uniform int uNumLights;
-
-uniform sampler2D uSampler;
 
 void main(void) {
   vec3 ambientLightWeighting = uAmbientLightingColor;
@@ -78,10 +78,10 @@ void main(void) {
 
   vec3 materialSpecularColor = uMaterialSpecularColor;
  
-  vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
-  vec3 materialAmbientColor = uMaterialAmbientColor * textureColor.rgb;
-  vec3 materialDiffuseColor = uMaterialDiffuseColor * textureColor.rgb;
-  vec3 materialEmissiveColor = uMaterialEmissiveColor * textureColor.rgb;
+  vec4 textureColor = texture2D(uSampler, vTexCoord);
+  vec3 materialAmbientColor = uMaterialAmbientColor;
+  vec3 materialDiffuseColor = uMaterialDiffuseColor;
+  vec3 materialEmissiveColor = uMaterialEmissiveColor;
  
   alpha = textureColor.a;
 

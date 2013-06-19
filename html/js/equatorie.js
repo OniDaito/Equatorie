@@ -43,7 +43,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       });
       this.c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0, 0, 25));
       this.top_node.add(this.c);
-      this.light = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0, 0.0, 25.0), new CoffeeGL.Colour.RGB(1.0, 1.0, 1.0));
+      this.light = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0, 5.0, 25.0), new CoffeeGL.Colour.RGB(1.0, 1.0, 1.0));
       this.light2 = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0, 15.0, 5.0), new CoffeeGL.Colour.RGB(1.0, 1.0, 1.0));
       this.top_node.add(this.light);
       this.top_node.add(this.light2);
@@ -60,7 +60,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       }
       m = new CoffeeGL.Quaternion();
       m.fromAxisAngle(new CoffeeGL.Vec3(0, 1, 0), this.angle);
-      return this.light.pos = m.transVec(this.light.pos);
+      return m.transVec3(this.light.pos);
     };
 
     Equatorie.prototype.draw = function() {
@@ -68,7 +68,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       GL.clearColor(0.15, 0.15, 0.15, 1.0);
       GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
       if ((_ref = this.shader) != null) {
-        _ref.setUniform3v("uAmbientLightingColor", new CoffeeGL.Colour.RGB(0.05, 0.05, 0.05));
+        _ref.setUniform3v("uAmbientLightingColor", new CoffeeGL.Colour.RGB(0.15, 0.15, 0.15));
       }
       this.c.update();
       if (this.top_node != null) {
@@ -82,6 +82,6 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
   eq = new Equatorie();
 
-  cgl = new CoffeeGL.App('webgl-canvas', eq.init, eq.draw, eq.update);
+  cgl = new CoffeeGL.App('webgl-canvas', eq, eq.init, eq.draw, eq.update);
 
 }).call(this);

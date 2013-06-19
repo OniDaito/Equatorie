@@ -1,5 +1,4 @@
 ##>VERTEX
-
 {{ShaderLibrary.Basic}}
 {{ShaderLibrary.BasicCamera}}
 {{ShaderLibrary.BasicVertexColours}}
@@ -13,9 +12,11 @@ void main(void) {
 }
 
 ##>FRAGMENT
+precision mediump float;
 
 {{ShaderLibrary.Basic}}
 {{ShaderLibrary.BasicVertexColours}}
+
 void main() { 
   gl_FragColor = vColor; 
 }
