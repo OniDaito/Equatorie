@@ -79,9 +79,9 @@ void main(void) {
   vec3 materialSpecularColor = uMaterialSpecularColor;
  
   vec4 textureColor = texture2D(uSampler, vTexCoord);
-  vec3 materialAmbientColor = uMaterialAmbientColor;
-  vec3 materialDiffuseColor = uMaterialDiffuseColor;
-  vec3 materialEmissiveColor = uMaterialEmissiveColor;
+  vec3 materialAmbientColor = uMaterialAmbientColor * textureColor.rgb;
+  vec3 materialDiffuseColor = uMaterialDiffuseColor * textureColor.rgb;
+  vec3 materialEmissiveColor = uMaterialEmissiveColor * textureColor.rgb;
  
   alpha = textureColor.a;
 
