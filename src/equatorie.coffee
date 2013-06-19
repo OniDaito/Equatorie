@@ -20,18 +20,30 @@ class Equatorie
     
     @top_node = new CoffeeGL.Node()
 
-    r = new CoffeeGL.Request('../models/equatorie.js')
 
-    r.get (data) =>
-      @g = new CoffeeGL.JSONModel(data) 
-      @g.matrix.translate(new CoffeeGL.Vec3(0,0,0))
-      @top_node.add(@g)
+    r0 = new CoffeeGL.Request ('../shaders/basic.glsl')
+    r0.get (data) =>
+      @shader_basic = new CoffeeGL.Shader(data)
 
+      r1 = new CoffeeGL.Request ('../shaders/basic_lighting.glsl')
+      
+      r1.get (data) =>
+        @shader = new CoffeeGL.Shader(data)
+        @shader.bind()
+        @shader?.setUniform3v("uAmbientLightingColor", new CoffeeGL.Colour.RGB(0.15,0.15,0.15))
+        @shader.unbind()
 
-    r = new CoffeeGL.Request ('../shaders/basic_lighting.glsl')
-    r.get (data) =>
-      @shader = new CoffeeGL.Shader(data)
-      @shader.bind()
+        r2 = new CoffeeGL.Request('../models/equatorie.js')
+
+        r2.get (data) =>
+          @g = new CoffeeGL.JSONModel(data) 
+          @g.matrix.translate(new CoffeeGL.Vec3(0,0,0))
+          @top_node.add(@g)
+
+          # Should be two children nodes with this model. Attach the shaders
+          @g.children[0].shader = @shader_basic
+          @g.children[1].shader = @shader
+   
 
     @c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0,0,25))
     @top_node.add(@c)
@@ -61,8 +73,6 @@ class Equatorie
 
     GL.clearColor(0.15, 0.15, 0.15, 1.0)
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT)
-
-    @shader?.setUniform3v("uAmbientLightingColor", new CoffeeGL.Colour.RGB(0.15,0.15,0.15))
 
     @c.update()
 

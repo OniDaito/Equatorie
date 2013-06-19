@@ -27,19 +27,31 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
     }
 
     Equatorie.prototype.init = function() {
-      var r,
+      var r0,
         _this = this;
       this.top_node = new CoffeeGL.Node();
-      r = new CoffeeGL.Request('../models/equatorie.js');
-      r.get(function(data) {
-        _this.g = new CoffeeGL.JSONModel(data);
-        _this.g.matrix.translate(new CoffeeGL.Vec3(0, 0, 0));
-        return _this.top_node.add(_this.g);
-      });
-      r = new CoffeeGL.Request('../shaders/basic_lighting.glsl');
-      r.get(function(data) {
-        _this.shader = new CoffeeGL.Shader(data);
-        return _this.shader.bind();
+      r0 = new CoffeeGL.Request('../shaders/basic.glsl');
+      r0.get(function(data) {
+        var r1;
+        _this.shader_basic = new CoffeeGL.Shader(data);
+        r1 = new CoffeeGL.Request('../shaders/basic_lighting.glsl');
+        return r1.get(function(data) {
+          var r2, _ref;
+          _this.shader = new CoffeeGL.Shader(data);
+          _this.shader.bind();
+          if ((_ref = _this.shader) != null) {
+            _ref.setUniform3v("uAmbientLightingColor", new CoffeeGL.Colour.RGB(0.15, 0.15, 0.15));
+          }
+          _this.shader.unbind();
+          r2 = new CoffeeGL.Request('../models/equatorie.js');
+          return r2.get(function(data) {
+            _this.g = new CoffeeGL.JSONModel(data);
+            _this.g.matrix.translate(new CoffeeGL.Vec3(0, 0, 0));
+            _this.top_node.add(_this.g);
+            _this.g.children[0].shader = _this.shader_basic;
+            return _this.g.children[1].shader = _this.shader;
+          });
+        });
       });
       this.c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0, 0, 25));
       this.top_node.add(this.c);
@@ -64,12 +76,8 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
     };
 
     Equatorie.prototype.draw = function() {
-      var _ref;
       GL.clearColor(0.15, 0.15, 0.15, 1.0);
       GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
-      if ((_ref = this.shader) != null) {
-        _ref.setUniform3v("uAmbientLightingColor", new CoffeeGL.Colour.RGB(0.15, 0.15, 0.15));
-      }
       this.c.update();
       if (this.top_node != null) {
         return this.top_node.draw();
