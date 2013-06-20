@@ -23,7 +23,7 @@ class Equatorie
 
     r0 = new CoffeeGL.Request ('../shaders/basic.glsl')
     r0.get (data) =>
-      @shader_basic = new CoffeeGL.Shader(data)
+      @shader_basic = new CoffeeGL.Shader(data, {"uColour" : "uColour"})
 
       r1 = new CoffeeGL.Request ('../shaders/basic_lighting.glsl')
       
@@ -43,6 +43,8 @@ class Equatorie
           # Should be two children nodes with this model. Attach the shaders
           @g.children[0].shader = @shader_basic
           @g.children[1].shader = @shader
+
+          @g.children[0].uColour = new CoffeeGL.Colour.RGBA(1.0,1.0,0.0,1.0)
    
 
     @c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0,0,25))
