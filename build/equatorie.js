@@ -51,8 +51,10 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
             _this.g.matrix.translate(new CoffeeGL.Vec3(0, 0, 0));
             _this.top_node.add(_this.g);
             _this.g.children[0].shader = _this.shader_basic;
-            _this.g.children[1].shader = _this.shader;
-            return _this.g.children[0].uColour = new CoffeeGL.Colour.RGBA(1.0, 1.0, 0.0, 1.0);
+            _this.g.children[1].shader = _this.shader_basic;
+            _this.g.children[2].shader = _this.shader;
+            _this.g.children[0].uColour = new CoffeeGL.Colour.RGBA(1.0, 1.0, 0.0, 1.0);
+            return _this.g.children[1].uColour = new CoffeeGL.Colour.RGBA(0.6, 0.6, 0.0, 1.0);
           });
         });
       });

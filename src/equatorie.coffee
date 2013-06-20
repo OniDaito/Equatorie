@@ -42,10 +42,11 @@ class Equatorie
 
           # Should be two children nodes with this model. Attach the shaders
           @g.children[0].shader = @shader_basic
-          @g.children[1].shader = @shader
+          @g.children[1].shader = @shader_basic
+          @g.children[2].shader = @shader
 
           @g.children[0].uColour = new CoffeeGL.Colour.RGBA(1.0,1.0,0.0,1.0)
-   
+          @g.children[1].uColour = new CoffeeGL.Colour.RGBA(0.6,0.6,0.0,1.0)
 
     @c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0,0,25))
     @top_node.add(@c)
