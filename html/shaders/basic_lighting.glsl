@@ -6,7 +6,6 @@
 
 
 uniform vec3 uPointLightPos[10];
-varying vec4 vPointLightPos[10];
 varying vec4 vTransformedNormal;
 varying vec4 vPosition;
 varying vec4 vEyePosition;
@@ -17,13 +16,6 @@ void main(void) {
   gl_Position =  uProjectionMatrix * uCameraMatrix * vPosition;
 
   vTexCoord = aVertexTexCoord;
-
-  for (int i=0; i < 10; i++){
-     if (i >= uNumLights)
-      break;
-    vPointLightPos[i] =  vec4(uPointLightPos[i], 1.0);
-  }
-
   vEyePosition = uCameraInverseMatrix * vPosition;
 
   vTransformedNormal = vec4(uNormalMatrix * aVertexNormal,1.0);
@@ -40,6 +32,8 @@ varying vec4 vTransformedNormal;
 varying vec4 vPosition;
 varying vec4 vEyePosition;
 
+uniform vec3 uPointLightPos[10];
+
 uniform vec3 uAmbientLightingColor;
 
 uniform vec3 uMaterialAmbientColor;
@@ -48,7 +42,6 @@ uniform vec3 uMaterialSpecularColor;
 uniform float uMaterialShininess;
 uniform vec3 uMaterialEmissiveColor;
 
-varying vec4 vPointLightPos[10];
 uniform vec3 uPointLightDiffuse[10];
 uniform vec3 uPointLightSpecular[10];
 uniform vec3 uPointLightAttenuation[10];
@@ -66,7 +59,7 @@ void main(void) {
   for (int i =0; i < 10; i++) {
     if (i >= uNumLights)
       break;
-    vec3 lightDirection = normalize(vPointLightPos[i].xyz - vPosition.xyz);
+    vec3 lightDirection = normalize(uPointLightPos[i].xyz - vPosition.xyz);
     vec3 reflectionDirection = reflect(-lightDirection, normal);
 
     float specularLightBrightness = pow(max(dot(reflectionDirection, eyeDirection), 0.0), uMaterialShininess);
@@ -85,15 +78,13 @@ void main(void) {
  
   alpha = textureColor.a;
 
-  gl_FragColor = vec4(
-    materialAmbientColor * ambientLightWeighting
+  gl_FragColor = vec4( materialAmbientColor * ambientLightWeighting
     + materialDiffuseColor * diffuseLightWeighting
     + materialSpecularColor * specularLightWeighting
     + materialEmissiveColor,
     alpha
   );
 
-  //gl_FragColor = vec4(normal.x + 1.0 / 2.0,  normal.y + 1.0 / 2.0, normal.z + 1.0 / 2.0, 1.0);
 } 
 
    
