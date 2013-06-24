@@ -87,6 +87,12 @@ class Equatorie
           @g.remove @pointer
           @epicycle.add @pointer
 
+          # Rotate the Base so the Sign of Aries is in the right place
+          q = new CoffeeGL.Quaternion()
+          q.fromAxisAngle(new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(-90.0))
+
+          @base.matrix.mult q.getMatrix4() 
+
 
     @c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0,0,25))
     @top_node.add(@c)

@@ -73,6 +73,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
           _this.shader.unbind();
           r2 = new CoffeeGL.Request('../models/equatorie.js');
           return r2.get(function(data) {
+            var q;
             _this.g = new CoffeeGL.JSONModel(data);
             _this.top_node.add(_this.g);
             _this.pointer = _this.g.children[0];
@@ -84,7 +85,10 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
             _this.pointer.uColour = new CoffeeGL.Colour.RGBA(1.0, 1.0, 0.0, 1.0);
             _this.epicycle.uColour = new CoffeeGL.Colour.RGBA(0.6, 0.6, 0.0, 1.0);
             _this.g.remove(_this.pointer);
-            return _this.epicycle.add(_this.pointer);
+            _this.epicycle.add(_this.pointer);
+            q = new CoffeeGL.Quaternion();
+            q.fromAxisAngle(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(-90.0));
+            return _this.base.matrix.mult(q.getMatrix4());
           });
         });
       });
