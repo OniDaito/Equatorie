@@ -16,8 +16,33 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
 
 (function() {
-  var Equatorie, cgl, eq,
+  var Equatorie, EquatorieSystem, cgl, eq,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+
+  EquatorieSystem = (function() {
+    function EquatorieSystem() {
+      this.planet_data = {};
+      this.planet_data.mars = {
+        equant: 2.0,
+        deferent: 1.0,
+        angle: 30.0
+      };
+      this.mean_motus = 0;
+      this.mean_argument = 0;
+    }
+
+    EquatorieSystem.prototype.calculateEpicycle = function(planet) {
+      var rx, ry, x, y;
+      x = this.planet_data[planet].deferent * Math.sin(CoffeeGL.degToRad(this.planet_data[planet].angle));
+      y = this.planet_data[planet].deferent * Math.cos(CoffeeGL.degToRad(this.planet_data[planet].angle));
+      rx = 6.353 * Math.sin(CoffeeGL.degToRad(this.mean_motus));
+      ry = 6.353 * Math.cos(CoffeeGL.degToRad(this.mean_motus));
+      return [x + rx, y + ry];
+    };
+
+    return EquatorieSystem;
+
+  })();
 
   Equatorie = (function() {
     function Equatorie() {
@@ -27,9 +52,10 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
     }
 
     Equatorie.prototype.init = function() {
-      var r0,
+      var controller, g, r0,
         _this = this;
       this.top_node = new CoffeeGL.Node();
+      this.system = new EquatorieSystem();
       r0 = new CoffeeGL.Request('../shaders/basic.glsl');
       r0.get(function(data) {
         var r1;
@@ -48,13 +74,17 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
           r2 = new CoffeeGL.Request('../models/equatorie.js');
           return r2.get(function(data) {
             _this.g = new CoffeeGL.JSONModel(data);
-            _this.g.matrix.translate(new CoffeeGL.Vec3(0, 0, 0));
             _this.top_node.add(_this.g);
-            _this.g.children[0].shader = _this.shader_basic;
-            _this.g.children[1].shader = _this.shader_basic;
-            _this.g.children[2].shader = _this.shader;
-            _this.g.children[0].uColour = new CoffeeGL.Colour.RGBA(1.0, 1.0, 0.0, 1.0);
-            return _this.g.children[1].uColour = new CoffeeGL.Colour.RGBA(0.6, 0.6, 0.0, 1.0);
+            _this.pointer = _this.g.children[0];
+            _this.epicycle = _this.g.children[1];
+            _this.base = _this.g.children[2];
+            _this.pointer.shader = _this.shader_basic;
+            _this.epicycle.shader = _this.shader_basic;
+            _this.base.shader = _this.shader;
+            _this.pointer.uColour = new CoffeeGL.Colour.RGBA(1.0, 1.0, 0.0, 1.0);
+            _this.epicycle.uColour = new CoffeeGL.Colour.RGBA(0.6, 0.6, 0.0, 1.0);
+            _this.g.remove(_this.pointer);
+            return _this.epicycle.add(_this.pointer);
           });
         });
       });
@@ -66,18 +96,38 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       this.top_node.add(this.light2);
       GL.enable(GL.CULL_FACE);
       GL.cullFace(GL.BACK);
-      return GL.enable(GL.DEPTH_TEST);
+      GL.enable(GL.DEPTH_TEST);
+      g = new dat.GUI();
+      g.remember(this);
+      controller = g.add(this.system, 'mean_argument', 0, 360);
+      return controller = g.add(this.system, 'mean_motus', 0, 360);
     };
 
     Equatorie.prototype.update = function(dt) {
-      var m;
+      var m, q, x, y, _ref, _ref1, _ref2, _ref3, _ref4;
       this.angle = dt * 0.001 * CoffeeGL.degToRad(20.0);
       if (this.angle >= CoffeeGL.PI * 2) {
         this.angle = 0;
       }
       m = new CoffeeGL.Quaternion();
       m.fromAxisAngle(new CoffeeGL.Vec3(0, 1, 0), this.angle);
-      return m.transVec3(this.light.pos);
+      m.transVec3(this.light.pos);
+      _ref = this.system.calculateEpicycle("mars"), x = _ref[0], y = _ref[1];
+      if ((_ref1 = this.epicycle) != null) {
+        _ref1.matrix.toIdentity();
+      }
+      if ((_ref2 = this.epicycle) != null) {
+        _ref2.matrix.translate(new CoffeeGL.Vec3(x, 0, y));
+      }
+      if ((_ref3 = this.pointer) != null) {
+        _ref3.matrix.toIdentity();
+      }
+      q = new CoffeeGL.Quaternion();
+      q.fromAxisAngle(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(this.system.mean_argument));
+      if ((_ref4 = this.pointer) != null) {
+        _ref4.matrix.mult(q.getMatrix4());
+      }
+      return this;
     };
 
     Equatorie.prototype.draw = function() {

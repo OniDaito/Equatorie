@@ -14,12 +14,43 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
 ###
 
+class EquatorieSystem
+
+  constructor : () ->
+    @planet_data = {}
+
+    # Data for the Equatorie mathematical model
+
+    @planet_data.mars =
+      equant : 2.0
+      deferent : 1.0 
+      angle : 30.0
+
+    @mean_motus = 0     # Arc of motion of epicycle around deferent
+    @mean_argument = 0  # Arc of motion of planet around epicycle
+
+
+  calculateEpicycle : (planet) ->
+    # relative to 0 degrees - the sign of aries    
+    # Line of apsides
+    x = @planet_data[planet].deferent * Math.sin(CoffeeGL.degToRad @planet_data[planet].angle)
+    y = @planet_data[planet].deferent * Math.cos(CoffeeGL.degToRad @planet_data[planet].angle)
+    
+    # now rotate by mean motus and radius of epicycle (6.353 at present)
+
+    rx = 6.353 * Math.sin( CoffeeGL.degToRad @mean_motus)
+    ry = 6.353 * Math.cos( CoffeeGL.degToRad @mean_motus)
+
+    [x + rx, y + ry]  
+
+
 class Equatorie
 
   init : () =>
     
     @top_node = new CoffeeGL.Node()
 
+    @system = new EquatorieSystem()
 
     r0 = new CoffeeGL.Request ('../shaders/basic.glsl')
     r0.get (data) =>
@@ -37,16 +68,25 @@ class Equatorie
 
         r2.get (data) =>
           @g = new CoffeeGL.JSONModel(data) 
-          @g.matrix.translate(new CoffeeGL.Vec3(0,0,0))
           @top_node.add(@g)
 
-          # Should be two children nodes with this model. Attach the shaders
-          @g.children[0].shader = @shader_basic
-          @g.children[1].shader = @shader_basic
-          @g.children[2].shader = @shader
+          # Should be three children nodes with this model. Attach the shaders
+          
+          @pointer  = @g.children[0]
+          @epicycle = @g.children[1]
+          @base     = @g.children[2]
 
-          @g.children[0].uColour = new CoffeeGL.Colour.RGBA(1.0,1.0,0.0,1.0)
-          @g.children[1].uColour = new CoffeeGL.Colour.RGBA(0.6,0.6,0.0,1.0)
+          @pointer.shader   = @shader_basic
+          @epicycle.shader  = @shader_basic
+          @base.shader      = @shader
+
+          @pointer.uColour = new CoffeeGL.Colour.RGBA(1.0,1.0,0.0,1.0)
+          @epicycle.uColour = new CoffeeGL.Colour.RGBA(0.6,0.6,0.0,1.0)
+
+          # Remove the pointer and add it as a child of the Epicycle
+          @g.remove @pointer
+          @epicycle.add @pointer
+
 
     @c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0,0,25))
     @top_node.add(@c)
@@ -62,6 +102,16 @@ class Equatorie
     GL.cullFace(GL.BACK)
     GL.enable(GL.DEPTH_TEST)
 
+
+    # DAT Gui stuff
+    # https://gist.github.com/ikekou/5589109
+    g=new dat.GUI()
+    g.remember(@)
+    
+    controller = g.add(@system,'mean_argument',0,360)
+    controller = g.add(@system,'mean_motus',0,360)
+
+
   update : (dt) =>
   
     @angle = dt * 0.001 * CoffeeGL.degToRad(20.0)
@@ -71,7 +121,21 @@ class Equatorie
     m.fromAxisAngle(new CoffeeGL.Vec3(0,1,0), @angle)
     m.transVec3(@light.pos)
 
-  
+    # Calculate the epicycle
+    [x,y] = @system.calculateEpicycle("mars")
+
+    @epicycle?.matrix.toIdentity()
+    @epicycle?.matrix.translate new CoffeeGL.Vec3 x,0,y
+
+
+    @pointer?.matrix.toIdentity()
+    q = new CoffeeGL.Quaternion()
+    q.fromAxisAngle(new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(@system.mean_argument))
+
+    @pointer?.matrix.mult q.getMatrix4()
+
+    @
+
   draw : () =>
 
     GL.clearColor(0.15, 0.15, 0.15, 1.0)
