@@ -16,7 +16,9 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
 
 (function() {
-  var Equatorie, EquatorieSystem, cgl, eq,
+  var Equatorie, EquatorieString, EquatorieSystem, cgl, eq,
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
   EquatorieSystem = (function() {
@@ -44,6 +46,59 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
   })();
 
+  EquatorieString = (function(_super) {
+    __extends(EquatorieString, _super);
+
+    function EquatorieString(length, thickness, segments, world) {
+      var base, body, c, colShape, i, localInertia, mass, motionState, pp, pq, rbInfo, seglength, segment_geom, segment_node, _i, _j, _ref, _ref1;
+      EquatorieString.__super__.constructor.call(this);
+      seglength = length / segments;
+      segment_geom = new CoffeeGL.Shapes.Cylinder(thickness, 12, seglength);
+      for (i = _i = 0, _ref = segments - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
+        colShape = new Ammo.btCylinderShape(new Ammo.btVector3(thickness / 2, seglength, thickness / 2));
+        mass = 1.0;
+        localInertia = new Ammo.btVector3(0, 0, 0);
+        colShape.calculateLocalInertia(mass, localInertia);
+        base = 5.0;
+        motionState = new Ammo.btDefaultMotionState(new Ammo.btTransform(new Ammo.btQuaternion(0, 0, 0, 1), new Ammo.btVector3(0, base + seglength * i, 0)));
+        rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, colShape, localInertia);
+        body = new Ammo.btRigidBody(rbInfo);
+        segment_node = new CoffeeGL.Node(segment_geom);
+        segment_node.phys = body;
+        this.add(segment_node);
+        world.addRigidBody(body);
+      }
+      for (i = _j = 0, _ref1 = segments - 2; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
+        pp = new Ammo.btVector3(0, seglength / 2, 0);
+        pq = new Ammo.btVector3(0, -seglength / 2, 0);
+        c = new Ammo.btPoint2PointConstraint(this.children[i].phys, this.children[i + 1].phys, pp, pq);
+        world.addConstraint(c, true);
+      }
+    }
+
+    EquatorieString.prototype.update = function() {
+      var segment, tmatrix, tq, trans, tv, _i, _len, _ref, _results;
+      trans = new Ammo.btTransform();
+      _ref = this.children;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        segment = _ref[_i];
+        segment.matrix.identity();
+        tq = new CoffeeGL.Quaternion();
+        segment.phys.getMotionState().getWorldTransform(trans);
+        tv = new CoffeeGL.Vec3(trans.getRotation().getAxis().x(), trans.getRotation().getAxis().y(), trans.getRotation().getAxis().z());
+        tq.fromAxisAngle(tv, trans.getRotation().getAngle());
+        tmatrix = tq.getMatrix4();
+        tmatrix.setPos(new CoffeeGL.Vec3(trans.getOrigin().getX(), trans.getOrigin().getY(), trans.getOrigin().getZ()));
+        _results.push(segment.matrix.copyFrom(tmatrix));
+      }
+      return _results;
+    };
+
+    return EquatorieString;
+
+  })(CoffeeGL.Node);
+
   Equatorie = (function() {
     function Equatorie() {
       this.draw = __bind(this.draw, this);
@@ -52,7 +107,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
     }
 
     Equatorie.prototype.init = function() {
-      var controller, g, r0,
+      var baseMotionState, baseRigidBodyCI, baseShape, baseTransform, collisionConfiguration, controller, dispatcher, g, overlappingPairCache, r0, solver,
         _this = this;
       this.top_node = new CoffeeGL.Node();
       this.system = new EquatorieSystem();
@@ -62,15 +117,14 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
         _this.shader_basic = new CoffeeGL.Shader(data, {
           "uColour": "uColour"
         });
+        _this.white_string.shader = _this.shader_basic;
+        _this.white_string.uColour = new CoffeeGL.Colour.RGBA(0.0, 1.0, 1.0, 1.0);
         r1 = new CoffeeGL.Request('../shaders/basic_lighting.glsl');
         return r1.get(function(data) {
-          var r2, _ref;
-          _this.shader = new CoffeeGL.Shader(data);
-          _this.shader.bind();
-          if ((_ref = _this.shader) != null) {
-            _ref.setUniform3v("uAmbientLightingColor", new CoffeeGL.Colour.RGB(0.15, 0.15, 0.15));
-          }
-          _this.shader.unbind();
+          var r2;
+          _this.shader = new CoffeeGL.Shader(data, {
+            "uAmbientLightingColor": "uAmbientLightingColor"
+          });
           r2 = new CoffeeGL.Request('../models/equatorie.js');
           return r2.get(function(data) {
             var q;
@@ -82,6 +136,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
             _this.pointer.shader = _this.shader_basic;
             _this.epicycle.shader = _this.shader_basic;
             _this.base.shader = _this.shader;
+            _this.base.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.0, 1.0, 1.0, 1.0);
             _this.pointer.uColour = new CoffeeGL.Colour.RGBA(1.0, 1.0, 0.0, 1.0);
             _this.epicycle.uColour = new CoffeeGL.Colour.RGBA(0.6, 0.6, 0.0, 1.0);
             _this.g.remove(_this.pointer);
@@ -104,7 +159,24 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       g = new dat.GUI();
       g.remember(this);
       controller = g.add(this.system, 'mean_argument', 0, 360);
-      return controller = g.add(this.system, 'mean_motus', 0, 360);
+      controller = g.add(this.system, 'mean_motus', 0, 360);
+      collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
+      dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
+      overlappingPairCache = new Ammo.btDbvtBroadphase();
+      solver = new Ammo.btSequentialImpulseConstraintSolver();
+      this.dynamicsWorld = new Ammo.btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
+      this.dynamicsWorld.setGravity(new Ammo.btVector3(0, -10, 0));
+      baseShape = new Ammo.btCylinderShape(new Ammo.btVector3(6.0, 0.1, 6.0));
+      baseTransform = new Ammo.btTransform();
+      baseTransform.setIdentity();
+      baseTransform.setOrigin(new Ammo.btVector3(0, 0, 0));
+      baseMotionState = new Ammo.btDefaultMotionState(baseTransform);
+      baseRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0, baseMotionState, baseShape, new Ammo.btVector3(0, 0, 0));
+      this.baseRigidBody = new Ammo.btRigidBody(baseRigidBodyCI);
+      this.dynamicsWorld.addRigidBody(this.baseRigidBody);
+      this.white_string = new EquatorieString(8.0, 0.15, 20, this.dynamicsWorld);
+      this.top_node.add(this.white_string);
+      return CoffeeGL.Context.mouseDown.add(this.onMouseDown, this);
     };
 
     Equatorie.prototype.update = function(dt) {
@@ -118,21 +190,25 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       m.transVec3(this.light.pos);
       _ref = this.system.calculateEpicycle("mars"), x = _ref[0], y = _ref[1];
       if ((_ref1 = this.epicycle) != null) {
-        _ref1.matrix.toIdentity();
+        _ref1.matrix.identity();
       }
       if ((_ref2 = this.epicycle) != null) {
         _ref2.matrix.translate(new CoffeeGL.Vec3(x, 0, y));
       }
       if ((_ref3 = this.pointer) != null) {
-        _ref3.matrix.toIdentity();
+        _ref3.matrix.identity();
       }
       q = new CoffeeGL.Quaternion();
       q.fromAxisAngle(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(this.system.mean_argument));
       if ((_ref4 = this.pointer) != null) {
         _ref4.matrix.mult(q.getMatrix4());
       }
+      this.white_string.update();
+      this.dynamicsWorld.stepSimulation(dt / 1000.0, 10);
       return this;
     };
+
+    Equatorie.prototype.onMouseDown = function(event) {};
 
     Equatorie.prototype.draw = function() {
       GL.clearColor(0.15, 0.15, 0.15, 1.0);

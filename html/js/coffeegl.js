@@ -76,7 +76,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
   extend("Camera", require('./camera'));
 
-  extend(require('./shapes'));
+  extend("Shapes", require('./shapes'));
 
   extend(require('./webgl'));
 
@@ -1117,7 +1117,7 @@ http://www.flipcode.com/documents/matrfaq.html
       return this;
     };
 
-    Matrix3.prototype.toIdentity = function() {
+    Matrix3.prototype.identity = function() {
       this.a.set([1, 0, 0, 0, 1, 0, 0, 0, 1]);
       return this;
     };
@@ -1373,7 +1373,7 @@ http://www.flipcode.com/documents/matrfaq.html
       return this;
     };
 
-    Matrix4.prototype.toIdentity = function() {
+    Matrix4.prototype.identity = function() {
       this.a.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
       return this;
     };
@@ -1519,6 +1519,19 @@ http://www.flipcode.com/documents/matrfaq.html
         this.mult(r);
       } else {
         CoffeeGLWarning("Mismatched vector and matrix dimensions");
+      }
+      return this;
+    };
+
+    Matrix4.prototype.setPos = function(v) {
+      if (v.x != null) {
+        this.a[12] = v.x;
+      }
+      if (v.y != null) {
+        this.a[13] = v.y;
+      }
+      if (v.z != null) {
+        this.a[14] = v.z;
       }
       return this;
     };
@@ -2035,7 +2048,10 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
   Geometry = (function() {
 
-    function Geometry() {}
+    function Geometry() {
+      this.v = [];
+      this.layout = "TRIANGLES";
+    }
 
     Geometry.prototype._addToNode = function(node) {
       node.geometry = this;
@@ -2139,12 +2155,13 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
     function Quad(p0, p1, p2, p3) {
       Quad.__super__.constructor.call(this);
       if ((p0 == null) || (p1 == null) || (p2 == null) || (p3 == null)) {
-        p0 = new Vertex(new Vec3(-1, -1, 0), new Colour.RGBA(1.0, 1.0, 1.0, 1.0), new Vec3(0, 0, 1), new Vec2(0, 0));
-        p1 = new Vertex(new Vec3(-1, 1, 0), new Colour.RGBA(1.0, 1.0, 1.0, 1.0), new Vec3(0, 0, 1), new Vec2(0, 1));
-        p2 = new Vertex(new Vec3(1, -1, 0), new Colour.RGBA(1.0, 1.0, 1.0, 1.0), new Vec3(0, 0, 1), new Vec2(1, 0));
-        p3 = new Vertex(new Vec3(1, 1, 0), new Colour.RGBA(1.0, 1.0, 1.0, 1.0), new Vec3(0, 0, 1), new Vec2(1, 1));
+        p0 = new Vertex(new Vec3(-1, 1, 0), new Colour.RGBA(1.0, 1.0, 1.0, 1.0), new Vec3(0, 0, 1), new Vec2(0, 1));
+        p1 = new Vertex(new Vec3(-1, -1, 0), new Colour.RGBA(1.0, 1.0, 1.0, 1.0), new Vec3(0, 0, 1), new Vec2(0, 0));
+        p2 = new Vertex(new Vec3(1, 1, 0), new Colour.RGBA(1.0, 1.0, 1.0, 1.0), new Vec3(0, 0, 1), new Vec2(1, 1));
+        p3 = new Vertex(new Vec3(1, -1, 0), new Colour.RGBA(1.0, 1.0, 1.0, 1.0), new Vec3(0, 0, 1), new Vec2(1, 0));
       }
       this.v = [p0, p1, p2, p3];
+      this.layout = "TRIANGLE_STRIP";
     }
 
     Quad.prototype.computeNormals = function() {
@@ -2390,12 +2407,12 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
 
 (function() {
-  var Camera, Geometry, Material, Matrix3, Matrix4, Node, PointLight, Texture, Vec3, Vec4, makeDrawableGL, util, _ref,
+  var Camera, Geometry, Material, Matrix3, Matrix4, Node, PointLight, Texture, Vec3, Vec4, makeNodeDrawableGL, util, _ref,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   _ref = require('./math'), Vec3 = _ref.Vec3, Vec4 = _ref.Vec4, Matrix3 = _ref.Matrix3, Matrix4 = _ref.Matrix4;
 
-  makeDrawableGL = require('./webgl').makeDrawableGL;
+  makeNodeDrawableGL = require('./webgl').makeNodeDrawableGL;
 
   Camera = require('./camera').Camera;
 
@@ -2470,7 +2487,8 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
         _modelMatrix: new Matrix4(),
         _pointLightsGlobal: [],
         _normalMatrix: new Matrix4(),
-        _camera: void 0
+        _camera: void 0,
+        _shader: void 0
       };
       return this._draw(this, front);
     };
@@ -2498,18 +2516,20 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       if (node.camera != null) {
         front._camera = node.camera;
       }
-      if (node.geometry != null) {
-        if (node.brewed != null) {
-          if (!node.brewed) {
+      front._shader = node.shader;
+      if (node.material != null) {
+        front._material = node.material;
+      }
+      if (node.startDrawGL == null) {
+        makeNodeDrawableGL(node);
+        if (node.geometry != null) {
+          if (!node.geometry.brewed) {
             node.brew();
-          } else {
-            node = util.extend(node, front);
-            node.drawGL();
           }
-        } else {
-          makeDrawableGL(node);
         }
       }
+      node = util.extend(node, front);
+      node.startDrawGL();
       _ref3 = node.children;
       for (_k = 0, _len2 = _ref3.length; _k < _len2; _k++) {
         child = _ref3[_k];
@@ -2517,7 +2537,9 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
           _modelMatrix: new Matrix4(front._modelMatrix),
           _pointLightsGlobal: [],
           _normalMatrix: new Matrix4(),
-          _camera: front._camera
+          _camera: front._camera,
+          _material: front._material,
+          _shader: front._shader
         };
         cloned._pointLightsGlobal = cloned._pointLightsGlobal.concat(front._pointLightsGlobal);
         this._draw(child, cloned);
@@ -2526,6 +2548,9 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       for (_l = 0, _len3 = _ref4.length; _l < _len3; _l++) {
         tex = _ref4[_l];
         tex.unbind();
+      }
+      if (typeof node.endDrawGL === "function") {
+        node.endDrawGL();
       }
       return node;
     };
@@ -2762,11 +2787,9 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 This software is released under Creative Commons Attribution Non-Commercial Share Alike
 http://creativecommons.org/licenses/by-nc-sa/3.0/
 
-- TODO - can we inspect objects / nodes / vertices at bind time and add / remove the attributes
-automatically? That way we wouldnt need basic and texture shaders
 
-- TODO - Light information should be passed in as a texture on an un-used unit eventually
-  - we dont have uniform buffers you see
+- TODO - Tighten up the contract
+- TODO - Caching needs to go in here
 */
 
 
@@ -2980,11 +3003,11 @@ automatically? That way we wouldnt need basic and texture shaders
       roles.uCameraMatrix = "_camera/m";
       roles.uCameraInverseMatrix = "_camera/i";
       roles.uNormalMatrix = "_normalMatrix";
-      roles.uMaterialAmbientColor = "material/ambient";
-      roles.uMaterialDiffuseColor = "material/diffuse";
-      roles.uMaterialSpecularColor = "material/specular";
-      roles.uMaterialShininess = "material/shine";
-      roles.uMaterialEmissiveColor = "material/emissive";
+      roles.uMaterialAmbientColor = "_material/ambient";
+      roles.uMaterialDiffuseColor = "_material/diffuse";
+      roles.uMaterialSpecularColor = "_material/specular";
+      roles.uMaterialShininess = "_material/shine";
+      roles.uMaterialEmissiveColor = "_material/emissive";
       roles.uNumLights = "_numPointLightsGlobal";
       roles.uPointLightPos = "pointlight/pos";
       roles.uPointLightDiffuse = "pointlight/colour";
@@ -3214,7 +3237,77 @@ automatically? That way we wouldnt need basic and texture shaders
 
 }).call(this);
 
-},{"./math":4,"./light":17,"./shader_library":21,"./error":19}],11:[function(require,module,exports){
+},{"./math":4,"./light":17,"./shader_library":21,"./error":19}],10:[function(require,module,exports){
+// Generated by CoffeeScript 1.6.1
+
+/*                    __  .__              ________ 
+   ______ ____   _____/  |_|__| ____   ____/   __   \
+  /  ___// __ \_/ ___\   __\  |/  _ \ /    \____    /
+  \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
+ /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
+      \/     \/     \/                    \/         
+                                              CoffeeGL
+                                              Benjamin Blundell - ben@section9.co.uk
+                                              http://www.section9.co.uk
+
+This software is released under Creative Commons Attribution Non-Commercial Share Alike
+http://creativecommons.org/licenses/by-nc-sa/3.0/
+
+- Resources
+
+* http://coffeescriptcookbook.com/chapters/ajax/ajax_request_without_jquery
+
+TODO - Need to check if its binary, json or other here, properly!
+*/
+
+
+(function() {
+  var CoffeeGL, Request;
+
+  CoffeeGL = require('./coffeegl').CoffeeGL;
+
+  Request = (function() {
+
+    function Request(url) {
+      this.url = url;
+    }
+
+    Request.prototype.get = function(callback) {
+      var _this = this;
+      this.req = new XMLHttpRequest();
+      this.req.onreadystatechange = function() {
+        var data, l;
+        if (_this.req.readyState === 4) {
+          if (_this.req.status === 200 || _this.req.status === 304) {
+            l = _this.url.length - 1;
+            if (_this.url.indexOf("xml", l - 3) >= 0 || _this.url.indexOf("js", l - 2) >= 0 || _this.url.indexOf("json", l - 2) >= 0) {
+              data = eval('(' + _this.req.responseText + ')');
+              data._coffeegl_request_url = _this.url;
+              callback(data);
+            } else {
+              callback(_this.req.responseText);
+            }
+          }
+        }
+        return _this;
+      };
+      this.req.open('GET', this.url);
+      this.req.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+      this.req.send(null);
+      return this;
+    };
+
+    return Request;
+
+  })();
+
+  module.exports = {
+    Request: Request
+  };
+
+}).call(this);
+
+},{"./coffeegl":1}],11:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /*                    __  .__              ________ 
@@ -3351,77 +3444,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
 }).call(this);
 
-},{"./error":19,"./colour":5}],10:[function(require,module,exports){
-// Generated by CoffeeScript 1.6.1
-
-/*                    __  .__              ________ 
-   ______ ____   _____/  |_|__| ____   ____/   __   \
-  /  ___// __ \_/ ___\   __\  |/  _ \ /    \____    /
-  \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
- /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
-      \/     \/     \/                    \/         
-                                              CoffeeGL
-                                              Benjamin Blundell - ben@section9.co.uk
-                                              http://www.section9.co.uk
-
-This software is released under Creative Commons Attribution Non-Commercial Share Alike
-http://creativecommons.org/licenses/by-nc-sa/3.0/
-
-- Resources
-
-* http://coffeescriptcookbook.com/chapters/ajax/ajax_request_without_jquery
-
-TODO - Need to check if its binary, json or other here, properly!
-*/
-
-
-(function() {
-  var CoffeeGL, Request;
-
-  CoffeeGL = require('./coffeegl').CoffeeGL;
-
-  Request = (function() {
-
-    function Request(url) {
-      this.url = url;
-    }
-
-    Request.prototype.get = function(callback) {
-      var _this = this;
-      this.req = new XMLHttpRequest();
-      this.req.onreadystatechange = function() {
-        var data, l;
-        if (_this.req.readyState === 4) {
-          if (_this.req.status === 200 || _this.req.status === 304) {
-            l = _this.url.length - 1;
-            if (_this.url.indexOf("xml", l - 3) >= 0 || _this.url.indexOf("js", l - 2) >= 0 || _this.url.indexOf("json", l - 2) >= 0) {
-              data = eval('(' + _this.req.responseText + ')');
-              data._coffeegl_request_url = _this.url;
-              callback(data);
-            } else {
-              callback(_this.req.responseText);
-            }
-          }
-        }
-        return _this;
-      };
-      this.req.open('GET', this.url);
-      this.req.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-      this.req.send(null);
-      return this;
-    };
-
-    return Request;
-
-  })();
-
-  module.exports = {
-    Request: Request
-  };
-
-}).call(this);
-
-},{"./coffeegl":1}],12:[function(require,module,exports){
+},{"./error":19,"./colour":5}],12:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /*
@@ -3478,7 +3501,7 @@ https://developer.mozilla.org/en-US/docs/WebGL/Animating_textures_in_WebGL
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
           gl.bindTexture(gl.TEXTURE_2D, null);
           _this.loaded = true;
-          return _this.callback();
+          return typeof _this.callback === "function" ? _this.callback() : void 0;
         };
       });
     }
@@ -3865,7 +3888,9 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
 
 (function() {
-  var CoffeeGL, Colour, Cube, CurveCubic, Node, PI, Quad, Sphere, Triangle, Vec2, Vec3, Vertex, nodeSphere, _ref, _ref1;
+  var CoffeeGL, Colour, Cuboid, CurveCubic, Cylinder, Geometry, Node, PI, Quad, Sphere, Triangle, Vec2, Vec3, Vertex, degToRad, _ref, _ref1,
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   CoffeeGL = require('./coffeegl').CoffeeGL;
 
@@ -3873,81 +3898,176 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
   Colour = require('./colour').Colour;
 
-  _ref = require('./math'), Vec2 = _ref.Vec2, Vec3 = _ref.Vec3, PI = _ref.PI;
+  _ref = require('./math'), Vec2 = _ref.Vec2, Vec3 = _ref.Vec3, PI = _ref.PI, degToRad = _ref.degToRad;
 
-  _ref1 = require('./primitives'), Vertex = _ref1.Vertex, Triangle = _ref1.Triangle, Quad = _ref1.Quad;
+  _ref1 = require('./primitives'), Vertex = _ref1.Vertex, Triangle = _ref1.Triangle, Quad = _ref1.Quad, Geometry = _ref1.Geometry;
 
-  Cube = (function() {
+  Cuboid = (function(_super) {
 
-    function Cube(w, h, d) {
-      this.w = w;
-      this.h = h;
-      this.d = d;
+    __extends(Cuboid, _super);
+
+    function Cuboid(dim, colour) {
+      var d, h, w;
+      Cuboid.__super__.constructor.call(this);
+      if (dim == null) {
+        dim = new Vec3(1.0, 1.0, 1.0);
+      }
+      w = dim.x / 2;
+      h = dim.y / 2;
+      d = dim.z / 2;
+      this.v.push(new Vertex(new Vec3(-w, -h, d), colour, Vec3.normalize(new Vec3(-w, -h, d)), new Vec2(0, 0)));
+      this.v.push(new Vertex(new Vec3(w, -h, d), colour, Vec3.normalize(new Vec3(w, -h, d)), new Vec2(1, 0)));
+      this.v.push(new Vertex(new Vec3(w, h, d), colour, Vec3.normalize(new Vec3(w, h, d)), new Vec2(1, 1)));
+      this.v.push(new Vertex(new Vec3(-w, h, d), colour, Vec3.normalize(new Vec3(-w, h, d)), new Vec2(0, 1)));
+      this.v.push(new Vertex(new Vec3(-w, -h, -d), colour, Vec3.normalize(new Vec3(-w, -h, -d)), new Vec2(1, 1)));
+      this.v.push(new Vertex(new Vec3(w, -h, -d), colour, Vec3.normalize(new Vec3(w, -h, -d)), new Vec2(1, 0)));
+      this.v.push(new Vertex(new Vec3(w, h, -d), colour, Vec3.normalize(new Vec3(w, h, -d)), new Vec2(0, 0)));
+      this.v.push(new Vertex(new Vec3(-w, h, -d), colour, Vec3.normalize(new Vec3(-w, h, -d)), new Vec2(0, 1)));
+      this.indices = [0, 1, 2, 0, 2, 3, 6, 5, 4, 6, 4, 7, 4, 0, 3, 4, 3, 7, 1, 5, 2, 5, 6, 2, 3, 2, 6, 3, 6, 7, 4, 5, 1, 4, 1, 0];
     }
 
-    Cube;
+    return Cuboid;
 
-    return Cube;
+  })(Geometry);
 
-  })();
+  Sphere = (function(_super) {
 
-  Sphere = (function() {
+    __extends(Sphere, _super);
 
-    function Sphere(radius, segments, center) {
+    function Sphere(radius, segments, center, colour) {
       var c, e, i, j, p, t, theta1, theta2, theta3, v, _i, _j, _ref2, _ref3;
-      this.radius = radius;
-      this.segments = segments;
-      this.center = center;
-      this.v = [];
-      if (this.center == null) {
-        this.center = new Vec3(0, 0, 0);
+      Sphere.__super__.constructor.call(this);
+      this.layout = "TRIANGLE_STRIP";
+      if (center == null) {
+        center = new Vec3(0, 0, 0);
       }
-      if (this.segments != null) {
-        if (this.segments < 0) {
-          this.segments = 10;
+      if (segments != null) {
+        if (segments < 0) {
+          segments = 10;
         }
       } else {
-        this.segments = 10;
+        segments = 10;
       }
-      for (j = _i = 0, _ref2 = this.segments / 2; 0 <= _ref2 ? _i <= _ref2 : _i >= _ref2; j = 0 <= _ref2 ? ++_i : --_i) {
-        theta1 = j * 2 * PI / this.segments - (PI / 2);
-        theta2 = (j + 1) * 2 * PI / this.segments - (PI / 2);
+      for (j = _i = 0, _ref2 = segments / 2; 0 <= _ref2 ? _i <= _ref2 : _i >= _ref2; j = 0 <= _ref2 ? ++_i : --_i) {
+        theta1 = j * 2 * PI / segments - (PI / 2);
+        theta2 = (j + 1) * 2 * PI / segments - (PI / 2);
         for (i = _j = 0, _ref3 = segments + 1; 0 <= _ref3 ? _j <= _ref3 : _j >= _ref3; i = 0 <= _ref3 ? ++_j : --_j) {
           e = new Vec3();
-          theta3 = i * 2 * PI / this.segments;
+          theta3 = i * 2 * PI / segments;
           e.x = Math.cos(theta1) * Math.cos(theta3);
           e.y = Math.sin(theta1);
           e.z = Math.cos(theta1) * Math.sin(theta3);
-          p = Vec3.multScalar(e, radius).add(this.center);
+          p = Vec3.multScalar(e, radius).add(center);
           c = new Colour.RGBA(1.0, 1.0, 1.0, 1.0);
-          t = new Vec2(0.999 - i / this.segments, 0.999 - 2 * j / this.segments);
+          t = new Vec2(0.999 - i / segments, 0.999 - 2 * j / segments);
           v = new Vertex(p, c, e, t);
           this.v.push(v);
           e = new Vec3();
           e.x = Math.cos(theta2) * Math.cos(theta3);
           e.y = Math.sin(theta2);
           e.z = Math.cos(theta2) * Math.sin(theta3);
-          p = Vec3.multScalar(e, radius).add(this.center);
-          t = new Vec2(0.999 - i / this.segments, 0.999 - 2 * (j + 1) / this.segments);
+          p = Vec3.multScalar(e, radius).add(center);
+          t = new Vec2(0.999 - i / segments, 0.999 - 2 * (j + 1) / segments);
           v = new Vertex(p, c, e, t);
           this.v.push(v);
         }
       }
     }
 
-    Sphere.prototype._drawPrimitive = function() {
-      if (typeof GL !== "undefined" && GL !== null) {
-        return GL.TRIANGLE_STRIP;
-      }
-    };
-
     return Sphere;
 
-  })();
+  })(Geometry);
 
-  nodeSphere = function(radius, segments) {
-    return new Node(new Sphere(radius, segments));
-  };
+  Cylinder = (function(_super) {
+
+    __extends(Cylinder, _super);
+
+    function Cylinder(radius, segments, height, colour) {
+      var e, i, s, x, z, _i, _j, _k, _l, _m, _n;
+      Cylinder.__super__.constructor.call(this);
+      this.indices = [];
+      if (radius != null) {
+        if (radius < 0) {
+          radius = 0.5;
+        }
+      } else {
+        radius = 0.5;
+      }
+      if (segments != null) {
+        if (segments < 0) {
+          segments = 10;
+        }
+      } else {
+        segments = 10;
+      }
+      if (height != null) {
+        if (height < 0) {
+          height = 1.0;
+        }
+      } else {
+        height = 1.0;
+      }
+      height = height / 2.0;
+      this.v.push(new Vertex(new Vec3(0, height, 0), colour, new Vec3(0, 0, 1.0), new Vec2(0.5, 1.0)));
+      for (i = _i = 1; 1 <= segments ? _i <= segments : _i >= segments; i = 1 <= segments ? ++_i : --_i) {
+        x = radius * Math.sin(degToRad(360.0 / segments * i));
+        z = radius * Math.cos(degToRad(360.0 / segments * i));
+        this.v.push(new Vertex(new Vec3(x, height, z), colour, Vec3.normalize(new Vec3(x, 1.0, z)), new Vec2(i / segments, 1.0)));
+      }
+      this.v.push(new Vertex(new Vec3(0, -height, 0), colour, new Vec3(0, 0, -1.0), new Vec2(0.5, 1.0)));
+      for (i = _j = 1; 1 <= segments ? _j <= segments : _j >= segments; i = 1 <= segments ? ++_j : --_j) {
+        x = radius * Math.sin(degToRad(360.0 / segments * i));
+        z = radius * Math.cos(degToRad(360.0 / segments * i));
+        this.v.push(new Vertex(new Vec3(x, -height, z), colour, Vec3.normalize(new Vec3(x, -1.0, z)), new Vec2(i / segments, 1.0)));
+      }
+      for (i = _k = 1; 1 <= segments ? _k <= segments : _k >= segments; i = 1 <= segments ? ++_k : --_k) {
+        this.indices.push(0);
+        this.indices.push(i);
+        if (i === segments) {
+          this.indices.push(1);
+        } else {
+          this.indices.push(i + 1);
+        }
+      }
+      s = segments + 2;
+      e = s + segments - 1;
+      for (i = _l = s; s <= e ? _l <= e : _l >= e; i = s <= e ? ++_l : --_l) {
+        this.indices.push(s - 1);
+        if (i === e) {
+          this.indices.push(s);
+        } else {
+          this.indices.push(i + 1);
+        }
+        this.indices.push(i);
+      }
+      for (i = _m = 1; 1 <= segments ? _m <= segments : _m >= segments; i = 1 <= segments ? ++_m : --_m) {
+        this.indices.push(i);
+        this.indices.push(s + i - 1);
+        if (i === segments) {
+          this.indices.push(1);
+        } else {
+          this.indices.push(i + 1);
+        }
+      }
+      for (i = _n = 1; 1 <= segments ? _n <= segments : _n >= segments; i = 1 <= segments ? ++_n : --_n) {
+        if (i === segments) {
+          this.indices.push(1);
+        } else {
+          this.indices.push(i + 1);
+        }
+        this.indices.push(s + i - 1);
+        if (i === segments) {
+          this.indices.push(s);
+        } else {
+          this.indices.push(s + i);
+        }
+      }
+      this;
+    }
+
+    return Cylinder;
+
+  })(Geometry);
 
   CurveCubic = (function() {
 
@@ -3983,10 +4103,10 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
   })();
 
   module.exports = {
-    Cube: Cube,
+    Cuboid: Cuboid,
     Sphere: Sphere,
-    CurveCubic: CurveCubic,
-    nodeSphere: nodeSphere
+    Cylinder: Cylinder,
+    CurveCubic: CurveCubic
   };
 
 }).call(this);
@@ -4011,7 +4131,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
 
 (function() {
-  var CoffeeGLWarning, CoffeeGLWarningOnce, Colour, Matrix4, Quad, Triangle, TriangleMesh, Vec2, Vec3, Vertex, WebGLQuad, WebGLTriangle, WebGLTriangleMesh, createArrayBuffer, createElementBuffer, deleteBuffer, makeDrawableGL, util, _attribTypeCheckSet, _drawGL, _matchWithShader, _ref, _ref1, _ref2, _splitRole, _typeCheckSet, _washup;
+  var CoffeeGLWarning, CoffeeGLWarningOnce, Colour, Cuboid, Matrix4, Quad, Sphere, Triangle, TriangleMesh, Vec2, Vec3, Vertex, WebGLNodeDrawable, brew, createArrayBuffer, createElementBuffer, deleteBuffer, drawGeometryGL, makeNodeDrawableGL, util, washup, _attribTypeCheckSet, _matchWithShader, _ref, _ref1, _ref2, _ref3, _splitRole, _typeCheckSet;
 
   _ref = require('./math'), Matrix4 = _ref.Matrix4, Vec3 = _ref.Vec3, Vec2 = _ref.Vec2;
 
@@ -4019,7 +4139,9 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
   _ref1 = require('./primitives'), Vertex = _ref1.Vertex, Triangle = _ref1.Triangle, Quad = _ref1.Quad, TriangleMesh = _ref1.TriangleMesh;
 
-  _ref2 = require('./error'), CoffeeGLWarning = _ref2.CoffeeGLWarning, CoffeeGLWarningOnce = _ref2.CoffeeGLWarningOnce;
+  _ref2 = require('./shapes'), Cuboid = _ref2.Cuboid, Sphere = _ref2.Sphere;
+
+  _ref3 = require('./error'), CoffeeGLWarning = _ref3.CoffeeGLWarning, CoffeeGLWarningOnce = _ref3.CoffeeGLWarningOnce;
 
   util = require("./util");
 
@@ -4137,51 +4259,51 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
     return role;
   };
 
-  _matchWithShader = function(obj) {
-    var a, attenuations, colours, contract, light, pointlights, positions, shader, speculars, t, u, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _m, _n, _o, _p, _ref10, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9;
+  _matchWithShader = function(node) {
+    var a, attenuations, colours, contract, light, pointlights, positions, shader, speculars, t, u, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _m, _n, _o, _p, _ref10, _ref11, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9;
     if (CoffeeGL.Context.shader == null) {
       console.log("CoffeeGL Error - Not Shader bound when calling _matchWithShader");
-      return obj;
+      return node;
     }
     if (CoffeeGL.Context.shader.contract == null) {
       console.log("CoffeeGL Error - Not Shader contract when calling _matchWithShader");
-      return obj;
+      return node;
     }
     contract = CoffeeGL.Context.shader.contract;
     shader = CoffeeGL.Context.shader;
-    _ref3 = contract.uniforms;
-    for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
-      u = _ref3[_i];
-      if (obj[u.role] != null) {
-        _typeCheckSet(u, obj);
+    _ref4 = contract.uniforms;
+    for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
+      u = _ref4[_i];
+      if (node[u.role] != null) {
+        _typeCheckSet(u, node);
       }
     }
-    if (obj._camera != null) {
-      _ref4 = contract.uniforms;
-      for (_j = 0, _len1 = _ref4.length; _j < _len1; _j++) {
-        u = _ref4[_j];
-        if (obj._camera[_splitRole("camera", u.role)] != null) {
-          _typeCheckSet(u, obj._camera, "camera");
-        }
-      }
-    }
-    if (obj.material != null) {
+    if (node._camera != null) {
       _ref5 = contract.uniforms;
-      for (_k = 0, _len2 = _ref5.length; _k < _len2; _k++) {
-        u = _ref5[_k];
-        if (obj.material[_splitRole("material", u.role)] != null) {
-          _typeCheckSet(u, obj.material, "material");
+      for (_j = 0, _len1 = _ref5.length; _j < _len1; _j++) {
+        u = _ref5[_j];
+        if (node._camera[_splitRole("camera", u.role)] != null) {
+          _typeCheckSet(u, node._camera, "camera");
         }
       }
     }
-    if (obj._pointLightsGlobal.length > 0) {
+    if (node._material != null) {
+      _ref6 = contract.uniforms;
+      for (_k = 0, _len2 = _ref6.length; _k < _len2; _k++) {
+        u = _ref6[_k];
+        if (node._material[_splitRole("material", u.role)] != null) {
+          _typeCheckSet(u, node._material, "material");
+        }
+      }
+    }
+    if (node._pointLightsGlobal.length > 0) {
       positions = [];
       colours = [];
       speculars = [];
       attenuations = [];
-      _ref6 = obj._pointLightsGlobal;
-      for (_l = 0, _len3 = _ref6.length; _l < _len3; _l++) {
-        light = _ref6[_l];
+      _ref7 = node._pointLightsGlobal;
+      for (_l = 0, _len3 = _ref7.length; _l < _len3; _l++) {
+        light = _ref7[_l];
         positions = positions.concat(light.pos.flatten());
         colours = colours.concat(light.colour.flatten());
         speculars = speculars.concat(light.specular.flatten());
@@ -4197,188 +4319,178 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
         specular: speculars,
         attenuations: attenuations
       };
-      _ref7 = contract.uniforms;
-      for (_m = 0, _len4 = _ref7.length; _m < _len4; _m++) {
-        u = _ref7[_m];
+      _ref8 = contract.uniforms;
+      for (_m = 0, _len4 = _ref8.length; _m < _len4; _m++) {
+        u = _ref8[_m];
         if (pointlights[_splitRole("pointlight", u.role)] != null) {
           _typeCheckSet(u, pointlights, "pointlight");
         }
       }
     }
-    if (obj.textures != null) {
-      _ref8 = contract.textures;
-      for (_n = 0, _len5 = _ref8.length; _n < _len5; _n++) {
-        u = _ref8[_n];
-        _ref9 = obj.textures;
-        for (_o = 0, _len6 = _ref9.length; _o < _len6; _o++) {
-          t = _ref9[_o];
+    if (node.textures != null) {
+      _ref9 = contract.textures;
+      for (_n = 0, _len5 = _ref9.length; _n < _len5; _n++) {
+        u = _ref9[_n];
+        _ref10 = node.textures;
+        for (_o = 0, _len6 = _ref10.length; _o < _len6; _o++) {
+          t = _ref10[_o];
           if (t[_splitRole("texture", u.role)] != null) {
             _typeCheckSet(u, t, "texture");
           }
         }
       }
     }
-    _ref10 = contract.attributes;
-    for (_p = 0, _len7 = _ref10.length; _p < _len7; _p++) {
-      a = _ref10[_p];
-      if (obj[a.role] != null) {
-        _attribTypeCheckSet(a, obj);
+    if (node.geometry != null) {
+      _ref11 = contract.attributes;
+      for (_p = 0, _len7 = _ref11.length; _p < _len7; _p++) {
+        a = _ref11[_p];
+        if (node.geometry[a.role] != null) {
+          _attribTypeCheckSet(a, node.geometry);
+        }
       }
     }
-    return obj;
+    return node;
   };
 
-  _drawGL = function(obj, drawPrimitive) {
-    var gl, shader;
-    if (drawPrimitive == null) {
-      drawPrimitive = gl.TRIANGLES;
-    }
+  drawGeometryGL = function(geometry, drawPrimitive) {
+    var gl;
     gl = CoffeeGL.Context.gl;
-    if (!obj.brewed) {
-      return obj;
+    if (drawPrimitive == null) {
+      if (geometry.layout == null) {
+        drawPrimitive = gl.TRIANGLES;
+      } else {
+        if (geometry.layout === "TRIANGLE_STRIP") {
+          drawPrimitive = gl.TRIANGLE_STRIP;
+        } else {
+          drawPrimitive = gl.TRIANGLES;
+        }
+      }
     }
-    shader = CoffeeGL.Context.shader;
-    if (obj.shader != null) {
-      CoffeeGL.Context.shader = obj.shader;
-      obj.shader.bind();
-    }
-    if (CoffeeGL.Context.shader == null) {
-      CoffeeGLWarningOnce("No Shader bound but WebGL Draw called");
-      return obj;
-    }
-    _matchWithShader(obj);
-    if (obj.vertexIndexBuffer != null) {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, obj.vertexIndexBuffer);
-      gl.drawElements(drawPrimitive, obj.vertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+    if (geometry.vertexIndexBuffer != null) {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, geometry.vertexIndexBuffer);
+      return gl.drawElements(drawPrimitive, geometry.vertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
     } else {
-      gl.drawArrays(drawPrimitive, 0, obj.vertexPositionBuffer.numItems);
+      return gl.drawArrays(drawPrimitive, 0, geometry.vertexPositionBuffer.numItems);
     }
-    if (obj.shader != null) {
-      obj.shader.unbind();
-      CoffeeGL.Context.shader = shader;
-    }
-    return obj;
   };
 
-  _washup = function() {};
-
-  WebGLTriangle = {};
-
-  WebGLTriangle.brewed = false;
-
-  WebGLTriangle.brew = function() {
-    var colours, gl, normals, size, uvs, v, vertices, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref3, _ref4, _ref5, _ref6;
-    if ((this.geometry.v == null) || this.geometry.v.length <= 0) {
+  brew = function(geometry) {
+    var colours, gl, normals, size, uvs, v, vertices, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref4, _ref5, _ref6, _ref7;
+    if ((geometry.v == null) || geometry.v.length <= 0) {
+      geometry.brewed = false;
       return this;
     }
     gl = CoffeeGL.Context.gl;
-    this.bufferType = gl.STATIC_DRAW;
-    if (this.vertexPositionBuffer == null) {
+    geometry.bufferType = gl.STATIC_DRAW;
+    if (geometry.vertexPositionBuffer == null) {
       vertices = [];
-      _ref3 = this.geometry.v;
-      for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
-        v = _ref3[_i];
+      _ref4 = geometry.v;
+      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
+        v = _ref4[_i];
         vertices = vertices.concat(v.p.flatten());
       }
-      this.vertexPositionBuffer = createArrayBuffer(new Float32Array(vertices), this.bufferType, 3);
+      geometry.vertexPositionBuffer = createArrayBuffer(new Float32Array(vertices), geometry.bufferType, 3);
     }
-    if (this.geometry.v[0].c != null) {
-      if (!this.vertexColourBuffer) {
+    if (geometry.v[0].c != null) {
+      if (!geometry.vertexColourBuffer) {
         colours = [];
-        _ref4 = this.geometry.v;
-        for (_j = 0, _len1 = _ref4.length; _j < _len1; _j++) {
-          v = _ref4[_j];
+        _ref5 = geometry.v;
+        for (_j = 0, _len1 = _ref5.length; _j < _len1; _j++) {
+          v = _ref5[_j];
           colours = colours.concat(v.c.flatten());
         }
         size = 4;
-        if (this.geometry.v[0].c instanceof Colour.RGB) {
+        if (geometry.v[0].c instanceof Colour.RGB) {
           size = 3;
         }
-        this.vertexColourBuffer = createArrayBuffer(new Float32Array(colours), this.bufferType, size);
+        geometry.vertexColourBuffer = createArrayBuffer(new Float32Array(colours), geometry.bufferType, size);
       }
     }
-    if (this.geometry.indices != null) {
-      if (this.vertexIndexBuffer == null) {
-        this.vertexIndexBuffer = createElementBuffer(new Uint16Array(this.geometry.indices), this.bufferType, 1);
+    if (geometry.indices != null) {
+      if (geometry.vertexIndexBuffer == null) {
+        geometry.vertexIndexBuffer = createElementBuffer(new Uint16Array(geometry.indices), geometry.bufferType, 1);
       }
     }
-    if (this.geometry.v[0].n != null) {
-      if (this.vertexNormalBuffer == null) {
+    if (geometry.v[0].n != null) {
+      if (geometry.vertexNormalBuffer == null) {
         normals = [];
-        _ref5 = this.geometry.v;
-        for (_k = 0, _len2 = _ref5.length; _k < _len2; _k++) {
-          v = _ref5[_k];
+        _ref6 = geometry.v;
+        for (_k = 0, _len2 = _ref6.length; _k < _len2; _k++) {
+          v = _ref6[_k];
           normals = normals.concat(v.n.flatten());
         }
-        this.vertexNormalBuffer = createArrayBuffer(new Float32Array(normals), this.bufferType, 3);
+        geometry.vertexNormalBuffer = createArrayBuffer(new Float32Array(normals), geometry.bufferType, 3);
       }
     }
-    if (this.geometry.v[0].t != null) {
-      if (this.vertexTextureBuffer == null) {
+    if (geometry.v[0].t != null) {
+      if (geometry.vertexTextureBuffer == null) {
         uvs = [];
-        _ref6 = this.geometry.v;
-        for (_l = 0, _len3 = _ref6.length; _l < _len3; _l++) {
-          v = _ref6[_l];
+        _ref7 = geometry.v;
+        for (_l = 0, _len3 = _ref7.length; _l < _len3; _l++) {
+          v = _ref7[_l];
           uvs = uvs.concat(v.t.flatten());
         }
-        this.vertexTextureBuffer = createArrayBuffer(new Float32Array(uvs), this.bufferType, 2);
+        geometry.vertexTextureBuffer = createArrayBuffer(new Float32Array(uvs), geometry.bufferType, 2);
       }
     }
-    this.brewed = true;
+    geometry.brewed = true;
     return this;
   };
 
-  WebGLTriangle.drawGL = function() {
-    var gl;
-    gl = CoffeeGL.Context.gl;
-    return _drawGL(this, gl.TRIANGLES);
-  };
-
-  WebGLTriangle.washup = function() {
+  washup = function(geometry) {
     return this;
   };
 
-  WebGLQuad = {};
+  WebGLNodeDrawable = {};
 
-  WebGLQuad.brewed = false;
-
-  WebGLQuad.brew = WebGLTriangle.brew;
-
-  WebGLQuad.drawGL = function() {
+  WebGLNodeDrawable.startDrawGL = function() {
     var gl;
     gl = CoffeeGL.Context.gl;
-    return _drawGL(this, gl.TRIANGLE_STRIP);
+    this.saved_shader = CoffeeGL.Context.shader;
+    if (this._shader != null) {
+      CoffeeGL.Context.shader = this._shader;
+      this._shader.bind();
+    }
+    if (CoffeeGL.Context.shader == null) {
+      CoffeeGLWarningOnce("No Shader  but WebGL Draw called");
+      return this;
+    }
+    _matchWithShader(this);
+    if (this.geometry) {
+      drawGeometryGL(this.geometry);
+    }
+    return this;
   };
 
-  WebGLQuad.washup = WebGLTriangle.washup;
+  WebGLNodeDrawable.endDrawGL = function() {
+    if (this._shader != null) {
+      this._shader.unbind();
+      CoffeeGL.Context.shader = this.saved_shader;
+    }
+    return this;
+  };
 
-  WebGLTriangleMesh = {};
+  WebGLNodeDrawable.brew = function() {
+    return brew(this.geometry);
+  };
 
-  WebGLTriangleMesh.brewed = false;
-
-  WebGLTriangleMesh.brew = WebGLTriangle.brew;
-
-  WebGLTriangleMesh.drawGL = WebGLTriangle.drawGL;
-
-  makeDrawableGL = function(obj) {
-    if (obj.geometry != null) {
-      if (obj.geometry instanceof Triangle) {
-        return util.extend(obj, WebGLTriangle);
-      } else if (obj.geometry instanceof Quad) {
-        return util.extend(obj, WebGLQuad);
-      } else if (obj.geometry instanceof TriangleMesh) {
-        return util.extend(obj, WebGLTriangleMesh);
+  makeNodeDrawableGL = function(node) {
+    util.extend(node, WebGLNodeDrawable);
+    if (node.geometry != null) {
+      if (node.geometry.brewed == null) {
+        node.geometry.brewed = false;
       }
     }
+    return this;
   };
 
   module.exports = {
-    makeDrawableGL: makeDrawableGL
+    makeNodeDrawableGL: makeNodeDrawableGL
   };
 
 }).call(this);
 
-},{"./math":4,"./colour":5,"./primitives":6,"./error":19,"./util":2}],16:[function(require,module,exports){
+},{"./math":4,"./colour":5,"./primitives":6,"./shapes":14,"./error":19,"./util":2}],16:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /*                    __  .__              ________ 
@@ -4707,6 +4819,11 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       fragment: "varying vec2 vTexCoord;uniform sampler2D uSampler;"
     };
 
+    ShaderLibrary.BasicMaterial = {
+      vertex: "",
+      fragment: "uniform vec3 uMaterialAmbientColor;uniform vec3 uMaterialDiffuseColor;uniform vec3 uMaterialSpecularColor;uniform float uMaterialShininess;uniform vec3 uMaterialEmissiveColor;"
+    };
+
     return ShaderLibrary;
 
   })();
@@ -4787,5 +4904,5 @@ TODO - updating the pos and the matrix together :S tricksy
 
 }).call(this);
 
-},{"./colour":5,"./math":4}]},{},[1])
+},{"./math":4,"./colour":5}]},{},[1])
 ;
