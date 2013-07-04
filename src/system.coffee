@@ -4,6 +4,7 @@ class EquatorieSystem
 
     @base_size = 6.0 # used with epicycle ratio
 
+
     @planet_data = {}
 
     # Data for the Equatorie mathematical model

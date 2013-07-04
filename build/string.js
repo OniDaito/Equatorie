@@ -7,8 +7,8 @@
   EquatorieString = (function(_super) {
     __extends(EquatorieString, _super);
 
-    function EquatorieString(length, thickness, segments, world) {
-      var base, body, c, colShape, i, localInertia, mass, motionState, pp, pq, rbInfo, seglength, segment_geom, segment_node, _i, _j, _ref, _ref1;
+    function EquatorieString(length, thickness, segments, start, end, world) {
+      var base, body, c, colShape, fixShape, i, localInertia, mass, motionState, pp, pq, rbInfo, seglength, segment_geom, segment_node, startMotionState, startRigidBodyCI, startTransform, _i, _j, _ref, _ref1;
       EquatorieString.__super__.constructor.call(this);
       seglength = length / segments;
       segment_geom = new CoffeeGL.Shapes.Cylinder(thickness, 12, seglength);
@@ -32,6 +32,18 @@
         c = new Ammo.btPoint2PointConstraint(this.children[i].phys, this.children[i + 1].phys, pp, pq);
         world.addConstraint(c, true);
       }
+      fixShape = new Ammo.btBoxShape(new Ammo.btVector3(0.1, 0.1, 0.1));
+      startTransform = new Ammo.btTransform();
+      startTransform.setIdentity();
+      startTransform.setOrigin(new Ammo.btVector3(start.x, start.y, start.z));
+      startMotionState = new Ammo.btDefaultMotionState(startTransform);
+      startRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0, startMotionState, fixShape, new Ammo.btVector3(0, 0, 0));
+      this.start = new Ammo.btRigidBody(startRigidBodyCI);
+      pp = new Ammo.btVector3(0, seglength / 2, 0);
+      pq = new Ammo.btVector3(0, -0.1, 0);
+      c = new Ammo.btPoint2PointConstraint(this.children[segments - 1].phys, this.start, pp, pq);
+      world.addConstraint(c, true);
+      world.addRigidBody(this.start);
     }
 
     EquatorieString.prototype.update = function() {

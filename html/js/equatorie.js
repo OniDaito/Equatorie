@@ -32,7 +32,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
     }
 
     Equatorie.prototype.init = function() {
-      var baseMotionState, baseRigidBodyCI, baseShape, baseTransform, collisionConfiguration, controller, cube, dispatcher, g, overlappingPairCache, r0, solver,
+      var baseMotionState, baseRigidBodyCI, baseShape, baseTransform, collisionConfiguration, controller, cube, dispatcher, g, overlappingPairCache, planets, r0, solver,
         _this = this;
       this.top_node = new CoffeeGL.Node();
       this.system = new EquatorieSystem();
@@ -88,8 +88,11 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       GL.enable(GL.DEPTH_TEST);
       g = new dat.GUI();
       g.remember(this);
+      planets = ["mars", "venus", "jupiter", "saturn"];
+      this.chosen_planet = "mars";
       controller = g.add(this.system, 'mean_argument', 0, 360);
       controller = g.add(this.system, 'mean_motus', 0, 360);
+      controller = g.add(this, 'chosen_planet', planets);
       collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
       dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
       overlappingPairCache = new Ammo.btDbvtBroadphase();
@@ -104,7 +107,8 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       baseRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0, baseMotionState, baseShape, new Ammo.btVector3(0, 0, 0));
       this.baseRigidBody = new Ammo.btRigidBody(baseRigidBodyCI);
       this.dynamicsWorld.addRigidBody(this.baseRigidBody);
-      this.white_string = new EquatorieString(8.0, 0.15, 20, this.dynamicsWorld);
+      this.white_string = new EquatorieString(8.0, 0.15, 20, new CoffeeGL.Vec3(2, 2, 2), new CoffeeGL.Vec3(-2, 2, 2), this.dynamicsWorld);
+      this.top_node.add(this.white_string);
       return CoffeeGL.Context.mouseDown.add(this.onMouseDown, this);
     };
 
@@ -117,10 +121,10 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       m = new CoffeeGL.Quaternion();
       m.fromAxisAngle(new CoffeeGL.Vec3(0, 1, 0), this.angle);
       m.transVec3(this.light.pos);
-      _ref = this.system.calculateDeferentPosition("mars"), x = _ref[0], y = _ref[1];
+      _ref = this.system.calculateDeferentPosition(this.chosen_planet), x = _ref[0], y = _ref[1];
       this.deferent.matrix.identity();
       this.deferent.matrix.translate(new CoffeeGL.Vec3(x, 0.2, y));
-      _ref1 = this.system.calculateEpicyclePosition("mars"), x = _ref1[0], y = _ref1[1];
+      _ref1 = this.system.calculateEpicyclePosition(this.chosen_planet), x = _ref1[0], y = _ref1[1];
       if ((_ref2 = this.epicycle) != null) {
         _ref2.matrix.identity();
       }
@@ -135,7 +139,8 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       if ((_ref5 = this.pointer) != null) {
         _ref5.matrix.mult(q.getMatrix4());
       }
-      this.dynamicsWorld.stepSimulation(dt / 1000.0, 10);
+      this.white_string.update();
+      this.dynamicsWorld.stepSimulation(dt / 1000.0, 5);
       return this;
     };
 
@@ -244,8 +249,8 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
   EquatorieString = (function(_super) {
     __extends(EquatorieString, _super);
 
-    function EquatorieString(length, thickness, segments, world) {
-      var base, body, c, colShape, i, localInertia, mass, motionState, pp, pq, rbInfo, seglength, segment_geom, segment_node, _i, _j, _ref, _ref1;
+    function EquatorieString(length, thickness, segments, start, end, world) {
+      var base, body, c, colShape, fixShape, i, localInertia, mass, motionState, pp, pq, rbInfo, seglength, segment_geom, segment_node, startMotionState, startRigidBodyCI, startTransform, _i, _j, _ref, _ref1;
       EquatorieString.__super__.constructor.call(this);
       seglength = length / segments;
       segment_geom = new CoffeeGL.Shapes.Cylinder(thickness, 12, seglength);
@@ -269,6 +274,18 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
         c = new Ammo.btPoint2PointConstraint(this.children[i].phys, this.children[i + 1].phys, pp, pq);
         world.addConstraint(c, true);
       }
+      fixShape = new Ammo.btBoxShape(new Ammo.btVector3(0.1, 0.1, 0.1));
+      startTransform = new Ammo.btTransform();
+      startTransform.setIdentity();
+      startTransform.setOrigin(new Ammo.btVector3(start.x, start.y, start.z));
+      startMotionState = new Ammo.btDefaultMotionState(startTransform);
+      startRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0, startMotionState, fixShape, new Ammo.btVector3(0, 0, 0));
+      this.start = new Ammo.btRigidBody(startRigidBodyCI);
+      pp = new Ammo.btVector3(0, seglength / 2, 0);
+      pq = new Ammo.btVector3(0, -0.1, 0);
+      c = new Ammo.btPoint2PointConstraint(this.children[segments - 1].phys, this.start, pp, pq);
+      world.addConstraint(c, true);
+      world.addRigidBody(this.start);
     }
 
     EquatorieString.prototype.update = function() {

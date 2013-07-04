@@ -97,8 +97,13 @@ class Equatorie
     g=new dat.GUI()
     g.remember(@)
     
+    planets = ["mars","venus","jupiter","saturn"]
+    @chosen_planet = "mars"
+
     controller = g.add(@system,'mean_argument',0,360)
     controller = g.add(@system,'mean_motus',0,360)
+    controller = g.add(@,'chosen_planet',planets)
+
 
     # Ammo.js setup for the string
     collisionConfiguration = new Ammo.btDefaultCollisionConfiguration()
@@ -123,8 +128,8 @@ class Equatorie
 
 
     # Add String
-    @white_string = new EquatorieString 8.0, 0.15, 20, @dynamicsWorld
-    #@top_node.add @white_string
+    @white_string = new EquatorieString 8.0, 0.15, 20, new CoffeeGL.Vec3(2,2,2), new CoffeeGL.Vec3(-2,2,2), @dynamicsWorld
+    @top_node.add @white_string
 
     # Register for click events
     CoffeeGL.Context.mouseDown.add @onMouseDown, @
@@ -141,11 +146,11 @@ class Equatorie
 
     # Calculate the Deferent Centre
     
-    [x,y] = @system.calculateDeferentPosition("mars")
+    [x,y] = @system.calculateDeferentPosition(@chosen_planet)
     @deferent.matrix.identity()
     @deferent.matrix.translate new CoffeeGL.Vec3 x,0.2,y
 
-    [x,y] = @system.calculateEpicyclePosition("mars")
+    [x,y] = @system.calculateEpicyclePosition(@chosen_planet)
     @epicycle?.matrix.identity()
     @epicycle?.matrix.translate new CoffeeGL.Vec3 x,0,y
 
@@ -156,9 +161,9 @@ class Equatorie
 
     @pointer?.matrix.mult q.getMatrix4()
 
-    #@white_string.update()
+    @white_string.update()
 
-    @dynamicsWorld.stepSimulation(dt / 1000.0, 10)
+    @dynamicsWorld.stepSimulation(dt / 1000.0, 5)
    
     @
 

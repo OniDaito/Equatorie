@@ -1,1 +1,2 @@
-* Currently having issues with Browserify and Uglify not working in build
+* Currently, the Equatorie works in a Clockwise fashion. I believe it should be anti-clockwise. Best check that.
+* telnet horizons.jpl.nasa.gov 6775
