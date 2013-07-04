@@ -14,88 +14,9 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
 ###
 
-class EquatorieSystem
 
-  constructor : () ->
-    @planet_data = {}
-
-    # Data for the Equatorie mathematical model
-
-    @planet_data.mars =
-      equant : 2.0
-      deferent : 1.0 
-      angle : 30.0
-
-    @mean_motus = 0     # Arc of motion of epicycle around deferent
-    @mean_argument = 0  # Arc of motion of planet around epicycle
-
-
-  calculateEpicycle : (planet) ->
-    # relative to 0 degrees - the sign of aries    
-    # Line of apsides
-    x = @planet_data[planet].deferent * Math.sin(CoffeeGL.degToRad @planet_data[planet].angle)
-    y = @planet_data[planet].deferent * Math.cos(CoffeeGL.degToRad @planet_data[planet].angle)
-    
-    # now rotate by mean motus and radius of epicycle (6.353 at present)
-
-    rx = 6.353 * Math.sin( CoffeeGL.degToRad @mean_motus)
-    ry = 6.353 * Math.cos( CoffeeGL.degToRad @mean_motus)
-
-    [x + rx, y + ry]  
-
-
-# Use Bullet physics and cylinders to represent the string
-class EquatorieString extends CoffeeGL.Node
-  constructor : (length, thickness, segments, world) ->
-    super()
-    seglength = length / segments
-
-    segment_geom = new CoffeeGL.Shapes.Cylinder(thickness, 12, seglength)
-
-    for i in [0..segments-1]
-      colShape = new Ammo.btCylinderShape new Ammo.btVector3 thickness/2, seglength, thickness/2
-      mass = 1.0
-      localInertia = new Ammo.btVector3(0, 0, 0)
-      colShape.calculateLocalInertia(mass, localInertia)
-  
-      base = 5.0 # raise up from 0
-      motionState = new Ammo.btDefaultMotionState(new Ammo.btTransform( new Ammo.btQuaternion(0,0,0,1), new Ammo.btVector3(0, base + seglength * i,0)))
-      rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, colShape, localInertia)
-      body = new Ammo.btRigidBody(rbInfo)
-
-      segment_node = new CoffeeGL.Node(segment_geom)
-      segment_node.phys = body
-      @add segment_node
-
-      world.addRigidBody(body)
-
-    # add Constraints to make this look like string
-    for i in [0..segments-2]
-      pp = new Ammo.btVector3(0, seglength / 2,0)
-      pq = new Ammo.btVector3(0, - seglength / 2,0)
-      c = new Ammo.btPoint2PointConstraint(@children[i].phys, @children[i+1].phys, pp, pq )
-      world.addConstraint(c,true)
-
-  update : () ->
-    trans = new Ammo.btTransform()
-    for segment in @children
-      segment.matrix.identity()
-
-      tq = new CoffeeGL.Quaternion()
-
-      segment.phys.getMotionState().getWorldTransform(trans)
-
-      tv = new CoffeeGL.Vec3(trans.getRotation().getAxis().x(),
-        trans.getRotation().getAxis().y() 
-        trans.getRotation().getAxis().z())
-      
-      tq.fromAxisAngle(tv,trans.getRotation().getAngle())
-
-      tmatrix = tq.getMatrix4()
-      tmatrix.setPos new CoffeeGL.Vec3 trans.getOrigin().getX(), trans.getOrigin().getY(), trans.getOrigin().getZ()
-
-      segment.matrix.copyFrom(tmatrix)
-
+{EquatorieSystem} = require './system'
+{EquatorieString} = require './string'
 
 class Equatorie
 
@@ -110,6 +31,9 @@ class Equatorie
       @shader_basic = new CoffeeGL.Shader(data, {"uColour" : "uColour"})
       @white_string.shader = @shader_basic
       @white_string.uColour = new CoffeeGL.Colour.RGBA(0.0,1.0,1.0,1.0)
+
+      @deferent.shader = @shader_basic
+      @deferent.uColour = new CoffeeGL.Colour.RGBA(1.0,0.0,0.0,1.0)
 
       r1 = new CoffeeGL.Request ('../shaders/basic_lighting.glsl')
       
@@ -147,7 +71,10 @@ class Equatorie
 
           @base.matrix.mult q.getMatrix4() 
 
-     
+    cube = new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.2,0.2,0.2
+
+    @deferent = new CoffeeGL.Node cube
+    @top_node.add @deferent
 
 
     @c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0,0,25))
@@ -197,7 +124,7 @@ class Equatorie
 
     # Add String
     @white_string = new EquatorieString 8.0, 0.15, 20, @dynamicsWorld
-    @top_node.add @white_string
+    #@top_node.add @white_string
 
     # Register for click events
     CoffeeGL.Context.mouseDown.add @onMouseDown, @
@@ -212,9 +139,13 @@ class Equatorie
     m.fromAxisAngle(new CoffeeGL.Vec3(0,1,0), @angle)
     m.transVec3(@light.pos)
 
-    # Calculate the epicycle
-    [x,y] = @system.calculateEpicycle("mars")
+    # Calculate the Deferent Centre
+    
+    [x,y] = @system.calculateDeferentPosition("mars")
+    @deferent.matrix.identity()
+    @deferent.matrix.translate new CoffeeGL.Vec3 x,0.2,y
 
+    [x,y] = @system.calculateEpicyclePosition("mars")
     @epicycle?.matrix.identity()
     @epicycle?.matrix.translate new CoffeeGL.Vec3 x,0,y
 
@@ -225,7 +156,7 @@ class Equatorie
 
     @pointer?.matrix.mult q.getMatrix4()
 
-    @white_string.update()
+    #@white_string.update()
 
     @dynamicsWorld.stepSimulation(dt / 1000.0, 10)
    

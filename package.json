@@ -1,15 +1,15 @@
 {
-    "name": "coffeegl",
+    "name": "equatorie",
     "version": "0.1.0",
-    "description": "WebGL Framework written in CoffeeScript",
-    "main": "lib/coffeegl.js",
+    "description": "Equatorie written in CoffeeScript",
+    "main": "equatorie.js",
     "scripts": {
         "postinstall": "make dist",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "repository": {
         "type": "git",
-        "url": "git://github.com/OniDaito/CoffeeGL.git"
+        "url": "git://github.com/OniDaito/Equatorie.git"
     },
     "keywords": [
         "webgl",
@@ -22,7 +22,6 @@
     "author": "Benjamin Blundell",
     "license": "Creative Commons Attribution Non-Commercial Share Alike",
     "readmeFilename": "README.markdown",
-    "gitHead": "29d4cee01e8870ffdbef8ac4ece94cfd0df24546",
     "dependencies": {
         
     },

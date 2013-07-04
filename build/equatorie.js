@@ -17,87 +17,11 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
 (function() {
   var Equatorie, EquatorieString, EquatorieSystem, cgl, eq,
-    __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
-  EquatorieSystem = (function() {
-    function EquatorieSystem() {
-      this.planet_data = {};
-      this.planet_data.mars = {
-        equant: 2.0,
-        deferent: 1.0,
-        angle: 30.0
-      };
-      this.mean_motus = 0;
-      this.mean_argument = 0;
-    }
+  EquatorieSystem = require('./system').EquatorieSystem;
 
-    EquatorieSystem.prototype.calculateEpicycle = function(planet) {
-      var rx, ry, x, y;
-      x = this.planet_data[planet].deferent * Math.sin(CoffeeGL.degToRad(this.planet_data[planet].angle));
-      y = this.planet_data[planet].deferent * Math.cos(CoffeeGL.degToRad(this.planet_data[planet].angle));
-      rx = 6.353 * Math.sin(CoffeeGL.degToRad(this.mean_motus));
-      ry = 6.353 * Math.cos(CoffeeGL.degToRad(this.mean_motus));
-      return [x + rx, y + ry];
-    };
-
-    return EquatorieSystem;
-
-  })();
-
-  EquatorieString = (function(_super) {
-    __extends(EquatorieString, _super);
-
-    function EquatorieString(length, thickness, segments, world) {
-      var base, body, c, colShape, i, localInertia, mass, motionState, pp, pq, rbInfo, seglength, segment_geom, segment_node, _i, _j, _ref, _ref1;
-      EquatorieString.__super__.constructor.call(this);
-      seglength = length / segments;
-      segment_geom = new CoffeeGL.Shapes.Cylinder(thickness, 12, seglength);
-      for (i = _i = 0, _ref = segments - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-        colShape = new Ammo.btCylinderShape(new Ammo.btVector3(thickness / 2, seglength, thickness / 2));
-        mass = 1.0;
-        localInertia = new Ammo.btVector3(0, 0, 0);
-        colShape.calculateLocalInertia(mass, localInertia);
-        base = 5.0;
-        motionState = new Ammo.btDefaultMotionState(new Ammo.btTransform(new Ammo.btQuaternion(0, 0, 0, 1), new Ammo.btVector3(0, base + seglength * i, 0)));
-        rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, colShape, localInertia);
-        body = new Ammo.btRigidBody(rbInfo);
-        segment_node = new CoffeeGL.Node(segment_geom);
-        segment_node.phys = body;
-        this.add(segment_node);
-        world.addRigidBody(body);
-      }
-      for (i = _j = 0, _ref1 = segments - 2; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
-        pp = new Ammo.btVector3(0, seglength / 2, 0);
-        pq = new Ammo.btVector3(0, -seglength / 2, 0);
-        c = new Ammo.btPoint2PointConstraint(this.children[i].phys, this.children[i + 1].phys, pp, pq);
-        world.addConstraint(c, true);
-      }
-    }
-
-    EquatorieString.prototype.update = function() {
-      var segment, tmatrix, tq, trans, tv, _i, _len, _ref, _results;
-      trans = new Ammo.btTransform();
-      _ref = this.children;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        segment = _ref[_i];
-        segment.matrix.identity();
-        tq = new CoffeeGL.Quaternion();
-        segment.phys.getMotionState().getWorldTransform(trans);
-        tv = new CoffeeGL.Vec3(trans.getRotation().getAxis().x(), trans.getRotation().getAxis().y(), trans.getRotation().getAxis().z());
-        tq.fromAxisAngle(tv, trans.getRotation().getAngle());
-        tmatrix = tq.getMatrix4();
-        tmatrix.setPos(new CoffeeGL.Vec3(trans.getOrigin().getX(), trans.getOrigin().getY(), trans.getOrigin().getZ()));
-        _results.push(segment.matrix.copyFrom(tmatrix));
-      }
-      return _results;
-    };
-
-    return EquatorieString;
-
-  })(CoffeeGL.Node);
+  EquatorieString = require('./string').EquatorieString;
 
   Equatorie = (function() {
     function Equatorie() {
@@ -107,7 +31,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
     }
 
     Equatorie.prototype.init = function() {
-      var baseMotionState, baseRigidBodyCI, baseShape, baseTransform, collisionConfiguration, controller, dispatcher, g, overlappingPairCache, r0, solver,
+      var baseMotionState, baseRigidBodyCI, baseShape, baseTransform, collisionConfiguration, controller, cube, dispatcher, g, overlappingPairCache, r0, solver,
         _this = this;
       this.top_node = new CoffeeGL.Node();
       this.system = new EquatorieSystem();
@@ -119,6 +43,8 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
         });
         _this.white_string.shader = _this.shader_basic;
         _this.white_string.uColour = new CoffeeGL.Colour.RGBA(0.0, 1.0, 1.0, 1.0);
+        _this.deferent.shader = _this.shader_basic;
+        _this.deferent.uColour = new CoffeeGL.Colour.RGBA(1.0, 0.0, 0.0, 1.0);
         r1 = new CoffeeGL.Request('../shaders/basic_lighting.glsl');
         return r1.get(function(data) {
           var r2;
@@ -147,6 +73,9 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
           });
         });
       });
+      cube = new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.2, 0.2, 0.2));
+      this.deferent = new CoffeeGL.Node(cube);
+      this.top_node.add(this.deferent);
       this.c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0, 0, 25));
       this.top_node.add(this.c);
       this.light = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0, 5.0, 25.0), new CoffeeGL.Colour.RGB(1.0, 1.0, 1.0));
@@ -175,12 +104,11 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       this.baseRigidBody = new Ammo.btRigidBody(baseRigidBodyCI);
       this.dynamicsWorld.addRigidBody(this.baseRigidBody);
       this.white_string = new EquatorieString(8.0, 0.15, 20, this.dynamicsWorld);
-      this.top_node.add(this.white_string);
       return CoffeeGL.Context.mouseDown.add(this.onMouseDown, this);
     };
 
     Equatorie.prototype.update = function(dt) {
-      var m, q, x, y, _ref, _ref1, _ref2, _ref3, _ref4;
+      var m, q, x, y, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
       this.angle = dt * 0.001 * CoffeeGL.degToRad(20.0);
       if (this.angle >= CoffeeGL.PI * 2) {
         this.angle = 0;
@@ -188,22 +116,24 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       m = new CoffeeGL.Quaternion();
       m.fromAxisAngle(new CoffeeGL.Vec3(0, 1, 0), this.angle);
       m.transVec3(this.light.pos);
-      _ref = this.system.calculateEpicycle("mars"), x = _ref[0], y = _ref[1];
-      if ((_ref1 = this.epicycle) != null) {
-        _ref1.matrix.identity();
-      }
+      _ref = this.system.calculateDeferentPosition("mars"), x = _ref[0], y = _ref[1];
+      this.deferent.matrix.identity();
+      this.deferent.matrix.translate(new CoffeeGL.Vec3(x, 0.2, y));
+      _ref1 = this.system.calculateEpicyclePosition("mars"), x = _ref1[0], y = _ref1[1];
       if ((_ref2 = this.epicycle) != null) {
-        _ref2.matrix.translate(new CoffeeGL.Vec3(x, 0, y));
+        _ref2.matrix.identity();
       }
-      if ((_ref3 = this.pointer) != null) {
-        _ref3.matrix.identity();
+      if ((_ref3 = this.epicycle) != null) {
+        _ref3.matrix.translate(new CoffeeGL.Vec3(x, 0, y));
+      }
+      if ((_ref4 = this.pointer) != null) {
+        _ref4.matrix.identity();
       }
       q = new CoffeeGL.Quaternion();
       q.fromAxisAngle(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(this.system.mean_argument));
-      if ((_ref4 = this.pointer) != null) {
-        _ref4.matrix.mult(q.getMatrix4());
+      if ((_ref5 = this.pointer) != null) {
+        _ref5.matrix.mult(q.getMatrix4());
       }
-      this.white_string.update();
       this.dynamicsWorld.stepSimulation(dt / 1000.0, 10);
       return this;
     };
