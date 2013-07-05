@@ -27,21 +27,31 @@ class Equatorie
 
     # Nodes for the picking
     @pickable = new CoffeeGL.Node()
+    @fbo_picking = new CoffeeGL.Fbo()
+    @ray = new CoffeeGL.Vec3(0,0,0)
+
+    # Nodes being drawn with the basic shader
+    @basic_nodes = new CoffeeGL.Node()
+
+    # Mouse positions
+    @mp = new CoffeeGL.Vec2(-1,-1)
+    @mpp = new CoffeeGL.Vec2(-1,-1)
+    @mpd = new CoffeeGL.Vec2(0,0)
+    @mdown = false
 
     @system = new EquatorieSystem()
 
     r0 = new CoffeeGL.Request ('../shaders/basic.glsl')
     r0.get (data) =>
       @shader_basic = new CoffeeGL.Shader(data, {"uColour" : "uColour"})
-      @white_string.shader = @shader_basic
-      @black_string.shader = @shader_basic
-      @white_string.uColour = new CoffeeGL.Colour.RGBA(0.9,0.9,0.9,1.0)
-      @black_string.uColour = new CoffeeGL.Colour.RGBA(0.1,0.1,0.1,1.0)
+
+      
+      @top_node.add @basic_nodes
+      @basic_nodes.shader = @shader_basic
+
 
       @deferent.shader = @shader_basic
       @deferent.uColour = new CoffeeGL.Colour.RGBA(1.0,0.0,0.0,1.0)
-
-
 
       r1 = new CoffeeGL.Request ('../shaders/basic_lighting.glsl')
       
@@ -82,6 +92,7 @@ class Equatorie
           r3 = new CoffeeGL.Request('../shaders/picking.glsl')
           r3.get (data) =>
             @shader_picker = new CoffeeGL.Shader(data, {"uPickingColour" : "uPickingColour"})
+            @pickable.shader = @shader_picker
 
 
     # Points on the surface of the Equatorie
@@ -89,15 +100,14 @@ class Equatorie
     @deferent = new CoffeeGL.Node cube
     @top_node.add @deferent
 
-
-
+    @equant = new CoffeeGL.Node cube
+    @top_node.add @equant
 
     @c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0,0,25))
     @top_node.add(@c)
     @pickable.add(@c)
 
     @light = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0,5.0,25.0), new CoffeeGL.Colour.RGB(1.0,1.0,1.0) );
-
     @light2 = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0,15.0,5.0), new CoffeeGL.Colour.RGB(1.0,1.0,1.0) );
 
     @top_node.add(@light)
@@ -127,6 +137,34 @@ class Equatorie
     @top_node.add @white_string
     @top_node.add @black_string
 
+    @white_start = new CoffeeGL.Node cube
+    @pickable.add @white_start
+    @white_start.matrix.translate new CoffeeGL.Vec3 2,2,2
+    @white_start.uPickingColour = new CoffeeGL.Colour.RGBA(1.0,0.0,0.0,1.0)
+
+    @white_end = new CoffeeGL.Node cube
+    @pickable.add @white_end
+    @white_end.matrix.translate new CoffeeGL.Vec3 -2,2,-2
+    @white_end.uPickingColour = new CoffeeGL.Colour.RGBA(1.0,1.0,0.0,1.0)
+
+    @black_start = new CoffeeGL.Node cube
+    @pickable.add @black_start
+    @black_start.matrix.translate new CoffeeGL.Vec3 -2,2,2
+    @black_start.uPickingColour = new CoffeeGL.Colour.RGBA(0.0,1.0,1.0,1.0)
+
+    @black_end = new CoffeeGL.Node cube
+    @pickable.add @black_end
+    @black_end.matrix.translate new CoffeeGL.Vec3 -4,2,2
+    @black_end.uPickingColour = new CoffeeGL.Colour.RGBA(1.0,1.0,1.0,1.0)
+
+    @basic_nodes.add(@white_string).add(@black_string)
+    @basic_nodes.add(@white_start).add(@white_end)
+    @basic_nodes.add(@black_start).add(@black_end)
+
+    @white_string.uColour = new CoffeeGL.Colour.RGBA(0.9,0.9,0.9,1.0)
+    @black_string.uColour = new CoffeeGL.Colour.RGBA(0.1,0.1,0.1,1.0)
+    @white_start.uColour = new CoffeeGL.Colour.RGBA(0.9,0.2,0.2,0.8)
+    @white_end.uColour = new CoffeeGL.Colour.RGBA(0.9,0.2,0.2,0.8)
 
     # Launch physics web worker
     @physics = new Worker '/js/physics.js'
@@ -134,8 +172,12 @@ class Equatorie
     @physics.postMessage { cmd: "startup" }
 
 
-    # Register for click events
+    # Register for mouse events
     CoffeeGL.Context.mouseDown.add @onMouseDown, @
+    CoffeeGL.Context.mouseOver.add @onMouseOver, @
+    CoffeeGL.Context.mouseOut.add @onMouseOut, @
+    CoffeeGL.Context.mouseMove.add @onMouseMove, @
+    CoffeeGL.Context.mouseUp.add @onMouseUp, @
 
 
   update : (dt) =>
@@ -172,12 +214,49 @@ class Equatorie
     @black_string.update data.black
 
   onMouseDown : (event) ->
-    @physics.postMessage {cmd : "white_start_move", data: {x:3, y: 0.5, z: 3}}
+    #@physics.postMessage {cmd : "white_start_move", data: {x:3, y: 0.5, z: 3}}
+    
+    ray = @c.castRay @mp.x, @mp.y
+    d = CoffeeGL.rayPlaneIntersect new CoffeeGL.Vec3(0,0,0), new CoffeeGL.Vec3(0,1,0), @c.pos, ray
+    console.log d
+    if @mdown
+      dray = @
+
+    @mdown = true
+
+  onMouseMove : (event) ->
+    @mpp.x = @mp.x
+    @mpp.y = @mp.y
+
+    @mp.x = event.mouseX
+    @mp.y = event.mouseY
+
+    @mpd.x = @mp.x - @mpp.x
+    @mpd.y = @mp.y - @mpp.y
+
+  onMouseOver : (event) ->    
+    @mp.x = event.mouseX
+    @mp.y = event.mouseY
+
+  onMouseUp : (event) ->
+    @mdown = false
+
+  onMouseOut : (event) ->
+    @mp.x = @mpp.x = -1
+    @mp.y = @mpp.y = -1
+    @mpd.x = @mpd.y = 0
+
+    @mdown = false
 
   onPhysicsEvent : (event) =>
     switch event.data.cmd
       when "physics" then @updatePhysics event.data.data
       else break
+
+
+  checkPicked : (pixel) ->
+    #console.log pixel
+
 
   draw : () =>
 
@@ -187,14 +266,23 @@ class Equatorie
     @c.update()
 
     @top_node.draw() if @top_node?
-
-
+    
     # Draw everything pickable to the pickable FBO
     if @shader_picker?
+      @fbo_picking.bind()
       @shader_picker.bind()
       @pickable.draw()
-      @shader_picker.unbind()
+    
+      # Cx for picking
+      if @mp.y != -1 and @mp.x != -1 and @mdown
+        pixel = new Uint8Array(4);
+        GL.readPixels(@mp.x, @fbo_picking.height - @mp.y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixel)
 
+        @checkPicked pixel
+    
+      @shader_picker.unbind()
+      @fbo_picking.unbind()
+    
   
 eq = new Equatorie()
 

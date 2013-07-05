@@ -37,6 +37,13 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
         _this = this;
       this.top_node = new CoffeeGL.Node();
       this.pickable = new CoffeeGL.Node();
+      this.fbo_picking = new CoffeeGL.Fbo();
+      this.ray = new CoffeeGL.Vec3(0, 0, 0);
+      this.basic_nodes = new CoffeeGL.Node();
+      this.mp = new CoffeeGL.Vec2(-1, -1);
+      this.mpp = new CoffeeGL.Vec2(-1, -1);
+      this.mpd = new CoffeeGL.Vec2(0, 0);
+      this.mdown = false;
       this.system = new EquatorieSystem();
       r0 = new CoffeeGL.Request('../shaders/basic.glsl');
       r0.get(function(data) {
@@ -44,10 +51,8 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
         _this.shader_basic = new CoffeeGL.Shader(data, {
           "uColour": "uColour"
         });
-        _this.white_string.shader = _this.shader_basic;
-        _this.black_string.shader = _this.shader_basic;
-        _this.white_string.uColour = new CoffeeGL.Colour.RGBA(0.9, 0.9, 0.9, 1.0);
-        _this.black_string.uColour = new CoffeeGL.Colour.RGBA(0.1, 0.1, 0.1, 1.0);
+        _this.top_node.add(_this.basic_nodes);
+        _this.basic_nodes.shader = _this.shader_basic;
         _this.deferent.shader = _this.shader_basic;
         _this.deferent.uColour = new CoffeeGL.Colour.RGBA(1.0, 0.0, 0.0, 1.0);
         r1 = new CoffeeGL.Request('../shaders/basic_lighting.glsl');
@@ -77,9 +82,10 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
             _this.base.matrix.mult(q.getMatrix4());
             r3 = new CoffeeGL.Request('../shaders/picking.glsl');
             return r3.get(function(data) {
-              return _this.shader_picker = new CoffeeGL.Shader(data, {
+              _this.shader_picker = new CoffeeGL.Shader(data, {
                 "uPickingColour": "uPickingColour"
               });
+              return _this.pickable.shader = _this.shader_picker;
             });
           });
         });
@@ -87,6 +93,8 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       cube = new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.2, 0.2, 0.2));
       this.deferent = new CoffeeGL.Node(cube);
       this.top_node.add(this.deferent);
+      this.equant = new CoffeeGL.Node(cube);
+      this.top_node.add(this.equant);
       this.c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0, 0, 25));
       this.top_node.add(this.c);
       this.pickable.add(this.c);
@@ -108,12 +116,39 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       this.black_string = new EquatorieString(8.0, 0.1, 20);
       this.top_node.add(this.white_string);
       this.top_node.add(this.black_string);
+      this.white_start = new CoffeeGL.Node(cube);
+      this.pickable.add(this.white_start);
+      this.white_start.matrix.translate(new CoffeeGL.Vec3(2, 2, 2));
+      this.white_start.uPickingColour = new CoffeeGL.Colour.RGBA(1.0, 0.0, 0.0, 1.0);
+      this.white_end = new CoffeeGL.Node(cube);
+      this.pickable.add(this.white_end);
+      this.white_end.matrix.translate(new CoffeeGL.Vec3(-2, 2, -2));
+      this.white_end.uPickingColour = new CoffeeGL.Colour.RGBA(1.0, 1.0, 0.0, 1.0);
+      this.black_start = new CoffeeGL.Node(cube);
+      this.pickable.add(this.black_start);
+      this.black_start.matrix.translate(new CoffeeGL.Vec3(-2, 2, 2));
+      this.black_start.uPickingColour = new CoffeeGL.Colour.RGBA(0.0, 1.0, 1.0, 1.0);
+      this.black_end = new CoffeeGL.Node(cube);
+      this.pickable.add(this.black_end);
+      this.black_end.matrix.translate(new CoffeeGL.Vec3(-4, 2, 2));
+      this.black_end.uPickingColour = new CoffeeGL.Colour.RGBA(1.0, 1.0, 1.0, 1.0);
+      this.basic_nodes.add(this.white_string).add(this.black_string);
+      this.basic_nodes.add(this.white_start).add(this.white_end);
+      this.basic_nodes.add(this.black_start).add(this.black_end);
+      this.white_string.uColour = new CoffeeGL.Colour.RGBA(0.9, 0.9, 0.9, 1.0);
+      this.black_string.uColour = new CoffeeGL.Colour.RGBA(0.1, 0.1, 0.1, 1.0);
+      this.white_start.uColour = new CoffeeGL.Colour.RGBA(0.9, 0.2, 0.2, 0.8);
+      this.white_end.uColour = new CoffeeGL.Colour.RGBA(0.9, 0.2, 0.2, 0.8);
       this.physics = new Worker('/js/physics.js');
       this.physics.onmessage = this.onPhysicsEvent;
       this.physics.postMessage({
         cmd: "startup"
       });
-      return CoffeeGL.Context.mouseDown.add(this.onMouseDown, this);
+      CoffeeGL.Context.mouseDown.add(this.onMouseDown, this);
+      CoffeeGL.Context.mouseOver.add(this.onMouseOver, this);
+      CoffeeGL.Context.mouseOut.add(this.onMouseOut, this);
+      CoffeeGL.Context.mouseMove.add(this.onMouseMove, this);
+      return CoffeeGL.Context.mouseUp.add(this.onMouseUp, this);
     };
 
     Equatorie.prototype.update = function(dt) {
@@ -152,14 +187,39 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
     };
 
     Equatorie.prototype.onMouseDown = function(event) {
-      return this.physics.postMessage({
-        cmd: "white_start_move",
-        data: {
-          x: 3,
-          y: 0.5,
-          z: 3
-        }
-      });
+      var d, dray, ray;
+      ray = this.c.castRay(this.mp.x, this.mp.y);
+      d = CoffeeGL.rayPlaneIntersect(new CoffeeGL.Vec3(0, 0, 0), new CoffeeGL.Vec3(0, 1, 0), this.c.pos, ray);
+      console.log(d);
+      if (this.mdown) {
+        dray = this;
+      }
+      return this.mdown = true;
+    };
+
+    Equatorie.prototype.onMouseMove = function(event) {
+      this.mpp.x = this.mp.x;
+      this.mpp.y = this.mp.y;
+      this.mp.x = event.mouseX;
+      this.mp.y = event.mouseY;
+      this.mpd.x = this.mp.x - this.mpp.x;
+      return this.mpd.y = this.mp.y - this.mpp.y;
+    };
+
+    Equatorie.prototype.onMouseOver = function(event) {
+      this.mp.x = event.mouseX;
+      return this.mp.y = event.mouseY;
+    };
+
+    Equatorie.prototype.onMouseUp = function(event) {
+      return this.mdown = false;
+    };
+
+    Equatorie.prototype.onMouseOut = function(event) {
+      this.mp.x = this.mpp.x = -1;
+      this.mp.y = this.mpp.y = -1;
+      this.mpd.x = this.mpd.y = 0;
+      return this.mdown = false;
     };
 
     Equatorie.prototype.onPhysicsEvent = function(event) {
@@ -171,7 +231,10 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       }
     };
 
+    Equatorie.prototype.checkPicked = function(pixel) {};
+
     Equatorie.prototype.draw = function() {
+      var pixel;
       GL.clearColor(0.15, 0.15, 0.15, 1.0);
       GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
       this.c.update();
@@ -179,9 +242,16 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
         this.top_node.draw();
       }
       if (this.shader_picker != null) {
+        this.fbo_picking.bind();
         this.shader_picker.bind();
         this.pickable.draw();
-        return this.shader_picker.unbind();
+        if (this.mp.y !== -1 && this.mp.x !== -1 && this.mdown) {
+          pixel = new Uint8Array(4);
+          GL.readPixels(this.mp.x, this.fbo_picking.height - this.mp.y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixel);
+          this.checkPicked(pixel);
+        }
+        this.shader_picker.unbind();
+        return this.fbo_picking.unbind();
       }
     };
 
