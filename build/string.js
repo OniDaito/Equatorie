@@ -7,60 +7,33 @@
   EquatorieString = (function(_super) {
     __extends(EquatorieString, _super);
 
-    function EquatorieString(length, thickness, segments, start, end, world) {
-      var base, body, c, colShape, fixShape, i, localInertia, mass, motionState, pp, pq, rbInfo, seglength, segment_geom, segment_node, startMotionState, startRigidBodyCI, startTransform, _i, _j, _ref, _ref1;
+    function EquatorieString(length, thickness, segments) {
+      var i, seglength, segment_geom, segment_node, _i, _ref;
       EquatorieString.__super__.constructor.call(this);
       seglength = length / segments;
       segment_geom = new CoffeeGL.Shapes.Cylinder(thickness, 12, seglength);
       for (i = _i = 0, _ref = segments - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-        colShape = new Ammo.btCylinderShape(new Ammo.btVector3(thickness / 2, seglength, thickness / 2));
-        mass = 1.0;
-        localInertia = new Ammo.btVector3(0, 0, 0);
-        colShape.calculateLocalInertia(mass, localInertia);
-        base = 5.0;
-        motionState = new Ammo.btDefaultMotionState(new Ammo.btTransform(new Ammo.btQuaternion(0, 0, 0, 1), new Ammo.btVector3(0, base + seglength * i, 0)));
-        rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, colShape, localInertia);
-        body = new Ammo.btRigidBody(rbInfo);
         segment_node = new CoffeeGL.Node(segment_geom);
-        segment_node.phys = body;
         this.add(segment_node);
-        world.addRigidBody(body);
       }
-      for (i = _j = 0, _ref1 = segments - 2; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
-        pp = new Ammo.btVector3(0, seglength / 2, 0);
-        pq = new Ammo.btVector3(0, -seglength / 2, 0);
-        c = new Ammo.btPoint2PointConstraint(this.children[i].phys, this.children[i + 1].phys, pp, pq);
-        world.addConstraint(c, true);
-      }
-      fixShape = new Ammo.btBoxShape(new Ammo.btVector3(0.1, 0.1, 0.1));
-      startTransform = new Ammo.btTransform();
-      startTransform.setIdentity();
-      startTransform.setOrigin(new Ammo.btVector3(start.x, start.y, start.z));
-      startMotionState = new Ammo.btDefaultMotionState(startTransform);
-      startRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0, startMotionState, fixShape, new Ammo.btVector3(0, 0, 0));
-      this.start = new Ammo.btRigidBody(startRigidBodyCI);
-      pp = new Ammo.btVector3(0, seglength / 2, 0);
-      pq = new Ammo.btVector3(0, -0.1, 0);
-      c = new Ammo.btPoint2PointConstraint(this.children[segments - 1].phys, this.start, pp, pq);
-      world.addConstraint(c, true);
-      world.addRigidBody(this.start);
     }
 
-    EquatorieString.prototype.update = function() {
-      var segment, tmatrix, tq, trans, tv, _i, _len, _ref, _results;
-      trans = new Ammo.btTransform();
+    EquatorieString.prototype.update = function(data) {
+      var idx, phys, segment, tmatrix, tq, tv, _i, _len, _ref, _results;
+      idx = 0;
       _ref = this.children;
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         segment = _ref[_i];
+        phys = data.segments[idx];
         segment.matrix.identity();
         tq = new CoffeeGL.Quaternion();
-        segment.phys.getMotionState().getWorldTransform(trans);
-        tv = new CoffeeGL.Vec3(trans.getRotation().getAxis().x(), trans.getRotation().getAxis().y(), trans.getRotation().getAxis().z());
-        tq.fromAxisAngle(tv, trans.getRotation().getAngle());
+        tv = new CoffeeGL.Vec3(phys.rax, phys.ray, phys.raz);
+        tq.fromAxisAngle(tv, phys.ra);
         tmatrix = tq.getMatrix4();
-        tmatrix.setPos(new CoffeeGL.Vec3(trans.getOrigin().getX(), trans.getOrigin().getY(), trans.getOrigin().getZ()));
-        _results.push(segment.matrix.copyFrom(tmatrix));
+        tmatrix.setPos(new CoffeeGL.Vec3(phys.x, phys.y, phys.z));
+        segment.matrix.copyFrom(tmatrix);
+        _results.push(idx++);
       }
       return _results;
     };

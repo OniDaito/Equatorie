@@ -29,6 +29,7 @@ web: build
 	${UGLIFY} build/equatorie_full.js > build/equatorie.min.js
 	cp build/equatorie_full.js html/js/equatorie.js
 	cp build/equatorie.min.js html/js/equatorie.min.js
+	cp build/physics.js html/js/physics.js
 
 docs:
 	docco src/*.coffee

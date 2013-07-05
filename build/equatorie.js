@@ -26,14 +26,16 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
   Equatorie = (function() {
     function Equatorie() {
       this.draw = __bind(this.draw, this);
+      this.onPhysicsEvent = __bind(this.onPhysicsEvent, this);
       this.update = __bind(this.update, this);
       this.init = __bind(this.init, this);
     }
 
     Equatorie.prototype.init = function() {
-      var baseMotionState, baseRigidBodyCI, baseShape, baseTransform, collisionConfiguration, controller, cube, dispatcher, g, overlappingPairCache, planets, r0, solver,
+      var controller, cube, g, planets, r0,
         _this = this;
       this.top_node = new CoffeeGL.Node();
+      this.pickable = new CoffeeGL.Node();
       this.system = new EquatorieSystem();
       r0 = new CoffeeGL.Request('../shaders/basic.glsl');
       r0.get(function(data) {
@@ -42,7 +44,9 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
           "uColour": "uColour"
         });
         _this.white_string.shader = _this.shader_basic;
-        _this.white_string.uColour = new CoffeeGL.Colour.RGBA(0.0, 1.0, 1.0, 1.0);
+        _this.black_string.shader = _this.shader_basic;
+        _this.white_string.uColour = new CoffeeGL.Colour.RGBA(0.9, 0.9, 0.9, 1.0);
+        _this.black_string.uColour = new CoffeeGL.Colour.RGBA(0.1, 0.1, 0.1, 1.0);
         _this.deferent.shader = _this.shader_basic;
         _this.deferent.uColour = new CoffeeGL.Colour.RGBA(1.0, 0.0, 0.0, 1.0);
         r1 = new CoffeeGL.Request('../shaders/basic_lighting.glsl');
@@ -53,7 +57,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
           });
           r2 = new CoffeeGL.Request('../models/equatorie.js');
           return r2.get(function(data) {
-            var q;
+            var q, r3;
             _this.g = new CoffeeGL.JSONModel(data);
             _this.top_node.add(_this.g);
             _this.pointer = _this.g.children[0];
@@ -69,7 +73,13 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
             _this.epicycle.add(_this.pointer);
             q = new CoffeeGL.Quaternion();
             q.fromAxisAngle(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(-90.0));
-            return _this.base.matrix.mult(q.getMatrix4());
+            _this.base.matrix.mult(q.getMatrix4());
+            r3 = new CoffeeGL.Request('../shaders/picking.glsl');
+            return r3.get(function(data) {
+              return _this.shader_picker = new CoffeeGL.Shader(data, {
+                "uPickingColour": "uPickingColour"
+              });
+            });
           });
         });
       });
@@ -78,6 +88,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       this.top_node.add(this.deferent);
       this.c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0, 0, 25));
       this.top_node.add(this.c);
+      this.pickable.add(this.c);
       this.light = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0, 5.0, 25.0), new CoffeeGL.Colour.RGB(1.0, 1.0, 1.0));
       this.light2 = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0, 15.0, 5.0), new CoffeeGL.Colour.RGB(1.0, 1.0, 1.0));
       this.top_node.add(this.light);
@@ -92,22 +103,15 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       controller = g.add(this.system, 'mean_argument', 0, 360);
       controller = g.add(this.system, 'mean_motus', 0, 360);
       controller = g.add(this, 'chosen_planet', planets);
-      collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
-      dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
-      overlappingPairCache = new Ammo.btDbvtBroadphase();
-      solver = new Ammo.btSequentialImpulseConstraintSolver();
-      this.dynamicsWorld = new Ammo.btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
-      this.dynamicsWorld.setGravity(new Ammo.btVector3(0, -10, 0));
-      baseShape = new Ammo.btCylinderShape(new Ammo.btVector3(6.0, 0.1, 6.0));
-      baseTransform = new Ammo.btTransform();
-      baseTransform.setIdentity();
-      baseTransform.setOrigin(new Ammo.btVector3(0, 0, 0));
-      baseMotionState = new Ammo.btDefaultMotionState(baseTransform);
-      baseRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0, baseMotionState, baseShape, new Ammo.btVector3(0, 0, 0));
-      this.baseRigidBody = new Ammo.btRigidBody(baseRigidBodyCI);
-      this.dynamicsWorld.addRigidBody(this.baseRigidBody);
-      this.white_string = new EquatorieString(8.0, 0.15, 20, new CoffeeGL.Vec3(2, 2, 2), new CoffeeGL.Vec3(-2, 2, 2), this.dynamicsWorld);
+      this.white_string = new EquatorieString(8.0, 0.1, 20);
+      this.black_string = new EquatorieString(8.0, 0.1, 20);
       this.top_node.add(this.white_string);
+      this.top_node.add(this.black_string);
+      this.physics = new Worker('/js/physics.js');
+      this.physics.onmessage = this.onPhysicsEvent;
+      this.physics.postMessage({
+        cmd: "startup"
+      });
       return CoffeeGL.Context.mouseDown.add(this.onMouseDown, this);
     };
 
@@ -138,19 +142,45 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       if ((_ref5 = this.pointer) != null) {
         _ref5.matrix.mult(q.getMatrix4());
       }
-      this.white_string.update();
-      this.dynamicsWorld.stepSimulation(dt / 1000.0, 5);
       return this;
     };
 
-    Equatorie.prototype.onMouseDown = function(event) {};
+    Equatorie.prototype.updatePhysics = function(data) {
+      this.white_string.update(data.white);
+      return this.black_string.update(data.black);
+    };
+
+    Equatorie.prototype.onMouseDown = function(event) {
+      return this.physics.postMessage({
+        cmd: "white_start_move",
+        data: {
+          x: 3,
+          y: 0.5,
+          z: 3
+        }
+      });
+    };
+
+    Equatorie.prototype.onPhysicsEvent = function(event) {
+      switch (event.data.cmd) {
+        case "physics":
+          return this.updatePhysics(event.data.data);
+        default:
+          break;
+      }
+    };
 
     Equatorie.prototype.draw = function() {
       GL.clearColor(0.15, 0.15, 0.15, 1.0);
       GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
       this.c.update();
       if (this.top_node != null) {
-        return this.top_node.draw();
+        this.top_node.draw();
+      }
+      if (this.shader_picker != null) {
+        this.shader_picker.bind();
+        this.pickable.draw();
+        return this.shader_picker.unbind();
       }
     };
 

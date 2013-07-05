@@ -57,6 +57,10 @@ class EquatorieSystem
     y = @base_size * @planet_data[planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @planet_data[planet].apogee_longitude)
     [x,y]
 
+   calculateEquantPosition : (planet) ->
+    [x,y] = @calculateDeferentPosition planet
+    [x * 2, y * 2]
+
   calculateEpicyclePosition : (planet) ->
     # relative to 0 degrees - the sign of aries    
     # Centre of the deferent circle

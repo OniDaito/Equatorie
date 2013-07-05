@@ -53,6 +53,12 @@
       return [x, y];
     };
 
+    EquatorieSystem.prototype.calculateEquantPosition = function(planet) {
+      var x, y, _ref;
+      _ref = this.calculateDeferentPosition(planet), x = _ref[0], y = _ref[1];
+      return [x * 2, y * 2];
+    };
+
     EquatorieSystem.prototype.calculateEpicyclePosition = function(planet) {
       var rx, ry, x, y, _ref;
       _ref = this.calculateDeferentPosition(planet), x = _ref[0], y = _ref[1];
