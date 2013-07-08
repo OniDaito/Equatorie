@@ -32,6 +32,9 @@ class PhysicsString
       body = new Ammo.btRigidBody(rbInfo)
       body.setDamping(0.99,0.99)
       @children.push body
+
+      body.setActivationState(4) # BUG - DISABLE_DEACTIVATION isnt defined in Ammo.js but 4 is the number to use
+
       #body.setActivationState( Ammo.DISABLE_DEACTIVATION )
 
       world.addRigidBody(body)
@@ -54,7 +57,7 @@ class PhysicsString
     startMotionState = new Ammo.btDefaultMotionState(startTransform)
     startRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0,startMotionState,fixShape, new Ammo.btVector3(0,0,0))
     @start = new Ammo.btRigidBody(startRigidBodyCI)
-    @start.setCollisionFlags ( @start.getCollisionFlags() | Ammo.btCollisionObject.CF_KINEMATIC_OBJECT )
+    @start.setCollisionFlags ( @start.getCollisionFlags() | 2 )
     @start.setActivationState( Ammo.DISABLE_DEACTIVATION )
     #@start.setDamping(0.99,0.99)
 
@@ -72,7 +75,7 @@ class PhysicsString
     endMotionState = new Ammo.btDefaultMotionState(endTransform)
     endRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0,endMotionState,fixShape, new Ammo.btVector3(0,0,0))
     @end = new Ammo.btRigidBody(endRigidBodyCI)
-    @end.setCollisionFlags ( @end.getCollisionFlags() | Ammo.btCollisionObject.CF_KINEMATIC_OBJECT )
+    @end.setCollisionFlags ( @end.getCollisionFlags() | 2 )
     @end.setActivationState( Ammo.DISABLE_DEACTIVATION )
 
     postMessage {cmd: "ping", data: @end.isKinematicObject() }
@@ -151,16 +154,6 @@ interval = null
 
 
 @moveBody = (body, pos) ->
-
- # Go through each string and re-activate all bodies
-
- # BUG - DISABLE_DEACTIVATION isnt defined in Ammo.js but 4 is the number to use
-
-  for segment in @white_string.children
-    segment.setActivationState(4)
-
-  for segment in @black_string.children
-    segment.setActivationState(4)
 
   trans = new Ammo.btTransform()
   ms = new Ammo.btDefaultMotionState()

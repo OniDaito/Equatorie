@@ -25,6 +25,7 @@
         body = new Ammo.btRigidBody(rbInfo);
         body.setDamping(0.99, 0.99);
         this.children.push(body);
+        body.setActivationState(4);
         world.addRigidBody(body);
       }
       for (i = _j = 0, _ref1 = segments - 2; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
@@ -40,7 +41,7 @@
       startMotionState = new Ammo.btDefaultMotionState(startTransform);
       startRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0, startMotionState, fixShape, new Ammo.btVector3(0, 0, 0));
       this.start = new Ammo.btRigidBody(startRigidBodyCI);
-      this.start.setCollisionFlags(this.start.getCollisionFlags() | Ammo.btCollisionObject.CF_KINEMATIC_OBJECT);
+      this.start.setCollisionFlags(this.start.getCollisionFlags() | 2);
       this.start.setActivationState(Ammo.DISABLE_DEACTIVATION);
       pp = new Ammo.btVector3(0, seglength / 2, 0);
       pq = new Ammo.btVector3(0, -0.1, 0);
@@ -53,7 +54,7 @@
       endMotionState = new Ammo.btDefaultMotionState(endTransform);
       endRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0, endMotionState, fixShape, new Ammo.btVector3(0, 0, 0));
       this.end = new Ammo.btRigidBody(endRigidBodyCI);
-      this.end.setCollisionFlags(this.end.getCollisionFlags() | Ammo.btCollisionObject.CF_KINEMATIC_OBJECT);
+      this.end.setCollisionFlags(this.end.getCollisionFlags() | 2);
       this.end.setActivationState(Ammo.DISABLE_DEACTIVATION);
       postMessage({
         cmd: "ping",
@@ -141,17 +142,7 @@
   };
 
   this.moveBody = function(body, pos) {
-    var data, ms, segment, trans, _i, _j, _len, _len1, _ref, _ref1;
-    _ref = this.white_string.children;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      segment = _ref[_i];
-      segment.setActivationState(4);
-    }
-    _ref1 = this.black_string.children;
-    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-      segment = _ref1[_j];
-      segment.setActivationState(4);
-    }
+    var data, ms, trans;
     trans = new Ammo.btTransform();
     ms = new Ammo.btDefaultMotionState();
     body.getMotionState(ms);
