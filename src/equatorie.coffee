@@ -18,6 +18,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 {EquatorieSystem} = require './system'
 {EquatorieString} = require './string'
 
+
 class Equatorie
 
   init : () =>
@@ -25,10 +26,13 @@ class Equatorie
     # All nodes to be drawn
     @top_node = new CoffeeGL.Node()
 
+    @string_height = 0.4
+
     # Nodes for the picking
     @pickable = new CoffeeGL.Node()
     @fbo_picking = new CoffeeGL.Fbo()
     @ray = new CoffeeGL.Vec3(0,0,0)
+    @picked = undefined
 
     # Nodes being drawn with the basic shader
     @basic_nodes = new CoffeeGL.Node()
@@ -131,30 +135,30 @@ class Equatorie
     controller = g.add(@,'chosen_planet',planets)
 
     # Add Strings
-    @white_string = new EquatorieString 8.0, 0.1, 20
-    @black_string = new EquatorieString 8.0, 0.1, 20
+    @white_string = new EquatorieString 8.0, 0.08, 20
+    @black_string = new EquatorieString 8.0, 0.08, 20
     
     @top_node.add @white_string
     @top_node.add @black_string
 
     @white_start = new CoffeeGL.Node cube
     @pickable.add @white_start
-    @white_start.matrix.translate new CoffeeGL.Vec3 2,2,2
+    @white_start.matrix.translate new CoffeeGL.Vec3 2,@string_height,2
     @white_start.uPickingColour = new CoffeeGL.Colour.RGBA(1.0,0.0,0.0,1.0)
 
     @white_end = new CoffeeGL.Node cube
     @pickable.add @white_end
-    @white_end.matrix.translate new CoffeeGL.Vec3 -2,2,-2
+    @white_end.matrix.translate new CoffeeGL.Vec3 -2,@string_height,-2
     @white_end.uPickingColour = new CoffeeGL.Colour.RGBA(1.0,1.0,0.0,1.0)
 
     @black_start = new CoffeeGL.Node cube
     @pickable.add @black_start
-    @black_start.matrix.translate new CoffeeGL.Vec3 -2,2,2
+    @black_start.matrix.translate new CoffeeGL.Vec3 -2,@string_height,2
     @black_start.uPickingColour = new CoffeeGL.Colour.RGBA(0.0,1.0,1.0,1.0)
 
     @black_end = new CoffeeGL.Node cube
     @pickable.add @black_end
-    @black_end.matrix.translate new CoffeeGL.Vec3 -4,2,2
+    @black_end.matrix.translate new CoffeeGL.Vec3 -4,@string_height,2
     @black_end.uPickingColour = new CoffeeGL.Colour.RGBA(1.0,1.0,1.0,1.0)
 
     @basic_nodes.add(@white_string).add(@black_string)
@@ -178,6 +182,10 @@ class Equatorie
     CoffeeGL.Context.mouseOut.add @onMouseOut, @
     CoffeeGL.Context.mouseMove.add @onMouseMove, @
     CoffeeGL.Context.mouseUp.add @onMouseUp, @
+
+    # Remove the camera mouse event - we want control over that
+    CoffeeGL.Context.mouseMove.del @c.onMouseMove, @c
+    CoffeeGL.Context.mouseDown.del @c.onMouseDown, @c
 
 
   update : (dt) =>
@@ -214,15 +222,16 @@ class Equatorie
     @black_string.update data.black
 
   onMouseDown : (event) ->
-    #@physics.postMessage {cmd : "white_start_move", data: {x:3, y: 0.5, z: 3}}
+    console.log event
+    @mp.x = event.mouseX
+    @mp.y = event.mouseY
+    @ray = @c.castRay @mp.x, @mp.y
     
-    ray = @c.castRay @mp.x, @mp.y
-    d = CoffeeGL.rayPlaneIntersect new CoffeeGL.Vec3(0,0,0), new CoffeeGL.Vec3(0,1,0), @c.pos, ray
-    console.log d
-    if @mdown
-      dray = @
+    if @picked?
+        @mdown = true
 
-    @mdown = true
+    if not @mdown
+      @c.onMouseDown(event)
 
   onMouseMove : (event) ->
     @mpp.x = @mp.x
@@ -233,6 +242,47 @@ class Equatorie
 
     @mpd.x = @mp.x - @mpp.x
     @mpd.y = @mp.y - @mpp.y
+
+   
+    if @mdown and @picked?
+      tray = @c.castRay @mp.x, @mp.y
+      d = CoffeeGL.rayPlaneIntersect new CoffeeGL.Vec3(0,@string_height,0), new CoffeeGL.Vec3(0,1,0), @c.pos, @ray
+      dd = CoffeeGL.rayPlaneIntersect new CoffeeGL.Vec3(0,@string_height,0), new CoffeeGL.Vec3(0,1,0), @c.pos, tray
+
+      p0 = tray.copy()
+      p0.multScalar(dd)
+      p0.add(@c.pos)
+
+      p1 = @ray.copy()
+      p1.multScalar(d)
+      p1.add(@c.pos)
+
+      p0.y = @string_height
+      p1.y = @string_height
+
+      np = CoffeeGL.Vec3.sub(p0,p1)
+
+      @ray.copyFrom(tray)
+
+      @picked.matrix.translate(np)
+
+      # Update the phyics webworker thread 
+      if @picked == @white_start
+          @physics.postMessage {cmd : "white_start_move", data: @picked.matrix.getPos() }
+      
+      else if @picked == @white_end
+          @physics.postMessage {cmd : "white_end_move", data: @picked.matrix.getPos() }
+      
+      else if @picked == @black_start
+          @physics.postMessage {cmd : "black_start_move", data: @picked.matrix.getPos() }
+      
+      else if @picked == @black_end
+          @physics.postMessage {cmd : "black_end_move", data: @picked.matrix.getPos() }
+
+    else
+      @c.onMouseMove(event)
+
+    
 
   onMouseOver : (event) ->    
     @mp.x = event.mouseX
@@ -247,15 +297,37 @@ class Equatorie
     @mpd.x = @mpd.y = 0
 
     @mdown = false
+    @picked = undefined
 
   onPhysicsEvent : (event) =>
     switch event.data.cmd
       when "physics" then @updatePhysics event.data.data
+      when "ping" then console.log "Physics Ping: " + event.data.data
       else break
 
 
   checkPicked : (pixel) ->
-    #console.log pixel
+    
+    @picked = undefined
+
+    if pixel[0] == 255
+      if pixel[1] == 255
+        if pixel[2] == 255
+          #console.log "Black End"
+          @picked = @black_end
+          #console.log pixel
+        else
+          #console.log "White end"
+          @picked = @white_end
+          #console.log pixel
+      else
+        #console.log "White Start"
+        @picked = @white_start
+        #console.log pixel
+    else if pixel[1] == 255
+      #console.log "Black Start"
+      @picked = @black_start
+      #console.log pixel
 
 
   draw : () =>
@@ -274,7 +346,7 @@ class Equatorie
       @pickable.draw()
     
       # Cx for picking
-      if @mp.y != -1 and @mp.x != -1 and @mdown
+      if @mp.y != -1 and @mp.x != -1 and not @mdown
         pixel = new Uint8Array(4);
         GL.readPixels(@mp.x, @fbo_picking.height - @mp.y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixel)
 

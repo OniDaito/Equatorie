@@ -9,6 +9,8 @@ importScripts '/js/ammo.fast.js'
 
 
 # TODO - Limits on how far the string can be stretched
+@ping = 0
+@string_height = 0.4
 
 class PhysicsString
   constructor : (length, thickness, segments, start, end, world) ->
@@ -28,16 +30,17 @@ class PhysicsString
       motionState = new Ammo.btDefaultMotionState(new Ammo.btTransform( new Ammo.btQuaternion(0,0,0,1), new Ammo.btVector3(0, base + seglength * i,0)))
       rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, colShape, localInertia)
       body = new Ammo.btRigidBody(rbInfo)
-      body.setDamping(0.98,0.98)
+      body.setDamping(0.99,0.99)
       @children.push body
+      #body.setActivationState( Ammo.DISABLE_DEACTIVATION )
 
       world.addRigidBody(body)
 
     # add Constraints to make this look like string
     
     for i in [0..segments-2]
-      pp = new Ammo.btVector3(0, seglength / 2,0)
-      pq = new Ammo.btVector3(0, - seglength / 2,0)
+      pp = new Ammo.btVector3(0, 0,0)
+      pq = new Ammo.btVector3(0, - seglength,0)
       c = new Ammo.btPoint2PointConstraint(@children[i], @children[i+1], pp, pq )
       world.addConstraint(c,true)
     
@@ -51,8 +54,9 @@ class PhysicsString
     startMotionState = new Ammo.btDefaultMotionState(startTransform)
     startRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0,startMotionState,fixShape, new Ammo.btVector3(0,0,0))
     @start = new Ammo.btRigidBody(startRigidBodyCI)
-
-    @start.setDamping(0.99,0.99)
+    @start.setCollisionFlags ( @start.getCollisionFlags() | Ammo.btCollisionObject.CF_KINEMATIC_OBJECT )
+    @start.setActivationState( Ammo.DISABLE_DEACTIVATION )
+    #@start.setDamping(0.99,0.99)
 
     pp = new Ammo.btVector3(0, seglength / 2,0)
     pq = new Ammo.btVector3(0, -0.1,0)
@@ -61,7 +65,6 @@ class PhysicsString
     world.addConstraint(c,true)
     world.addRigidBody(@start)
 
-
     endTransform = new Ammo.btTransform()
     endTransform.setIdentity()
     endTransform.setOrigin new Ammo.btVector3 end.x, end.y, end.z
@@ -69,16 +72,19 @@ class PhysicsString
     endMotionState = new Ammo.btDefaultMotionState(endTransform)
     endRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0,endMotionState,fixShape, new Ammo.btVector3(0,0,0))
     @end = new Ammo.btRigidBody(endRigidBodyCI)
+    @end.setCollisionFlags ( @end.getCollisionFlags() | Ammo.btCollisionObject.CF_KINEMATIC_OBJECT )
+    @end.setActivationState( Ammo.DISABLE_DEACTIVATION )
+
+    postMessage {cmd: "ping", data: @end.isKinematicObject() }
 
     pp = new Ammo.btVector3(0, seglength / 2,0)
     pq = new Ammo.btVector3(0, -0.1,0)
     c = new Ammo.btPoint2PointConstraint(@children[0], @end, pp, pq )
 
-    @end.setDamping(0.99,0.99)
+    #@end.setDamping(0.99,0.99)
 
     world.addConstraint(c,true)
     world.addRigidBody(@end)
-
 
   
   update : () ->
@@ -126,10 +132,10 @@ interval = null
   @dynamicsWorld.addRigidBody(baseRigidBody)
 
   # Create the white string
-  @white_string = new PhysicsString 10.0, 0.1, 20, {x: 2, y:2, z:2}, {x: -2, y:2, z:-2}, @dynamicsWorld
+  @white_string = new PhysicsString 10.0, 0.1, 20, {x: 2, y:0.2, z:2}, {x: -2, y:0.2, z:-2}, @dynamicsWorld
 
   # ... and the black one
-  @black_string = new PhysicsString 10.0, 0.1, 20, {x: -2, y:2, z:2}, {x: -4, y:2, z:2}, @dynamicsWorld
+  @black_string = new PhysicsString 10.0, 0.1, 20, {x: -2, y:0.2, z:2}, {x: -4, y:0.2, z:2}, @dynamicsWorld
 
   last = Date.now()
   
@@ -146,13 +152,43 @@ interval = null
 
 @moveBody = (body, pos) ->
 
+ # Go through each string and re-activate all bodies
+
+ # BUG - DISABLE_DEACTIVATION isnt defined in Ammo.js but 4 is the number to use
+
+  for segment in @white_string.children
+    segment.setActivationState(4)
+
+  for segment in @black_string.children
+    segment.setActivationState(4)
+
   trans = new Ammo.btTransform()
   ms = new Ammo.btDefaultMotionState()
   body.getMotionState(ms)
   ms.getWorldTransform(trans)
   trans.setOrigin new Ammo.btVector3(pos.x,pos.y,pos.z)
+  
+
+  body.setActivationState(4);
+
+
   ms.setWorldTransform(trans)
   body.setMotionState(ms)
+
+
+
+  # Damping seems to kill things :S
+
+  data =
+    black :
+      segments : []
+    white :
+      segments : []
+
+  data.white.segments = @white_string.update()
+  data.black.segments = @black_string.update()
+
+  postMessage { cmd: 'physics', data: data}
 
 
 @simulate = (dt) ->
@@ -172,8 +208,6 @@ interval = null
   postMessage { cmd: 'physics', data: data}
 
 
-@message = (msg) ->
-  postMessage msg
 
 # Message format {cmd: <cmd> , data: <data obj> }
 
@@ -185,7 +219,7 @@ interval = null
     when "white_end_move" then moveBody white_string.end, event.data.data    
     when "black_start_move" then moveBody black_string.start, event.data.data    
     when "black_end_move" then moveBody black_string.end, event.data.data    
-    else message event.data.cmd
+    else postMessage event.data.cmd
 
 
  

@@ -35,9 +35,11 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       var controller, cube, g, planets, r0,
         _this = this;
       this.top_node = new CoffeeGL.Node();
+      this.string_height = 0.4;
       this.pickable = new CoffeeGL.Node();
       this.fbo_picking = new CoffeeGL.Fbo();
       this.ray = new CoffeeGL.Vec3(0, 0, 0);
+      this.picked = void 0;
       this.basic_nodes = new CoffeeGL.Node();
       this.mp = new CoffeeGL.Vec2(-1, -1);
       this.mpp = new CoffeeGL.Vec2(-1, -1);
@@ -111,25 +113,25 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       controller = g.add(this.system, 'mean_argument', 0, 360);
       controller = g.add(this.system, 'mean_motus', 0, 360);
       controller = g.add(this, 'chosen_planet', planets);
-      this.white_string = new EquatorieString(8.0, 0.1, 20);
-      this.black_string = new EquatorieString(8.0, 0.1, 20);
+      this.white_string = new EquatorieString(8.0, 0.08, 20);
+      this.black_string = new EquatorieString(8.0, 0.08, 20);
       this.top_node.add(this.white_string);
       this.top_node.add(this.black_string);
       this.white_start = new CoffeeGL.Node(cube);
       this.pickable.add(this.white_start);
-      this.white_start.matrix.translate(new CoffeeGL.Vec3(2, 2, 2));
+      this.white_start.matrix.translate(new CoffeeGL.Vec3(2, this.string_height, 2));
       this.white_start.uPickingColour = new CoffeeGL.Colour.RGBA(1.0, 0.0, 0.0, 1.0);
       this.white_end = new CoffeeGL.Node(cube);
       this.pickable.add(this.white_end);
-      this.white_end.matrix.translate(new CoffeeGL.Vec3(-2, 2, -2));
+      this.white_end.matrix.translate(new CoffeeGL.Vec3(-2, this.string_height, -2));
       this.white_end.uPickingColour = new CoffeeGL.Colour.RGBA(1.0, 1.0, 0.0, 1.0);
       this.black_start = new CoffeeGL.Node(cube);
       this.pickable.add(this.black_start);
-      this.black_start.matrix.translate(new CoffeeGL.Vec3(-2, 2, 2));
+      this.black_start.matrix.translate(new CoffeeGL.Vec3(-2, this.string_height, 2));
       this.black_start.uPickingColour = new CoffeeGL.Colour.RGBA(0.0, 1.0, 1.0, 1.0);
       this.black_end = new CoffeeGL.Node(cube);
       this.pickable.add(this.black_end);
-      this.black_end.matrix.translate(new CoffeeGL.Vec3(-4, 2, 2));
+      this.black_end.matrix.translate(new CoffeeGL.Vec3(-4, this.string_height, 2));
       this.black_end.uPickingColour = new CoffeeGL.Colour.RGBA(1.0, 1.0, 1.0, 1.0);
       this.basic_nodes.add(this.white_string).add(this.black_string);
       this.basic_nodes.add(this.white_start).add(this.white_end);
@@ -147,7 +149,9 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       CoffeeGL.Context.mouseOver.add(this.onMouseOver, this);
       CoffeeGL.Context.mouseOut.add(this.onMouseOut, this);
       CoffeeGL.Context.mouseMove.add(this.onMouseMove, this);
-      return CoffeeGL.Context.mouseUp.add(this.onMouseUp, this);
+      CoffeeGL.Context.mouseUp.add(this.onMouseUp, this);
+      CoffeeGL.Context.mouseMove.del(this.c.onMouseMove, this.c);
+      return CoffeeGL.Context.mouseDown.del(this.c.onMouseDown, this.c);
     };
 
     Equatorie.prototype.update = function(dt) {
@@ -186,23 +190,65 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
     };
 
     Equatorie.prototype.onMouseDown = function(event) {
-      var d, dray, ray;
-      ray = this.c.castRay(this.mp.x, this.mp.y);
-      d = CoffeeGL.rayPlaneIntersect(new CoffeeGL.Vec3(0, 0, 0), new CoffeeGL.Vec3(0, 1, 0), this.c.pos, ray);
-      console.log(d);
-      if (this.mdown) {
-        dray = this;
+      console.log(event);
+      this.mp.x = event.mouseX;
+      this.mp.y = event.mouseY;
+      this.ray = this.c.castRay(this.mp.x, this.mp.y);
+      if (this.picked != null) {
+        this.mdown = true;
       }
-      return this.mdown = true;
+      if (!this.mdown) {
+        return this.c.onMouseDown(event);
+      }
     };
 
     Equatorie.prototype.onMouseMove = function(event) {
+      var d, dd, np, p0, p1, tray;
       this.mpp.x = this.mp.x;
       this.mpp.y = this.mp.y;
       this.mp.x = event.mouseX;
       this.mp.y = event.mouseY;
       this.mpd.x = this.mp.x - this.mpp.x;
-      return this.mpd.y = this.mp.y - this.mpp.y;
+      this.mpd.y = this.mp.y - this.mpp.y;
+      if (this.mdown && (this.picked != null)) {
+        tray = this.c.castRay(this.mp.x, this.mp.y);
+        d = CoffeeGL.rayPlaneIntersect(new CoffeeGL.Vec3(0, this.string_height, 0), new CoffeeGL.Vec3(0, 1, 0), this.c.pos, this.ray);
+        dd = CoffeeGL.rayPlaneIntersect(new CoffeeGL.Vec3(0, this.string_height, 0), new CoffeeGL.Vec3(0, 1, 0), this.c.pos, tray);
+        p0 = tray.copy();
+        p0.multScalar(dd);
+        p0.add(this.c.pos);
+        p1 = this.ray.copy();
+        p1.multScalar(d);
+        p1.add(this.c.pos);
+        p0.y = this.string_height;
+        p1.y = this.string_height;
+        np = CoffeeGL.Vec3.sub(p0, p1);
+        this.ray.copyFrom(tray);
+        this.picked.matrix.translate(np);
+        if (this.picked === this.white_start) {
+          return this.physics.postMessage({
+            cmd: "white_start_move",
+            data: this.picked.matrix.getPos()
+          });
+        } else if (this.picked === this.white_end) {
+          return this.physics.postMessage({
+            cmd: "white_end_move",
+            data: this.picked.matrix.getPos()
+          });
+        } else if (this.picked === this.black_start) {
+          return this.physics.postMessage({
+            cmd: "black_start_move",
+            data: this.picked.matrix.getPos()
+          });
+        } else if (this.picked === this.black_end) {
+          return this.physics.postMessage({
+            cmd: "black_end_move",
+            data: this.picked.matrix.getPos()
+          });
+        }
+      } else {
+        return this.c.onMouseMove(event);
+      }
     };
 
     Equatorie.prototype.onMouseOver = function(event) {
@@ -218,19 +264,37 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       this.mp.x = this.mpp.x = -1;
       this.mp.y = this.mpp.y = -1;
       this.mpd.x = this.mpd.y = 0;
-      return this.mdown = false;
+      this.mdown = false;
+      return this.picked = void 0;
     };
 
     Equatorie.prototype.onPhysicsEvent = function(event) {
       switch (event.data.cmd) {
         case "physics":
           return this.updatePhysics(event.data.data);
+        case "ping":
+          return console.log("Physics Ping: " + event.data.data);
         default:
           break;
       }
     };
 
-    Equatorie.prototype.checkPicked = function(pixel) {};
+    Equatorie.prototype.checkPicked = function(pixel) {
+      this.picked = void 0;
+      if (pixel[0] === 255) {
+        if (pixel[1] === 255) {
+          if (pixel[2] === 255) {
+            return this.picked = this.black_end;
+          } else {
+            return this.picked = this.white_end;
+          }
+        } else {
+          return this.picked = this.white_start;
+        }
+      } else if (pixel[1] === 255) {
+        return this.picked = this.black_start;
+      }
+    };
 
     Equatorie.prototype.draw = function() {
       var pixel;
@@ -244,7 +308,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
         this.fbo_picking.bind();
         this.shader_picker.bind();
         this.pickable.draw();
-        if (this.mp.y !== -1 && this.mp.x !== -1 && this.mdown) {
+        if (this.mp.y !== -1 && this.mp.x !== -1 && !this.mdown) {
           pixel = new Uint8Array(4);
           GL.readPixels(this.mp.x, this.fbo_picking.height - this.mp.y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixel);
           this.checkPicked(pixel);
