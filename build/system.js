@@ -4,7 +4,9 @@
 
   EquatorieSystem = (function() {
     function EquatorieSystem() {
-      this.base_size = 6.0;
+      this.base_radius = 6.0;
+      this.epicycle_radius = 6.353;
+      this.epicycle_thickness = this.epicycle_radius - this.base_radius;
       this.planet_data = {};
       this.planet_data.venus = {
         deferent_speed: 0.985,
@@ -42,29 +44,92 @@
         mean_longitude: 266.25,
         mean_anomaly: 13.45
       };
-      this.mean_motus = 0;
-      this.mean_argument = 0;
     }
+
+    EquatorieSystem.prototype.calculateDeferentAngle = function(planet) {
+      return this.planet_data[planet].apogee_longitude;
+    };
 
     EquatorieSystem.prototype.calculateDeferentPosition = function(planet) {
       var x, y;
-      x = this.base_size * this.planet_data[planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad(this.planet_data[planet].apogee_longitude));
-      y = this.base_size * this.planet_data[planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad(this.planet_data[planet].apogee_longitude));
+      x = this.base_radius * this.planet_data[planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad(this.calculateDeferentAngle(planet)));
+      y = this.base_radius * this.planet_data[planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad(this.calculateDeferentAngle(planet)));
       return [x, y];
     };
 
     EquatorieSystem.prototype.calculateEquantPosition = function(planet) {
       var x, y, _ref;
       _ref = this.calculateDeferentPosition(planet), x = _ref[0], y = _ref[1];
-      return [x * 2, y * 2];
+      return new CoffeeGL.Vec2(x * 2, y * 2);
     };
 
-    EquatorieSystem.prototype.calculateEpicyclePosition = function(planet) {
-      var rx, ry, x, y, _ref;
-      _ref = this.calculateDeferentPosition(planet), x = _ref[0], y = _ref[1];
-      rx = this.base_size * Math.sin(CoffeeGL.degToRad(this.mean_motus));
-      ry = this.base_size * Math.cos(CoffeeGL.degToRad(this.mean_motus));
-      return [x + rx, y + ry];
+    EquatorieSystem.prototype.calculateDate = function(planet, date) {
+      var epoch, passed;
+      epoch = new Date("January 1, 1900 00:00:00");
+      passed = Math.abs(date - epoch) / 86400000;
+      return passed;
+    };
+
+    EquatorieSystem.prototype.calculateMeanMotus = function(planet, date) {
+      var angle, passed;
+      passed = this.calculateDate(planet, date);
+      angle = this.planet_data[planet].mean_longitude + this.planet_data[planet].deferent_speed * passed % 360;
+      return new CoffeeGL.Vec2(this.base_radius * Math.cos(CoffeeGL.degToRad(angle)), this.base_radius * Math.sin(CoffeeGL.degToRad(angle)));
+    };
+
+    EquatorieSystem.prototype.calculateParallel = function(planet, date) {
+      var a, b, base_position, c, cr, d2, dangle, deferent_position, dir, discriminant, equant_position, f, motus_position, passed, r, sr, t, t1, t2, v;
+      passed = this.calculateDate(planet, date);
+      dangle = this.calculateDeferentAngle(planet);
+      cr = Math.cos(CoffeeGL.degToRad(dangle));
+      sr = Math.sin(CoffeeGL.degToRad(dangle));
+      base_position = new CoffeeGL.Vec2(this.base_radius * cr, this.base_radius * sr);
+      deferent_position = new CoffeeGL.Vec2(base_position.x * this.planet_data[planet].deferent_eccentricity, base_position.y * this.planet_data[planet].deferent_eccentricity);
+      equant_position = this.calculateEquantPosition(planet);
+      motus_position = this.calculateMeanMotus(planet, date);
+      dir = motus_position.copy();
+      dir.normalize();
+      f = CoffeeGL.Vec2.sub(deferent_position, equant_position);
+      r = this.base_radius;
+      a = dir.dot(dir);
+      b = 2 * f.dot(dir);
+      c = f.dot(f) - r * r;
+      v = new CoffeeGL.Vec2();
+      discriminant = b * b - 4 * a * c;
+      if (discriminant !== 0) {
+        discriminant = Math.sqrt(discriminant);
+        t1 = (-b - discriminant) / (2 * a);
+        t2 = (-b + discriminant) / (2 * a);
+        t = t2;
+        if (t2 < 0) {
+          t = t1;
+        }
+        v.copyFrom(equant_position);
+        d2 = CoffeeGL.Vec2.multScalar(dir, t);
+        v.add(d2);
+      }
+      return v;
+    };
+
+    EquatorieSystem.prototype.calculateEpicyclePosition = function(planet, date) {
+      var base_position, cr, dangle, deferent_position, equant_position, f0, f1, fangle, mangle, passed, sr, v;
+      passed = this.calculateDate(planet, date);
+      mangle = (this.planet_data[planet].mean_longitude + this.planet_data[planet].deferent_speed * passed) % 360;
+      dangle = this.calculateDeferentAngle(planet);
+      cr = Math.cos(CoffeeGL.degToRad(dangle));
+      sr = Math.sin(CoffeeGL.degToRad(dangle));
+      base_position = new CoffeeGL.Vec2(this.base_radius * cr, this.base_radius * sr);
+      deferent_position = new CoffeeGL.Vec2(base_position.x * this.planet_data[planet].deferent_eccentricity, base_position.y * this.planet_data[planet].deferent_eccentricity);
+      equant_position = this.calculateEquantPosition(planet);
+      fangle = 0;
+      v = this.calculateParallel(planet, date);
+      if (v.x !== 0 && v.y !== 0) {
+        f0 = CoffeeGL.radToDeg(Math.atan2(base_position.y - deferent_position.y, base_position.x - deferent_position.x));
+        f1 = CoffeeGL.radToDeg(Math.atan2(v.y - deferent_position.y, v.x - deferent_position.x));
+        fangle = f0 - f1;
+        console.log(f0, f1);
+      }
+      return [deferent_position, base_position, v, dangle, fangle];
     };
 
     return EquatorieSystem;

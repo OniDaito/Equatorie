@@ -110,7 +110,7 @@
     baseRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0, baseMotionState, baseShape, new Ammo.btVector3(0, 0, 0));
     baseRigidBody = new Ammo.btRigidBody(baseRigidBodyCI);
     this.dynamicsWorld.addRigidBody(baseRigidBody);
-    this.white_string = new PhysicsString(10.0, 0.1, 20, {
+    this.white_string = new PhysicsString(8.0, 0.1, 20, {
       x: 2,
       y: 0.2,
       z: 2
@@ -119,7 +119,7 @@
       y: 0.2,
       z: -2
     }, this.dynamicsWorld);
-    this.black_string = new PhysicsString(10.0, 0.1, 20, {
+    this.black_string = new PhysicsString(8.0, 0.1, 20, {
       x: -2,
       y: 0.2,
       z: 2

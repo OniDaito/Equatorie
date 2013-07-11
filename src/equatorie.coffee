@@ -34,6 +34,8 @@ class Equatorie
     @ray = new CoffeeGL.Vec3(0,0,0)
     @picked = undefined
 
+    @test = 0
+
     # Nodes being drawn with the basic shader
     @basic_nodes = new CoffeeGL.Node()
 
@@ -52,10 +54,9 @@ class Equatorie
       
       @top_node.add @basic_nodes
       @basic_nodes.shader = @shader_basic
-
-
       @deferent.shader = @shader_basic
-      @deferent.uColour = new CoffeeGL.Colour.RGBA(1.0,0.0,0.0,1.0)
+      @equant.shader = @shader_basic
+      @marker.shader = @shader_basic
 
       r1 = new CoffeeGL.Request ('../shaders/basic_lighting.glsl')
       
@@ -102,10 +103,16 @@ class Equatorie
     # Points on the surface of the Equatorie
     cube = new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.2,0.2,0.2
     @deferent = new CoffeeGL.Node cube
+    @deferent.uColour = new CoffeeGL.Colour.RGBA(1.0,0.0,0.0,1.0)
     @top_node.add @deferent
 
     @equant = new CoffeeGL.Node cube
+    @equant.uColour = new CoffeeGL.Colour.RGBA(0.0,1.0,0.0,1.0)
     @top_node.add @equant
+
+    @marker = new CoffeeGL.Node cube
+    @marker.uColour = new CoffeeGL.Colour.RGBA(0.0,1.0,1.0,1.0)
+    @top_node.add @marker
 
     @c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0,0,25))
     @top_node.add(@c)
@@ -130,9 +137,10 @@ class Equatorie
     planets = ["mars","venus","jupiter","saturn"]
     @chosen_planet = "mars"
 
-    controller = g.add(@system,'mean_argument',0,360)
-    controller = g.add(@system,'mean_motus',0,360)
+
     controller = g.add(@,'chosen_planet',planets)
+    controller = g.add(@,'solveForPlanet')
+    controller = g.add(@,'test',0,360)
 
     # Add Strings
     @white_string = new EquatorieString 8.0, 0.08, 20
@@ -187,7 +195,6 @@ class Equatorie
     CoffeeGL.Context.mouseMove.del @c.onMouseMove, @c
     CoffeeGL.Context.mouseDown.del @c.onMouseDown, @c
 
-
   update : (dt) =>
   
     @angle = dt * 0.001 * CoffeeGL.degToRad(20.0)
@@ -203,18 +210,76 @@ class Equatorie
     @deferent.matrix.identity()
     @deferent.matrix.translate new CoffeeGL.Vec3 x,0.2,y
 
-    [x,y] = @system.calculateEpicyclePosition(@chosen_planet)
-    @epicycle?.matrix.identity()
-    @epicycle?.matrix.translate new CoffeeGL.Vec3 x,0,y
+    ep = @system.calculateEquantPosition(@chosen_planet)
+    @equant.matrix.identity()
+    @equant.matrix.translate new CoffeeGL.Vec3 ep.x,0.2,ep.y
 
-
-    @pointer?.matrix.identity()
-    q = new CoffeeGL.Quaternion()
-    q.fromAxisAngle(new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(@system.mean_argument))
-
-    @pointer?.matrix.mult q.getMatrix4()
    
     @
+
+  # Called when the button is pressed in dat.gui. Solve for the chosen planet
+  solveForPlanet : () ->
+
+    date = new Date()
+
+    mv = @system.calculateMeanMotus @chosen_planet, date
+    mv.normalize()
+    mv.multScalar(10.0)
+
+    # Black to Centre and mean motus
+    @black_start.matrix.identity()
+    @black_start.matrix.translate(new CoffeeGL.Vec3(0,@string_height,0))
+
+    @black_end.matrix.identity()
+    @black_end.matrix.translate(new CoffeeGL.Vec3(mv.x, @string_height, mv.y) )
+
+    @physics.postMessage {cmd : "black_start_move", data: @black_start.matrix.getPos() }
+    @physics.postMessage {cmd : "black_end_move", data: @black_end.matrix.getPos() }
+
+    # White string to the Equant and parallel to black
+    eq = @system.calculateEquantPosition @chosen_planet
+    pv = @system.calculateParallel @chosen_planet, date
+    pv.sub(eq)
+    pv.normalize()
+    pv.multScalar(10.0)
+    pv.add(eq)
+
+    
+
+    @white_start.matrix.identity()
+    @white_start.matrix.translate(new CoffeeGL.Vec3(eq.x,@string_height,eq.y))
+
+    @white_end.matrix.identity()
+    @white_end.matrix.translate(new CoffeeGL.Vec3(pv.x, @string_height, pv.y ))
+  
+    @physics.postMessage {cmd : "white_start_move", data: @white_start.matrix.getPos() }
+    @physics.postMessage {cmd : "white_end_move", data: @white_end.matrix.getPos() }
+  
+    # Epicycle to position
+
+    if @epicycle?
+
+      [d, c, v, dr, mr] = @system.calculateEpicyclePosition(@chosen_planet, date)
+      @epicycle.matrix.identity()
+    
+      @epicycle.matrix.translate new CoffeeGL.Vec3 c.x,0,c.y  
+      @epicycle.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(90-dr)
+    
+  
+      # Now rotate the epicycle around the deferent till it reaches the white line
+      
+      tmatrix = new CoffeeGL.Matrix4()
+      
+      tmatrix.translate new CoffeeGL.Vec3 d.x, 0, d.y
+      tmatrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(mr)
+      
+      tmatrix.mult @epicycle.matrix
+      @epicycle.matrix.copyFrom(tmatrix)
+
+      @marker.matrix.identity()
+      @marker.matrix.translate(new CoffeeGL.Vec3(c.x,0.2,c.y))
+    
+
 
   # update the physics - each body in the string needs to have its position and orientation updated
   updatePhysics : (data) ->

@@ -40,6 +40,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       this.fbo_picking = new CoffeeGL.Fbo();
       this.ray = new CoffeeGL.Vec3(0, 0, 0);
       this.picked = void 0;
+      this.test = 0;
       this.basic_nodes = new CoffeeGL.Node();
       this.mp = new CoffeeGL.Vec2(-1, -1);
       this.mpp = new CoffeeGL.Vec2(-1, -1);
@@ -55,7 +56,8 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
         _this.top_node.add(_this.basic_nodes);
         _this.basic_nodes.shader = _this.shader_basic;
         _this.deferent.shader = _this.shader_basic;
-        _this.deferent.uColour = new CoffeeGL.Colour.RGBA(1.0, 0.0, 0.0, 1.0);
+        _this.equant.shader = _this.shader_basic;
+        _this.marker.shader = _this.shader_basic;
         r1 = new CoffeeGL.Request('../shaders/basic_lighting.glsl');
         return r1.get(function(data) {
           var r2;
@@ -93,9 +95,14 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       });
       cube = new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.2, 0.2, 0.2));
       this.deferent = new CoffeeGL.Node(cube);
+      this.deferent.uColour = new CoffeeGL.Colour.RGBA(1.0, 0.0, 0.0, 1.0);
       this.top_node.add(this.deferent);
       this.equant = new CoffeeGL.Node(cube);
+      this.equant.uColour = new CoffeeGL.Colour.RGBA(0.0, 1.0, 0.0, 1.0);
       this.top_node.add(this.equant);
+      this.marker = new CoffeeGL.Node(cube);
+      this.marker.uColour = new CoffeeGL.Colour.RGBA(0.0, 1.0, 1.0, 1.0);
+      this.top_node.add(this.marker);
       this.c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0, 0, 25));
       this.top_node.add(this.c);
       this.pickable.add(this.c);
@@ -110,9 +117,9 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       g.remember(this);
       planets = ["mars", "venus", "jupiter", "saturn"];
       this.chosen_planet = "mars";
-      controller = g.add(this.system, 'mean_argument', 0, 360);
-      controller = g.add(this.system, 'mean_motus', 0, 360);
       controller = g.add(this, 'chosen_planet', planets);
+      controller = g.add(this, 'solveForPlanet');
+      controller = g.add(this, 'test', 0, 360);
       this.white_string = new EquatorieString(8.0, 0.08, 20);
       this.black_string = new EquatorieString(8.0, 0.08, 20);
       this.top_node.add(this.white_string);
@@ -155,7 +162,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
     };
 
     Equatorie.prototype.update = function(dt) {
-      var m, q, x, y, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+      var ep, m, x, y, _ref;
       this.angle = dt * 0.001 * CoffeeGL.degToRad(20.0);
       if (this.angle >= CoffeeGL.PI * 2) {
         this.angle = 0;
@@ -166,22 +173,61 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       _ref = this.system.calculateDeferentPosition(this.chosen_planet), x = _ref[0], y = _ref[1];
       this.deferent.matrix.identity();
       this.deferent.matrix.translate(new CoffeeGL.Vec3(x, 0.2, y));
-      _ref1 = this.system.calculateEpicyclePosition(this.chosen_planet), x = _ref1[0], y = _ref1[1];
-      if ((_ref2 = this.epicycle) != null) {
-        _ref2.matrix.identity();
-      }
-      if ((_ref3 = this.epicycle) != null) {
-        _ref3.matrix.translate(new CoffeeGL.Vec3(x, 0, y));
-      }
-      if ((_ref4 = this.pointer) != null) {
-        _ref4.matrix.identity();
-      }
-      q = new CoffeeGL.Quaternion();
-      q.fromAxisAngle(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(this.system.mean_argument));
-      if ((_ref5 = this.pointer) != null) {
-        _ref5.matrix.mult(q.getMatrix4());
-      }
+      ep = this.system.calculateEquantPosition(this.chosen_planet);
+      this.equant.matrix.identity();
+      this.equant.matrix.translate(new CoffeeGL.Vec3(ep.x, 0.2, ep.y));
       return this;
+    };
+
+    Equatorie.prototype.solveForPlanet = function() {
+      var c, d, date, dr, eq, mr, mv, pv, tmatrix, v, _ref;
+      date = new Date();
+      mv = this.system.calculateMeanMotus(this.chosen_planet, date);
+      mv.normalize();
+      mv.multScalar(10.0);
+      this.black_start.matrix.identity();
+      this.black_start.matrix.translate(new CoffeeGL.Vec3(0, this.string_height, 0));
+      this.black_end.matrix.identity();
+      this.black_end.matrix.translate(new CoffeeGL.Vec3(mv.x, this.string_height, mv.y));
+      this.physics.postMessage({
+        cmd: "black_start_move",
+        data: this.black_start.matrix.getPos()
+      });
+      this.physics.postMessage({
+        cmd: "black_end_move",
+        data: this.black_end.matrix.getPos()
+      });
+      eq = this.system.calculateEquantPosition(this.chosen_planet);
+      pv = this.system.calculateParallel(this.chosen_planet, date);
+      pv.sub(eq);
+      pv.normalize();
+      pv.multScalar(10.0);
+      pv.add(eq);
+      this.white_start.matrix.identity();
+      this.white_start.matrix.translate(new CoffeeGL.Vec3(eq.x, this.string_height, eq.y));
+      this.white_end.matrix.identity();
+      this.white_end.matrix.translate(new CoffeeGL.Vec3(pv.x, this.string_height, pv.y));
+      this.physics.postMessage({
+        cmd: "white_start_move",
+        data: this.white_start.matrix.getPos()
+      });
+      this.physics.postMessage({
+        cmd: "white_end_move",
+        data: this.white_end.matrix.getPos()
+      });
+      if (this.epicycle != null) {
+        _ref = this.system.calculateEpicyclePosition(this.chosen_planet, date), d = _ref[0], c = _ref[1], v = _ref[2], dr = _ref[3], mr = _ref[4];
+        this.epicycle.matrix.identity();
+        this.epicycle.matrix.translate(new CoffeeGL.Vec3(c.x, 0, c.y));
+        this.epicycle.matrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(90 - dr));
+        tmatrix = new CoffeeGL.Matrix4();
+        tmatrix.translate(new CoffeeGL.Vec3(d.x, 0, d.y));
+        tmatrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(mr));
+        tmatrix.mult(this.epicycle.matrix);
+        this.epicycle.matrix.copyFrom(tmatrix);
+        this.marker.matrix.identity();
+        return this.marker.matrix.translate(new CoffeeGL.Vec3(c.x, 0.2, c.y));
+      }
     };
 
     Equatorie.prototype.updatePhysics = function(data) {
