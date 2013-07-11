@@ -107,7 +107,7 @@ class EquatorieSystem
     dir = motus_position.copy()
     dir.normalize()
 
-    f = CoffeeGL.Vec2.sub(deferent_position, equant_position)
+    f = CoffeeGL.Vec2.sub(equant_position,deferent_position)
 
     r = @base_radius
 
@@ -132,6 +132,7 @@ class EquatorieSystem
       v.copyFrom(equant_position)
       d2 = CoffeeGL.Vec2.multScalar(dir,t)
       v.add(d2)
+      v.sub(deferent_position)
 
     v
 
@@ -150,11 +151,9 @@ class EquatorieSystem
     
     deferent_position = new CoffeeGL.Vec2(base_position.x * @planet_data[planet].deferent_eccentricity,
       base_position.y * @planet_data[planet].deferent_eccentricity)
-
-    
+ 
     equant_position = @calculateEquantPosition(planet)
    
-  
     # At this point we have the first transform, before we need to rotate the epicycle over
     # the white string
 
@@ -168,11 +167,30 @@ class EquatorieSystem
       f1 = CoffeeGL.radToDeg Math.atan2 v.y - deferent_position.y, v.x - deferent_position.x
       fangle = f0 - f1
 
-      console.log(f0,f1)
-
     [deferent_position, base_position, v, dangle, fangle ]
 
+  calculatePointerAngle : (planet,date) ->
+    passed = @calculateDate(planet, date)
+    angle = @planet_data[planet].mean_anomaly + @planet_data[planet].epicycle_speed * passed % 360
+    angle
 
+  # in Global co-ordinates
+  calculatePointerPoint : (planet,date) ->
+    angle = @calculatePointerAngle planet,date
+    [deferent_position, base_position, v, dangle, fangle ] = @calculateEpicyclePosition planet,date
+  
+
+    dir = CoffeeGL.Vec2.normalize(CoffeeGL.Vec2.sub(v,deferent_position))
+    perp = dir.copy()
+    perp.x = -dir.y
+    perp.y = dir.x
+
+    perp.multScalar (@base_radius * @planet_data[planet].epicycle_ratio )
+
+    #perp = new CoffeeGL.Vec2(perp.x * Math.cos(angle) - perp.y * Math.sin(angle), perp.x * Math.sin(angle) + perp.y * Math.cos(angle))
+
+    CoffeeGL.Vec2.add(perp,v)
+    v
 
 module.exports = 
   EquatorieSystem : EquatorieSystem

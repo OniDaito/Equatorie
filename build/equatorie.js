@@ -180,7 +180,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
     };
 
     Equatorie.prototype.solveForPlanet = function() {
-      var c, d, date, dr, eq, mr, mv, pv, tmatrix, v, _ref;
+      var c, cp, d, date, dr, eq, mr, mv, pangle, pv, tmatrix, v, _ref;
       date = new Date();
       mv = this.system.calculateMeanMotus(this.chosen_planet, date);
       mv.normalize();
@@ -225,9 +225,13 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
         tmatrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(mr));
         tmatrix.mult(this.epicycle.matrix);
         this.epicycle.matrix.copyFrom(tmatrix);
-        this.marker.matrix.identity();
-        return this.marker.matrix.translate(new CoffeeGL.Vec3(c.x, 0.2, c.y));
       }
+      pangle = this.system.calculatePointerAngle(this.chosen_planet, date);
+      this.pointer.matrix.identity();
+      this.pointer.matrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(pangle));
+      cp = this.system.calculatePointerPoint(this.chosen_planet, date);
+      this.marker.matrix.identity();
+      return this.marker.matrix.translate(new CoffeeGL.Vec3(cp.x, 0.2, cp.y));
     };
 
     Equatorie.prototype.updatePhysics = function(data) {

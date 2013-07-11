@@ -256,7 +256,7 @@ class Equatorie
     @physics.postMessage {cmd : "white_end_move", data: @white_end.matrix.getPos() }
   
     # Epicycle to position
-
+  
     if @epicycle?
 
       [d, c, v, dr, mr] = @system.calculateEpicyclePosition(@chosen_planet, date)
@@ -275,12 +275,18 @@ class Equatorie
       
       tmatrix.mult @epicycle.matrix
       @epicycle.matrix.copyFrom(tmatrix)
-
-      @marker.matrix.identity()
-      @marker.matrix.translate(new CoffeeGL.Vec3(c.x,0.2,c.y))
+      
     
+    # Pointer angle
+    pangle = @system.calculatePointerAngle(@chosen_planet, date)
+    @pointer.matrix.identity()
+    @pointer.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(pangle)
 
+    cp = @system.calculatePointerPoint(@chosen_planet, date)
 
+    @marker.matrix.identity()
+    @marker.matrix.translate(new CoffeeGL.Vec3(cp.x,0.2,cp.y))
+  
   # update the physics - each body in the string needs to have its position and orientation updated
   updatePhysics : (data) ->
     @white_string.update data.white
