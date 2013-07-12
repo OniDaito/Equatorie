@@ -41,7 +41,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       this.fbo_picking = new CoffeeGL.Fbo();
       this.ray = new CoffeeGL.Vec3(0, 0, 0);
       this.picked = void 0;
-      this.test = 0;
+      this.advance_date = 0;
       this.basic_nodes = new CoffeeGL.Node();
       this.mp = new CoffeeGL.Vec2(-1, -1);
       this.mpp = new CoffeeGL.Vec2(-1, -1);
@@ -120,7 +120,10 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       this.chosen_planet = "mars";
       controller = g.add(this, 'chosen_planet', planets);
       controller = g.add(this, 'solveForPlanet');
-      controller = g.add(this, 'test', 0, 360);
+      controller = g.add(this, 'advance_date', 0, 730);
+      controller.onChange(function(value) {
+        return _this.solveForPlanet();
+      });
       this.white_string = new EquatorieString(8.0, 0.08, 20);
       this.black_string = new EquatorieString(8.0, 0.08, 20);
       this.top_node.add(this.white_string);
@@ -183,6 +186,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
     Equatorie.prototype.solveForPlanet = function() {
       var c, cp, d, date, dr, eq, mr, mv, pangle, pv, tmatrix, v, _ref;
       date = new Date();
+      date.setDate(date.getDate() + this.advance_date);
       mv = this.system.calculateMeanMotus(this.chosen_planet, date);
       mv.normalize();
       mv.multScalar(10.0);

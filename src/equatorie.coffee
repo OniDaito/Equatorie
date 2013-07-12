@@ -34,7 +34,7 @@ class Equatorie
     @ray = new CoffeeGL.Vec3(0,0,0)
     @picked = undefined
 
-    @test = 0
+    @advance_date = 0
 
     # Nodes being drawn with the basic shader
     @basic_nodes = new CoffeeGL.Node()
@@ -140,7 +140,10 @@ class Equatorie
 
     controller = g.add(@,'chosen_planet',planets)
     controller = g.add(@,'solveForPlanet')
-    controller = g.add(@,'test',0,360)
+    controller = g.add(@,'advance_date',0,730)
+    controller.onChange( (value) => 
+      @solveForPlanet()
+    )
 
     # Add Strings
     @white_string = new EquatorieString 8.0, 0.08, 20
@@ -221,6 +224,7 @@ class Equatorie
   solveForPlanet : () ->
 
     date = new Date()
+    date.setDate(date.getDate() + @advance_date)
 
     mv = @system.calculateMeanMotus @chosen_planet, date
     mv.normalize()
