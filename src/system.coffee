@@ -87,6 +87,38 @@ class EquatorieSystem
     new CoffeeGL.Vec2(@base_radius * Math.cos( CoffeeGL.degToRad(angle) ), 
       @base_radius * Math.sin( CoffeeGL.degToRad(angle) ))
 
+
+  # Given a ray and circle, solve the quadratic and find intersection points
+  rayCircleIntersection : (ray_start, ray_dir, circle_centre, circle_radius) ->
+
+    f = CoffeeGL.Vec2.sub(ray_start,circle_centre)
+
+    r = circle_radius
+
+    a = ray_dir.dot( ray_dir )
+    b = 2*f.dot( ray_dir )
+    c = f.dot( f ) - r*r
+
+    v = new CoffeeGL.Vec2()
+
+    discriminant = b*b-4*a*c
+
+    if discriminant != 0
+      discriminant = Math.sqrt(discriminant)
+      t1 = (-b - discriminant)/(2*a)
+      t2 = (-b + discriminant)/(2*a)
+
+      t = t2
+      t = t1 if t2 < 0 
+
+      # Plug back into our line equation
+      
+      v.copyFrom(ray_start)
+      d2 = CoffeeGL.Vec2.multScalar(ray_dir,t)
+      v.add(d2)
+
+    v
+
   # Find where the parallel line from the Equant, parallel with the meanmotus, cuts the rim
   calculateParallel : (planet, date) ->
 
@@ -107,34 +139,8 @@ class EquatorieSystem
     dir = motus_position.copy()
     dir.normalize()
 
-    f = CoffeeGL.Vec2.sub(equant_position,deferent_position)
-
-    r = @base_radius
-
-    a = dir.dot( dir )
-    b = 2*f.dot( dir )
-    c = f.dot( f ) - r*r
-
-    v = new CoffeeGL.Vec2()
-
-    discriminant = b*b-4*a*c
-
-    if discriminant != 0
-      discriminant = Math.sqrt(discriminant)
-      t1 = (-b - discriminant)/(2*a)
-      t2 = (-b + discriminant)/(2*a)
-
-      t = t2
-      t = t1 if t2 < 0 
-
-      # Plug back into our line equation
-      
-      v.copyFrom(equant_position)
-      d2 = CoffeeGL.Vec2.multScalar(dir,t)
-      v.add(d2)
-      v.sub(deferent_position)
-
-    v
+    @rayCircleIntersection(equant_position, dir, deferent_position, @base_radius)
+    
 
   calculateEpicyclePosition : (planet, date) ->
     # Rotate the epicycle so its 0 point is on the deferent, then rotate around the deferent
@@ -161,6 +167,7 @@ class EquatorieSystem
 
     # Line equation - p = s + tD
     v = @calculateParallel planet,date
+   
     if v.x != 0 and v.y != 0
 
       f0 = CoffeeGL.radToDeg Math.atan2 base_position.y - deferent_position.y, base_position.x - deferent_position.x
@@ -177,20 +184,37 @@ class EquatorieSystem
   # in Global co-ordinates
   calculatePointerPoint : (planet,date) ->
     angle = @calculatePointerAngle planet,date
-    [deferent_position, base_position, v, dangle, fangle ] = @calculateEpicyclePosition planet,date
-  
+    deferent_position = @calculateDeferentPosition(planet)
 
-    dir = CoffeeGL.Vec2.normalize(CoffeeGL.Vec2.sub(v,deferent_position))
+    motus_position = @calculateMeanMotus(planet,date)
+    equant_position = @calculateEquantPosition(planet)
+    dir = motus_position.copy()
+    dir.normalize()
+
+    [deferent_position, base_position, v, dangle, fangle ] = @calculateEpicyclePosition(planet, date)
+    ca = Math.cos(CoffeeGL.degToRad(-fangle))
+    sa = Math.sin(CoffeeGL.degToRad(-fangle))
+
+    epipos = new CoffeeGL.Vec2(base_position.x * ca - base_position.y * sa, 
+        base_position.x * sa + base_position.y * ca)
+    epipos.add deferent_position
+
+    # At this point perp is the point underneath the epicycle
+    dir = CoffeeGL.Vec2.normalize(CoffeeGL.Vec2.sub(epipos,deferent_position))
+    
+    # Move right down the limb
     perp = dir.copy()
-    perp.x = -dir.y
-    perp.y = dir.x
+    perp.x = dir.y
+    perp.y = -dir.x
 
     perp.multScalar (@base_radius * @planet_data[planet].epicycle_ratio )
 
-    #perp = new CoffeeGL.Vec2(perp.x * Math.cos(angle) - perp.y * Math.sin(angle), perp.x * Math.sin(angle) + perp.y * Math.cos(angle))
+    ca = Math.cos (CoffeeGL.degToRad(-angle))
+    sa = Math.sin (CoffeeGL.degToRad(-angle))
 
-    CoffeeGL.Vec2.add(perp,v)
-    v
+    perp = new CoffeeGL.Vec2(perp.x * ca - perp.y * sa, perp.x * sa + perp.y * ca)
+
+    perp.add epipos
 
 module.exports = 
   EquatorieSystem : EquatorieSystem

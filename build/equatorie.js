@@ -231,7 +231,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       this.pointer.matrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(pangle));
       cp = this.system.calculatePointerPoint(this.chosen_planet, date);
       this.marker.matrix.identity();
-      return this.marker.matrix.translate(new CoffeeGL.Vec3(cp.x, 0.2, cp.y));
+      return this.marker.matrix.translate(new CoffeeGL.Vec3(cp.x, 0.6, cp.y));
     };
 
     Equatorie.prototype.updatePhysics = function(data) {

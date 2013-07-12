@@ -285,7 +285,7 @@ class Equatorie
     cp = @system.calculatePointerPoint(@chosen_planet, date)
 
     @marker.matrix.identity()
-    @marker.matrix.translate(new CoffeeGL.Vec3(cp.x,0.2,cp.y))
+    @marker.matrix.translate(new CoffeeGL.Vec3(cp.x,0.6,cp.y))
   
   # update the physics - each body in the string needs to have its position and orientation updated
   updatePhysics : (data) ->
