@@ -62,7 +62,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -81,7 +81,7 @@
        sodipodi:cy="506.85715"
        sodipodi:rx="487.14285"
        sodipodi:ry="482.85715"
-       d="m 1014.2857,506.85715 a 487.14285,482.85715 0 1 1 -974.285669,0 487.14285,482.85715 0 1 1 974.285669,0 z"
+       d="m 1014.2857,506.85715 c 0,266.67464 -218.10125,482.85714 -487.14282,482.85714 -269.04157,0 -487.142849,-216.1825 -487.142849,-482.85714 C 40.000031,240.18251 258.10131,24 527.14288,24 796.18445,24 1014.2857,240.18251 1014.2857,506.85715 z"
        transform="matrix(1.0150826,0,0,1.0240921,-20.093544,18.293715)" />
     <path
        sodipodi:type="arc"
@@ -91,7 +91,7 @@
        sodipodi:cy="506.85715"
        sodipodi:rx="487.14285"
        sodipodi:ry="482.85715"
-       d="m 1014.2857,506.85715 a 487.14285,482.85715 0 1 1 -974.285669,0 487.14285,482.85715 0 1 1 974.285669,0 z"
+       d="m 1014.2857,506.85715 c 0,266.67464 -218.10125,482.85714 -487.14282,482.85714 -269.04157,0 -487.142849,-216.1825 -487.142849,-482.85714 C 40.000031,240.18251 258.10131,24 527.14288,24 796.18445,24 1014.2857,240.18251 1014.2857,506.85715 z"
        transform="matrix(1.0150826,0,0,1.0240921,989.90645,18.293804)" />
   </g>
   <g
@@ -143,7 +143,7 @@
        xml:space="preserve"
        id="flowRoot3878"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       transform="translate(8.5714285,53.347351)"><flowRegion
+       transform="translate(-191.43877,57.387961)"><flowRegion
          id="flowRegion3880"><rect
            id="rect3882"
            width="100.71429"
@@ -153,123 +153,123 @@
          id="flowPara3884">Aries</flowPara></flowRoot>    <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="736.03986"
-       y="225.77519"
+       x="172.37474"
+       y="229.8158"
        id="text3886"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
-         x="736.03986"
-         y="225.77519"
+         x="172.37474"
+         y="229.8158"
          id="tspan3890">Taurus</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="838.87598"
-       y="402.75345"
+       x="65.099113"
+       y="426.04495"
        id="text3894"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3896"
-         x="838.87598"
-         y="402.75345">Gemini</tspan></text>
+         x="65.099113"
+         y="426.04495">Gemini</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="846.79626"
-       y="615.81366"
+       x="60.897591"
+       y="615.8136"
        id="text3898"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3900"
-         x="846.79626"
-         y="615.81366">Cancer</tspan></text>
+         x="60.897591"
+         y="615.8136">Cancer</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="777.14288"
-       y="831.14288"
+       x="183.17319"
+       y="825.08197"
        id="text3902"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3904"
-         x="777.14288"
-         y="831.14288">Leo</tspan></text>
+         x="183.17319"
+         y="825.08197">Leo</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="569.75488"
-       y="953.8775"
+       x="381.86652"
+       y="949.83691"
        id="text3906"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3908"
-         x="569.75488"
-         y="953.8775">Virgo</tspan></text>
+         x="381.86652"
+         y="949.83691">Virgo</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="358.3053"
-       y="951.24432"
+       x="568.41705"
+       y="949.224"
        id="text3910"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3912"
-         x="358.3053"
-         y="951.24432">Libra</tspan></text>
+         x="568.41705"
+         y="949.224">Libra</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="164.99998"
-       y="815.42859"
+       x="729.15234"
+       y="821.48944"
        id="text3914"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3916"
-         x="164.99998"
-         y="815.42859">Scorpio</tspan></text>
+         x="729.15234"
+         y="821.48944">Scorpio</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="62.142876"
+       x="789.4527"
        y="609.71429"
        id="text3918"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3920"
-         x="62.142876"
+         x="789.4527"
          y="609.71429">Sagittarius</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="50.000004"
-       y="430.42856"
+       x="795.49255"
+       y="426.38797"
        id="text3922"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3924"
-         x="50.000004"
-         y="430.42856">Capricorn</tspan></text>
+         x="795.49255"
+         y="426.38797">Capricorn</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="152.61205"
-       y="229.49023"
+       x="714.25684"
+       y="239.59177"
        id="text3926"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3928"
-         x="152.61205"
-         y="229.49023">Aquarius</tspan></text>
+         x="714.25684"
+         y="239.59177">Aquarius</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="355.24509"
-       y="102.10228"
+       x="563.4873"
+       y="104.12258"
        id="text3930"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3932"
-         x="355.24509"
-         y="102.10228">Pisces</tspan></text>
+         x="563.4873"
+         y="104.12258">Pisces</tspan></text>
   </g>
 </svg>
