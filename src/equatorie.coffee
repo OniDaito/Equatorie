@@ -17,6 +17,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
 {EquatorieSystem} = require './system'
 {EquatorieString} = require './string'
+{loadAssets} = require './load'
 
 
 class Equatorie
@@ -47,10 +48,47 @@ class Equatorie
 
     @system = new EquatorieSystem()
 
-    r0 = new CoffeeGL.Request ('../shaders/basic.glsl')
-    r0.get (data) =>
-      @shader_basic = new CoffeeGL.Shader(data, {"uColour" : "uColour"})
+    @loaded = new CoffeeGL.Signal()
+    
+    # Function called when everything is loaded
+    f = () =>
 
+      console.log "Loaded Assets"
+
+      @top_node.add @basic_nodes
+      @basic_nodes.shader = @shader_basic
+      @deferent.shader = @shader_basic
+      @equant.shader = @shader_basic
+      @marker.shader = @shader_basic
+
+      @top_node.add(@g)
+
+      # Should be three children nodes with this model. Attach the shaders
+      
+      @pointer  = @g.children[0]
+      @epicycle = @g.children[1]
+      @base     = @g.children[2]
+
+      @pointer.shader   = @shader_basic
+      @epicycle.shader  = @shader_basic
+      @base.shader      = @shader
+
+      @base.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.0,1.0,1.0,1.0)
+
+      @pointer.uColour = new CoffeeGL.Colour.RGBA(1.0,1.0,0.0,1.0)
+      @epicycle.uColour = new CoffeeGL.Colour.RGBA(0.6,0.6,0.0,1.0)
+
+      # Remove the pointer and add it as a child of the Epicycle
+      @g.remove @pointer
+      @epicycle.add @pointer
+
+      # Rotate the Base so the Sign of Aries is in the right place
+      q = new CoffeeGL.Quaternion()
+      q.fromAxisAngle(new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(-90.0))
+
+      @base.matrix.mult q.getMatrix4() 
+         
+      @pickable.shader = @shader_picker
       
       @top_node.add @basic_nodes
       @basic_nodes.shader = @shader_basic
@@ -58,49 +96,31 @@ class Equatorie
       @equant.shader = @shader_basic
       @marker.shader = @shader_basic
 
-      r1 = new CoffeeGL.Request ('../shaders/basic_lighting.glsl')
-      
-      r1.get (data) =>
-        @shader = new CoffeeGL.Shader(data, {"uAmbientLightingColor" : "uAmbientLightingColor"})
-      
-        r2 = new CoffeeGL.Request('../models/equatorie.js')
 
-        r2.get (data) =>
-          @g = new CoffeeGL.JSONModel(data) 
-          @top_node.add(@g)
-
-          # Should be three children nodes with this model. Attach the shaders
-          
-          @pointer  = @g.children[0]
-          @epicycle = @g.children[1]
-          @base     = @g.children[2]
-
-          @pointer.shader   = @shader_basic
-          @epicycle.shader  = @shader_basic
-          @base.shader      = @shader
-
-          @base.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.0,1.0,1.0,1.0)
-
-          @pointer.uColour = new CoffeeGL.Colour.RGBA(1.0,1.0,0.0,1.0)
-          @epicycle.uColour = new CoffeeGL.Colour.RGBA(0.6,0.6,0.0,1.0)
-
-          # Remove the pointer and add it as a child of the Epicycle
-          @g.remove @pointer
-          @epicycle.add @pointer
-
-          # Rotate the Base so the Sign of Aries is in the right place
-          q = new CoffeeGL.Quaternion()
-          q.fromAxisAngle(new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(-90.0))
-
-          @base.matrix.mult q.getMatrix4() 
-
-          r3 = new CoffeeGL.Request('../shaders/picking.glsl')
-          r3.get (data) =>
-            @shader_picker = new CoffeeGL.Shader(data, {"uPickingColour" : "uPickingColour"})
-            @pickable.shader = @shader_picker
+      # Launch physics web worker
+      @physics = new Worker '/js/physics.js'
+      @physics.onmessage = @onPhysicsEvent
+      @physics.postMessage { cmd: "startup" }
 
 
-    # Points on the surface of the Equatorie
+      # Register for mouse events
+      CoffeeGL.Context.mouseDown.add @onMouseDown, @
+      CoffeeGL.Context.mouseOver.add @onMouseOver, @
+      CoffeeGL.Context.mouseOut.add @onMouseOut, @
+      CoffeeGL.Context.mouseMove.add @onMouseMove, @
+      CoffeeGL.Context.mouseUp.add @onMouseUp, @
+
+      # Remove the camera mouse event - we want control over that
+      CoffeeGL.Context.mouseMove.del @c.onMouseMove, @c
+      CoffeeGL.Context.mouseDown.del @c.onMouseDown, @c
+
+
+    # Fire off the loader with the signal
+    @loaded.addOnce f, @
+    loadAssets @, @loaded
+
+
+    # Points on the surface of the Equatorie - cube markers for now
     cube = new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.2,0.2,0.2
     @deferent = new CoffeeGL.Node cube
     @deferent.uColour = new CoffeeGL.Colour.RGBA(1.0,0.0,0.0,1.0)
@@ -118,12 +138,16 @@ class Equatorie
     @top_node.add(@c)
     @pickable.add(@c)
 
+    # Lights
+
     @light = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0,5.0,25.0), new CoffeeGL.Colour.RGB(1.0,1.0,1.0) );
     @light2 = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0,15.0,5.0), new CoffeeGL.Colour.RGB(1.0,1.0,1.0) );
 
     @top_node.add(@light)
     @top_node.add(@light2)
 
+
+    # OpenGL Constants
     GL.enable(GL.CULL_FACE)
     GL.cullFace(GL.BACK)
     GL.enable(GL.DEPTH_TEST)
@@ -181,25 +205,11 @@ class Equatorie
     @white_start.uColour = new CoffeeGL.Colour.RGBA(0.9,0.2,0.2,0.8)
     @white_end.uColour = new CoffeeGL.Colour.RGBA(0.9,0.2,0.2,0.8)
 
-    # Launch physics web worker
-    @physics = new Worker '/js/physics.js'
-    @physics.onmessage = @onPhysicsEvent
-    @physics.postMessage { cmd: "startup" }
-
-
-    # Register for mouse events
-    CoffeeGL.Context.mouseDown.add @onMouseDown, @
-    CoffeeGL.Context.mouseOver.add @onMouseOver, @
-    CoffeeGL.Context.mouseOut.add @onMouseOut, @
-    CoffeeGL.Context.mouseMove.add @onMouseMove, @
-    CoffeeGL.Context.mouseUp.add @onMouseUp, @
-
-    # Remove the camera mouse event - we want control over that
-    CoffeeGL.Context.mouseMove.del @c.onMouseMove, @c
-    CoffeeGL.Context.mouseDown.del @c.onMouseDown, @c
-
+   
   update : (dt) =>
   
+    date = new Date()
+
     @angle = dt * 0.001 * CoffeeGL.degToRad(20.0)
     if @angle >= CoffeeGL.PI * 2
       @angle = 0
@@ -208,12 +218,14 @@ class Equatorie
     m.transVec3(@light.pos)
 
     # Calculate the Deferent Centre
+
+    date.setDate(date.getDate() + @advance_date)
     
-    [x,y] = @system.calculateDeferentPosition(@chosen_planet)
+    [x,y] = @system.calculateDeferentPosition @chosen_planet, date
     @deferent.matrix.identity()
     @deferent.matrix.translate new CoffeeGL.Vec3 x,0.2,y
 
-    ep = @system.calculateEquantPosition(@chosen_planet)
+    ep = @system.calculateEquantPosition @chosen_planet, date
     @equant.matrix.identity()
     @equant.matrix.translate new CoffeeGL.Vec3 ep.x,0.2,ep.y
 
@@ -224,6 +236,7 @@ class Equatorie
   solveForPlanet : () ->
 
     date = new Date()
+
     date.setDate(date.getDate() + @advance_date)
 
     mv = @system.calculateMeanMotus @chosen_planet, date
@@ -241,7 +254,7 @@ class Equatorie
     @physics.postMessage {cmd : "black_end_move", data: @black_end.matrix.getPos() }
 
     # White string to the Equant and parallel to black
-    eq = @system.calculateEquantPosition @chosen_planet
+    eq = @system.calculateEquantPosition @chosen_planet, date
     pv = @system.calculateParallel @chosen_planet, date
     pv.sub(eq)
     pv.normalize()
@@ -269,7 +282,6 @@ class Equatorie
       @epicycle.matrix.translate new CoffeeGL.Vec3 c.x,0,c.y  
       @epicycle.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(90-dr)
     
-  
       # Now rotate the epicycle around the deferent till it reaches the white line
       
       tmatrix = new CoffeeGL.Matrix4()
@@ -286,10 +298,12 @@ class Equatorie
     @pointer.matrix.identity()
     @pointer.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(pangle)
 
-    cp = @system.calculatePointerPoint(@chosen_planet, date)
+    cp = @system.calculatePointerPoint @chosen_planet, date
 
     @marker.matrix.identity()
     @marker.matrix.translate(new CoffeeGL.Vec3(cp.x,0.6,cp.y))
+
+    @system.calculateTruePlace @chosen_planet, date
   
   # update the physics - each body in the string needs to have its position and orientation updated
   updatePhysics : (data) ->
@@ -365,6 +379,7 @@ class Equatorie
 
   onMouseUp : (event) ->
     @mdown = false
+    @picked = false
 
   onMouseOut : (event) ->
     @mp.x = @mpp.x = -1

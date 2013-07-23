@@ -59,7 +59,6 @@ class PhysicsString
     @start = new Ammo.btRigidBody(startRigidBodyCI)
     @start.setCollisionFlags ( @start.getCollisionFlags() | 2 )
     @start.setActivationState( Ammo.DISABLE_DEACTIVATION )
-    #@start.setDamping(0.99,0.99)
 
     pp = new Ammo.btVector3(0, seglength / 2,0)
     pq = new Ammo.btVector3(0, -0.1,0)
@@ -83,8 +82,6 @@ class PhysicsString
     pp = new Ammo.btVector3(0, seglength / 2,0)
     pq = new Ammo.btVector3(0, -0.1,0)
     c = new Ammo.btPoint2PointConstraint(@children[0], @end, pp, pq )
-
-    #@end.setDamping(0.99,0.99)
 
     world.addConstraint(c,true)
     world.addRigidBody(@end)
