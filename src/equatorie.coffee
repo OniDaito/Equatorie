@@ -208,6 +208,7 @@ class Equatorie
    
   update : (dt) =>
   
+    #date = new Date("May 31, 1585 00:00:00")
     date = new Date()
 
     @angle = dt * 0.001 * CoffeeGL.degToRad(20.0)
@@ -235,11 +236,19 @@ class Equatorie
   # Called when the button is pressed in dat.gui. Solve for the chosen planet
   solveForPlanet : () ->
 
+    #date = new Date("May 31, 1585 00:00:00")
     date = new Date()
 
     date.setDate(date.getDate() + @advance_date)
 
-    mv = @system.calculateMeanMotus @chosen_planet, date
+    console.log @system.calculateDeferentAngle  @chosen_planet, date
+
+    [ma, mv] = @system.calculateMeanMotus @chosen_planet, date
+
+    console.log "Mean Motus: " + ma
+
+    console.log "Days Passed: " + @system.calculateDate date
+
     mv.normalize()
     mv.multScalar(10.0)
 

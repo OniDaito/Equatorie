@@ -174,10 +174,13 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
     };
 
     Equatorie.prototype.solveForPlanet = function() {
-      var c, cp, d, date, dr, eq, mr, mv, pangle, pv, tmatrix, v, _ref;
+      var c, cp, d, date, dr, eq, ma, mr, mv, pangle, pv, tmatrix, v, _ref, _ref1;
       date = new Date();
       date.setDate(date.getDate() + this.advance_date);
-      mv = this.system.calculateMeanMotus(this.chosen_planet, date);
+      console.log(this.system.calculateDeferentAngle(this.chosen_planet, date));
+      _ref = this.system.calculateMeanMotus(this.chosen_planet, date), ma = _ref[0], mv = _ref[1];
+      console.log("Mean Motus: " + ma);
+      console.log("Days Passed: " + this.system.calculateDate(date));
       mv.normalize();
       mv.multScalar(10.0);
       this.black_start.matrix.identity();
@@ -211,7 +214,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
         data: this.white_end.matrix.getPos()
       });
       if (this.epicycle != null) {
-        _ref = this.system.calculateEpicyclePosition(this.chosen_planet, date), d = _ref[0], c = _ref[1], v = _ref[2], dr = _ref[3], mr = _ref[4];
+        _ref1 = this.system.calculateEpicyclePosition(this.chosen_planet, date), d = _ref1[0], c = _ref1[1], v = _ref1[2], dr = _ref1[3], mr = _ref1[4];
         this.epicycle.matrix.identity();
         this.epicycle.matrix.translate(new CoffeeGL.Vec3(c.x, 0, c.y));
         this.epicycle.matrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(90 - dr));
