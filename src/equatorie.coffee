@@ -434,7 +434,7 @@ class Equatorie
     GL.clearColor(0.15, 0.15, 0.15, 1.0)
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT)
 
-    @c.update()
+    @c.update CoffeeGL.Context.width, CoffeeGL.Context.height
 
     @top_node.draw() if @top_node?
     
@@ -453,8 +453,29 @@ class Equatorie
     
       @shader_picker.unbind()
       @fbo_picking.unbind()
-    
+  
+  
+  resize : (w,h) ->
+    @fbo_picking.resize(w,h)
   
 eq = new Equatorie()
-
 cgl = new CoffeeGL.App('webgl-canvas', eq, eq.init, eq.draw, eq.update)
+
+f = () ->
+  w = $(window).width();
+  h = $(window).height();
+
+  $("#webgl-canvas").attr("width", w)
+  $("#webgl-canvas").attr("height", h)
+
+  $("#webgl-canvas").width(w)
+  $("#webgl-canvas").height(h)
+
+  cgl.resize(w,h)
+  eq.resize(w,h)
+
+
+$(window).bind("resize", f)
+$(window).bind("ready", f)
+
+

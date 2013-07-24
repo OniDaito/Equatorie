@@ -16,7 +16,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
 
 (function() {
-  var Equatorie, EquatorieString, EquatorieSystem, cgl, eq, loadAssets,
+  var Equatorie, EquatorieString, EquatorieSystem, cgl, eq, f, loadAssets,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
   EquatorieSystem = require('./system').EquatorieSystem;
@@ -350,7 +350,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       var pixel;
       GL.clearColor(0.15, 0.15, 0.15, 1.0);
       GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
-      this.c.update();
+      this.c.update(CoffeeGL.Context.width, CoffeeGL.Context.height);
       if (this.top_node != null) {
         this.top_node.draw();
       }
@@ -368,6 +368,10 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       }
     };
 
+    Equatorie.prototype.resize = function(w, h) {
+      return this.fbo_picking.resize(w, h);
+    };
+
     return Equatorie;
 
   })();
@@ -375,5 +379,21 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
   eq = new Equatorie();
 
   cgl = new CoffeeGL.App('webgl-canvas', eq, eq.init, eq.draw, eq.update);
+
+  f = function() {
+    var h, w;
+    w = $(window).width();
+    h = $(window).height();
+    $("#webgl-canvas").attr("width", w);
+    $("#webgl-canvas").attr("height", h);
+    $("#webgl-canvas").width(w);
+    $("#webgl-canvas").height(h);
+    cgl.resize(w, h);
+    return eq.resize(w, h);
+  };
+
+  $(window).bind("resize", f);
+
+  $(window).bind("ready", f);
 
 }).call(this);
