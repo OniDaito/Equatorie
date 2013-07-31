@@ -1,18 +1,24 @@
 ##>VERTEX
 {{ShaderLibrary.Basic}}
-{{ShaderLibrary.BasicVertexColours}}
-{{ShaderLibrary.BasicVertexNormals}}
+{{ShaderLibrary.BasicCamera}}
+{{ShaderLibrary.VertexNormal}}
+
+varying vec4 vTransformedNormal;
 
 void main(void) {
-    gl_Position = uProjectionMatrix * uCameraMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
+    gl_Position = uProjectionMatrix * uCameraMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
+    vTransformedNormal = vec4(uNormalMatrix * aVertexNormal, 1.0);
     vNormal = aVertexNormal;
-    vColor = aVertexColour;
 }
     
 ##>FRAGMENT
+
+precision mediump float;
+
 {{ShaderLibrary.Basic}}
-{{ShaderLibrary.BasicVertexColours}}
-{{ShaderLibrary.BasicVertexNormals}}
+{{ShaderLibrary.VertexNormal}}
+
+varying vec4 vTransformedNormal;
 
 uniform samplerCube uSampler;
 void main(void) {

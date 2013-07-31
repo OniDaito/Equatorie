@@ -1,11 +1,9 @@
 ##>VERTEX
 {{ShaderLibrary.Basic}}
 {{ShaderLibrary.BasicCamera}}
-{{ShaderLibrary.BasicVertexNormals}}
+{{ShaderLibrary.VertexNormal}}
 {{ShaderLibrary.BasicTexture}}
 
-
-uniform vec3 uPointLightPos[10];
 varying vec4 vTransformedNormal;
 varying vec4 vPosition;
 varying vec4 vEyePosition;
@@ -25,7 +23,7 @@ void main(void) {
 precision mediump float;
 
 {{ShaderLibrary.Basic}}
-{{ShaderLibrary.BasicVertexNormals}}
+{{ShaderLibrary.VertexNormal}}
 {{ShaderLibrary.BasicTexture}}
 
 varying vec4 vTransformedNormal;

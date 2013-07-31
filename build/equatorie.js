@@ -16,7 +16,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
 
 
 (function() {
-  var Equatorie, EquatorieString, EquatorieSystem, cgl, eq, loadAssets,
+  var Equatorie, EquatorieString, EquatorieSystem, cgl, eq, f, loadAssets,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
   EquatorieSystem = require('./system').EquatorieSystem;
@@ -59,11 +59,11 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
         _this.equant.shader = _this.shader_basic;
         _this.marker.shader = _this.shader_basic;
         _this.top_node.add(_this.g);
-        _this.pointer = _this.g.children[0];
+        _this.pointer = _this.g.children[2];
         _this.epicycle = _this.g.children[1];
-        _this.base = _this.g.children[2];
-        _this.pointer.shader = _this.shader_basic;
-        _this.epicycle.shader = _this.shader_basic;
+        _this.base = _this.g.children[0];
+        _this.pointer.shader = _this.shader;
+        _this.epicycle.shader = _this.shader;
         _this.base.shader = _this.shader;
         _this.base.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.0, 1.0, 1.0, 1.0);
         _this.pointer.uColour = new CoffeeGL.Colour.RGBA(1.0, 1.0, 0.0, 1.0);
@@ -126,8 +126,6 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       });
       this.white_string = new EquatorieString(8.0, 0.08, 20);
       this.black_string = new EquatorieString(8.0, 0.08, 20);
-      this.top_node.add(this.white_string);
-      this.top_node.add(this.black_string);
       this.white_start = new CoffeeGL.Node(cube);
       this.pickable.add(this.white_start);
       this.white_start.matrix.translate(new CoffeeGL.Vec3(2, this.string_height, 2));
@@ -174,10 +172,13 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
     };
 
     Equatorie.prototype.solveForPlanet = function() {
-      var c, cp, d, date, dr, eq, mr, mv, pangle, pv, tmatrix, v, _ref;
+      var c, cp, d, date, dr, eq, ma, mr, mv, pangle, pv, tmatrix, v, _ref, _ref1;
       date = new Date();
       date.setDate(date.getDate() + this.advance_date);
-      mv = this.system.calculateMeanMotus(this.chosen_planet, date);
+      console.log(this.system.calculateDeferentAngle(this.chosen_planet, date));
+      _ref = this.system.calculateMeanMotus(this.chosen_planet, date), ma = _ref[0], mv = _ref[1];
+      console.log("Mean Motus: " + ma);
+      console.log("Days Passed: " + this.system.calculateDate(date));
       mv.normalize();
       mv.multScalar(10.0);
       this.black_start.matrix.identity();
@@ -211,7 +212,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
         data: this.white_end.matrix.getPos()
       });
       if (this.epicycle != null) {
-        _ref = this.system.calculateEpicyclePosition(this.chosen_planet, date), d = _ref[0], c = _ref[1], v = _ref[2], dr = _ref[3], mr = _ref[4];
+        _ref1 = this.system.calculateEpicyclePosition(this.chosen_planet, date), d = _ref1[0], c = _ref1[1], v = _ref1[2], dr = _ref1[3], mr = _ref1[4];
         this.epicycle.matrix.identity();
         this.epicycle.matrix.translate(new CoffeeGL.Vec3(c.x, 0, c.y));
         this.epicycle.matrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(90 - dr));
@@ -347,7 +348,7 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       var pixel;
       GL.clearColor(0.15, 0.15, 0.15, 1.0);
       GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
-      this.c.update();
+      this.c.update(CoffeeGL.Context.width, CoffeeGL.Context.height);
       if (this.top_node != null) {
         this.top_node.draw();
       }
@@ -365,6 +366,10 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       }
     };
 
+    Equatorie.prototype.resize = function(w, h) {
+      return this.fbo_picking.resize(w, h);
+    };
+
     return Equatorie;
 
   })();
@@ -372,5 +377,21 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
   eq = new Equatorie();
 
   cgl = new CoffeeGL.App('webgl-canvas', eq, eq.init, eq.draw, eq.update);
+
+  f = function() {
+    var h, w;
+    w = $(window).width();
+    h = $(window).height();
+    $("#webgl-canvas").attr("width", w);
+    $("#webgl-canvas").attr("height", h);
+    $("#webgl-canvas").width(w);
+    $("#webgl-canvas").height(h);
+    cgl.resize(w, h);
+    return eq.resize(w, h);
+  };
+
+  $(window).bind("resize", f);
+
+  $(window).bind("ready", f);
 
 }).call(this);

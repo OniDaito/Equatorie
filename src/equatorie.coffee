@@ -65,12 +65,12 @@ class Equatorie
 
       # Should be three children nodes with this model. Attach the shaders
       
-      @pointer  = @g.children[0]
+      @pointer  = @g.children[2]
       @epicycle = @g.children[1]
-      @base     = @g.children[2]
+      @base     = @g.children[0]
 
-      @pointer.shader   = @shader_basic
-      @epicycle.shader  = @shader_basic
+      @pointer.shader   = @shader
+      @epicycle.shader  = @shader
       @base.shader      = @shader
 
       @base.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.0,1.0,1.0,1.0)
@@ -173,8 +173,6 @@ class Equatorie
     @white_string = new EquatorieString 8.0, 0.08, 20
     @black_string = new EquatorieString 8.0, 0.08, 20
     
-    @top_node.add @white_string
-    @top_node.add @black_string
 
     @white_start = new CoffeeGL.Node cube
     @pickable.add @white_start
@@ -208,6 +206,7 @@ class Equatorie
    
   update : (dt) =>
   
+    #date = new Date("May 31, 1585 00:00:00")
     date = new Date()
 
     @angle = dt * 0.001 * CoffeeGL.degToRad(20.0)
@@ -235,11 +234,19 @@ class Equatorie
   # Called when the button is pressed in dat.gui. Solve for the chosen planet
   solveForPlanet : () ->
 
+    #date = new Date("May 31, 1585 00:00:00")
     date = new Date()
 
     date.setDate(date.getDate() + @advance_date)
 
-    mv = @system.calculateMeanMotus @chosen_planet, date
+    console.log @system.calculateDeferentAngle  @chosen_planet, date
+
+    [ma, mv] = @system.calculateMeanMotus @chosen_planet, date
+
+    console.log "Mean Motus: " + ma
+
+    console.log "Days Passed: " + @system.calculateDate date
+
     mv.normalize()
     mv.multScalar(10.0)
 
@@ -425,7 +432,7 @@ class Equatorie
     GL.clearColor(0.15, 0.15, 0.15, 1.0)
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT)
 
-    @c.update()
+    @c.update CoffeeGL.Context.width, CoffeeGL.Context.height
 
     @top_node.draw() if @top_node?
     
@@ -444,8 +451,29 @@ class Equatorie
     
       @shader_picker.unbind()
       @fbo_picking.unbind()
-    
+  
+  
+  resize : (w,h) ->
+    @fbo_picking.resize(w,h)
   
 eq = new Equatorie()
-
 cgl = new CoffeeGL.App('webgl-canvas', eq, eq.init, eq.draw, eq.update)
+
+f = () ->
+  w = $(window).width();
+  h = $(window).height();
+
+  $("#webgl-canvas").attr("width", w)
+  $("#webgl-canvas").attr("height", h)
+
+  $("#webgl-canvas").width(w)
+  $("#webgl-canvas").height(h)
+
+  cgl.resize(w,h)
+  eq.resize(w,h)
+
+
+$(window).bind("resize", f)
+$(window).bind("ready", f)
+
+
