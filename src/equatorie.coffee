@@ -65,12 +65,12 @@ class Equatorie
 
       # Should be three children nodes with this model. Attach the shaders
       
-      @pointer  = @g.children[0]
+      @pointer  = @g.children[2]
       @epicycle = @g.children[1]
-      @base     = @g.children[2]
+      @base     = @g.children[0]
 
-      @pointer.shader   = @shader_basic
-      @epicycle.shader  = @shader_basic
+      @pointer.shader   = @shader
+      @epicycle.shader  = @shader
       @base.shader      = @shader
 
       @base.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.0,1.0,1.0,1.0)
@@ -173,8 +173,6 @@ class Equatorie
     @white_string = new EquatorieString 8.0, 0.08, 20
     @black_string = new EquatorieString 8.0, 0.08, 20
     
-    @top_node.add @white_string
-    @top_node.add @black_string
 
     @white_start = new CoffeeGL.Node cube
     @pickable.add @white_start

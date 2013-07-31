@@ -59,11 +59,11 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
         _this.equant.shader = _this.shader_basic;
         _this.marker.shader = _this.shader_basic;
         _this.top_node.add(_this.g);
-        _this.pointer = _this.g.children[0];
+        _this.pointer = _this.g.children[2];
         _this.epicycle = _this.g.children[1];
-        _this.base = _this.g.children[2];
-        _this.pointer.shader = _this.shader_basic;
-        _this.epicycle.shader = _this.shader_basic;
+        _this.base = _this.g.children[0];
+        _this.pointer.shader = _this.shader;
+        _this.epicycle.shader = _this.shader;
         _this.base.shader = _this.shader;
         _this.base.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.0, 1.0, 1.0, 1.0);
         _this.pointer.uColour = new CoffeeGL.Colour.RGBA(1.0, 1.0, 0.0, 1.0);
@@ -126,8 +126,6 @@ http://creativecommons.org/licenses/by-nc-sa/3.0/
       });
       this.white_string = new EquatorieString(8.0, 0.08, 20);
       this.black_string = new EquatorieString(8.0, 0.08, 20);
-      this.top_node.add(this.white_string);
-      this.top_node.add(this.black_string);
       this.white_start = new CoffeeGL.Node(cube);
       this.pickable.add(this.white_start);
       this.white_start.matrix.translate(new CoffeeGL.Vec3(2, this.string_height, 2));
