@@ -9,16 +9,13 @@
                                               Benjamin Blundell - ben@section9.co.uk
                                               http://www.section9.co.uk
 
-This software is released under Creative Commons Attribution Non-Commercial Share Alike
-http://creativecommons.org/licenses/by-nc-sa/3.0/
-
 ###
 
 
 {EquatorieSystem} = require './system'
 {EquatorieString} = require './string'
 {loadAssets} = require './load'
-
+{EquatorieInteract} = require './interact'
 
 class Equatorie
 
@@ -28,24 +25,19 @@ class Equatorie
     @top_node = new CoffeeGL.Node()
 
     @string_height = 0.4
-
     # Nodes for the picking
     @pickable = new CoffeeGL.Node()
     @fbo_picking = new CoffeeGL.Fbo()
     @ray = new CoffeeGL.Vec3(0,0,0)
-    @picked = undefined
 
     @advance_date = 0
 
     # Nodes being drawn with the basic shader
     @basic_nodes = new CoffeeGL.Node()
 
-    # Mouse positions
+    # Mouse position
     @mp = new CoffeeGL.Vec2(-1,-1)
-    @mpp = new CoffeeGL.Vec2(-1,-1)
-    @mpd = new CoffeeGL.Vec2(0,0)
-    @mdown = false
-
+  
     @system = new EquatorieSystem()
 
     @ready = false
@@ -57,14 +49,11 @@ class Equatorie
 
       console.log "Loaded Assets"
 
-      @_initGUI()
-
       @top_node.add @basic_nodes
-      @basic_nodes.shader = @shader_basic
-      @deferent.shader = @shader_basic
-      @equant.shader = @shader_basic
+      @basic_nodes.shader = @shader_basic   
       @marker.shader = @shader_basic
 
+  
       @top_node.add(@equatorie_model)
 
       # Should be three children nodes with this model. Attach the shaders
@@ -73,13 +62,13 @@ class Equatorie
       @epicycle = @equatorie_model.children[1]
       @base     = @equatorie_model.children[0]
 
-      @_setTangents @pointer
-      @_setTangents @epicycle
-
       # Create the tangents
+      @_setTangents @pointer.geometry
+      @_setTangents @epicycle.geometry
 
-      @pointer.shader   = @shader_aniso
-      @epicycle.shader  = @shader_aniso
+      @shiny.shader = @shader_aniso
+      @shiny.add @epicycle
+
       @base.shader      = @shader
 
       @base.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(1.0,1.0,0.8,1.0)
@@ -94,14 +83,24 @@ class Equatorie
       @pointer.uAlphaX = 0.2
       @pointer.uAlphaY = 0.01
 
-      # Shader Controls
-      controller = @datgui.add(@pointer,'uAlphaX',0,1)
-      controller = @datgui.add(@pointer,'uAlphaY',0,1)
+      @epicycle.uPickingColour = new CoffeeGL.Colour.RGBA 1.0,1.0,0.0,1.0
+      @pointer.uPickingColour = new CoffeeGL.Colour.RGBA 0.0,1.0,1.0,1.0
+      @pickable.add @epicycle
 
-      controller = @datgui.add(@epicycle,'uAlphaX',0,1)
-      controller = @datgui.add(@epicycle,'uAlphaY',0,1)
-      #controller.onChange( (value) =>  
-      #)
+
+      @deferents.uAmbientLightingColor = new CoffeeGL.Colour.RGBA 0.1,0.1,0.1,1.0
+      @deferents.uSpecColour = new CoffeeGL.Colour.RGBA 1.0,0.9,0.8,1.0
+      @deferents.uAlphaX = 0.2
+      @deferents.uAlphaY = 0.01
+
+      @deferents.textures = @epicycle.textures
+
+      @equants.uAmbientLightingColor = new CoffeeGL.Colour.RGBA 0.1,0.1,0.1,1.0
+      @equants.uSpecColour = new CoffeeGL.Colour.RGBA 1.0,0.9,0.8,1.0
+      @equants.uAlphaX = 0.2
+      @equants.uAlphaY = 0.01
+
+      @equants.textures = @epicycle.textures
 
 
       # Remove the pointer and add it as a child of the Epicycle
@@ -113,28 +112,35 @@ class Equatorie
       q.fromAxisAngle(new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(-90.0))
 
       @base.matrix.mult q.getMatrix4() 
-         
+        
+      # Set the pickable shader for the pickables
       @pickable.shader = @shader_picker
+      
+
       
       @top_node.add @basic_nodes
       @basic_nodes.shader = @shader_basic
-      @deferent.shader = @shader_basic
-      @equant.shader = @shader_basic
       @marker.shader = @shader_basic
-
 
       # Launch physics web worker
       @physics = new Worker '/js/physics.js'
       @physics.onmessage = @onPhysicsEvent
       @physics.postMessage { cmd: "startup" }
 
+      # Fire up the interaction class that takes over behaviour from here
+      # This class takes quite a lot of objects so its not ideal
+      @interact = new EquatorieInteract(@system, @physics, @c, @white_start, @white_end, @black_start, @black_end, @epicycle, @pointer, @marker, @string_height )
 
       # Register for mouse events
-      CoffeeGL.Context.mouseDown.add @onMouseDown, @
+      CoffeeGL.Context.mouseDown.add @interact.onMouseDown, @interact
+      CoffeeGL.Context.mouseOver.add @interact.onMouseOver, @interact
+      CoffeeGL.Context.mouseOut.add @interact.onMouseOut, @interact
+      CoffeeGL.Context.mouseMove.add @interact.onMouseMove, @interact
+      CoffeeGL.Context.mouseUp.add @interact.onMouseUp, @interact
+
       CoffeeGL.Context.mouseOver.add @onMouseOver, @
       CoffeeGL.Context.mouseOut.add @onMouseOut, @
       CoffeeGL.Context.mouseMove.add @onMouseMove, @
-      CoffeeGL.Context.mouseUp.add @onMouseUp, @
 
       # Remove the camera mouse event - we want control over that
       CoffeeGL.Context.mouseMove.del @c.onMouseMove, @c
@@ -142,21 +148,50 @@ class Equatorie
 
       @ready = true
 
+    # Create the node for shiny ansio things
+    @shiny =  new CoffeeGL.Node()
+    @top_node.add @shiny
+
     # Fire off the loader with the signal
     @loaded.addOnce f, @
     loadAssets @, @loaded
 
-    # Points on the surface of the Equatorie - cube markers for now
+    # Points on the surface of the Equatorie - cylinders punched out
+    cylinder = new CoffeeGL.Shapes.Cylinder 0.05, 24, 0.01
+    
+    @deferents = new CoffeeGL.Node
+    @shiny.add @deferents
+
+    @equants = new CoffeeGL.Node
+    @shiny.add @equants
+
+    # Use today for the apsides precession
+
+    date = new Date()
+    
+    planets = ["mars", "venus", "jupiter", "saturn"]
+
+    # create the deferents and equants on the base for the main planets
+    for planet in planets
+
+      [x,y] = @system.calculateDeferentPosition planet, date
+
+      d = new CoffeeGL.Node cylinder
+      d.matrix.identity()
+      d.matrix.translate new CoffeeGL.Vec3 x, 0, y
+
+      @deferents.add d
+
+      e = new CoffeeGL.Node cylinder
+      ep = @system.calculateEquantPosition planet, date
+      e.matrix.identity()
+      e.matrix.translate new CoffeeGL.Vec3 ep.x, 0,ep.y
+  
+      @equants.add e
+
+
+    # Our basic marker - this is part of our interaction
     cube = new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.2,0.2,0.2
-    @deferent = new CoffeeGL.Node cube
-    @deferent.uColour = new CoffeeGL.Colour.RGBA(1.0,0.0,0.0,1.0)
-    @top_node.add @deferent
-
-
-    @equant = new CoffeeGL.Node cube
-    @equant.uColour = new CoffeeGL.Colour.RGBA(0.0,1.0,0.0,1.0)
-    @top_node.add @equant
-
     @marker = new CoffeeGL.Node cube
     @marker.uColour = new CoffeeGL.Colour.RGBA(0.0,1.0,1.0,1.0)
     @top_node.add @marker
@@ -192,12 +227,12 @@ class Equatorie
     @white_end = new CoffeeGL.Node cube
     @pickable.add @white_end
     @white_end.matrix.translate new CoffeeGL.Vec3 -2,@string_height,-2
-    @white_end.uPickingColour = new CoffeeGL.Colour.RGBA(1.0,1.0,0.0,1.0)
+    @white_end.uPickingColour = new CoffeeGL.Colour.RGBA(0.0,1.0,0.0,1.0)
 
     @black_start = new CoffeeGL.Node cube
     @pickable.add @black_start
     @black_start.matrix.translate new CoffeeGL.Vec3 -2,@string_height,2
-    @black_start.uPickingColour = new CoffeeGL.Colour.RGBA(0.0,1.0,1.0,1.0)
+    @black_start.uPickingColour = new CoffeeGL.Colour.RGBA(0.0,0.0,1.0,1.0)
 
     @black_end = new CoffeeGL.Node cube
     @pickable.add @black_end
@@ -229,215 +264,19 @@ class Equatorie
     m.fromAxisAngle(new CoffeeGL.Vec3(0,1,0), @angle)
     m.transVec3(@light.pos)
 
-    # Calculate the Deferent Centre
-
-    date.setDate(date.getDate() + @advance_date)
-    
-    [x,y] = @system.calculateDeferentPosition @chosen_planet, date
-    @deferent.matrix.identity()
-    @deferent.matrix.translate new CoffeeGL.Vec3 x,0.2,y
-
-    ep = @system.calculateEquantPosition @chosen_planet, date
-    @equant.matrix.identity()
-    @equant.matrix.translate new CoffeeGL.Vec3 ep.x,0.2,ep.y
-
-   
     @
 
-  # Called when the button is pressed in dat.gui. Solve for the chosen planet
-  solveForPlanet : () ->
-
-    #date = new Date("May 31, 1585 00:00:00")
-    date = new Date()
-
-    date.setDate(date.getDate() + @advance_date)
-
-    console.log @system.calculateDeferentAngle  @chosen_planet, date
-
-    [ma, mv] = @system.calculateMeanMotus @chosen_planet, date
-
-    console.log "Mean Motus: " + ma
-
-    console.log "Days Passed: " + @system.calculateDate date
-
-    mv.normalize()
-    mv.multScalar(10.0)
-
-    # Black to Centre and mean motus
-    @black_start.matrix.identity()
-    @black_start.matrix.translate(new CoffeeGL.Vec3(0,@string_height,0))
-
-    @black_end.matrix.identity()
-    @black_end.matrix.translate(new CoffeeGL.Vec3(mv.x, @string_height, mv.y) )
-
-    @physics.postMessage {cmd : "black_start_move", data: @black_start.matrix.getPos() }
-    @physics.postMessage {cmd : "black_end_move", data: @black_end.matrix.getPos() }
-
-    # White string to the Equant and parallel to black
-    eq = @system.calculateEquantPosition @chosen_planet, date
-    pv = @system.calculateParallel @chosen_planet, date
-    pv.sub(eq)
-    pv.normalize()
-    pv.multScalar(10.0)
-    pv.add(eq)
-
-    
-
-    @white_start.matrix.identity()
-    @white_start.matrix.translate(new CoffeeGL.Vec3(eq.x,@string_height,eq.y))
-
-    @white_end.matrix.identity()
-    @white_end.matrix.translate(new CoffeeGL.Vec3(pv.x, @string_height, pv.y ))
-  
-    @physics.postMessage {cmd : "white_start_move", data: @white_start.matrix.getPos() }
-    @physics.postMessage {cmd : "white_end_move", data: @white_end.matrix.getPos() }
-  
-    # Epicycle to position
-  
-    if @epicycle?
-
-      [d, c, v, dr, mr] = @system.calculateEpicyclePosition(@chosen_planet, date)
-      @epicycle.matrix.identity()
-    
-      @epicycle.matrix.translate new CoffeeGL.Vec3 c.x,0,c.y  
-      @epicycle.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(90-dr)
-    
-      # Now rotate the epicycle around the deferent till it reaches the white line
-      
-      tmatrix = new CoffeeGL.Matrix4()
-      
-      tmatrix.translate new CoffeeGL.Vec3 d.x, 0, d.y
-      tmatrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(mr)
-      
-      tmatrix.mult @epicycle.matrix
-      @epicycle.matrix.copyFrom(tmatrix)
-      
-    
-    # Pointer angle
-    pangle = @system.calculatePointerAngle(@chosen_planet, date)
-    @pointer.matrix.identity()
-    @pointer.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(pangle)
-
-    cp = @system.calculatePointerPoint @chosen_planet, date
-
-    @marker.matrix.identity()
-    @marker.matrix.translate(new CoffeeGL.Vec3(cp.x,0.6,cp.y))
-
-    @system.calculateTruePlace @chosen_planet, date
-  
   # update the physics - each body in the string needs to have its position and orientation updated
   updatePhysics : (data) ->
     @white_string.update data.white
     @black_string.update data.black
 
-  onMouseDown : (event) ->
-    console.log event
-    @mp.x = event.mouseX
-    @mp.y = event.mouseY
-    @ray = @c.castRay @mp.x, @mp.y
-    
-    if @picked?
-        @mdown = true
-
-    if not @mdown
-      @c.onMouseDown(event)
-
-  onMouseMove : (event) ->
-    @mpp.x = @mp.x
-    @mpp.y = @mp.y
-
-    @mp.x = event.mouseX
-    @mp.y = event.mouseY
-
-    @mpd.x = @mp.x - @mpp.x
-    @mpd.y = @mp.y - @mpp.y
-
-   
-    if @mdown and @picked?
-      tray = @c.castRay @mp.x, @mp.y
-      d = CoffeeGL.rayPlaneIntersect new CoffeeGL.Vec3(0,@string_height,0), new CoffeeGL.Vec3(0,1,0), @c.pos, @ray
-      dd = CoffeeGL.rayPlaneIntersect new CoffeeGL.Vec3(0,@string_height,0), new CoffeeGL.Vec3(0,1,0), @c.pos, tray
-
-      p0 = tray.copy()
-      p0.multScalar(dd)
-      p0.add(@c.pos)
-
-      p1 = @ray.copy()
-      p1.multScalar(d)
-      p1.add(@c.pos)
-
-      p0.y = @string_height
-      p1.y = @string_height
-
-      np = CoffeeGL.Vec3.sub(p0,p1)
-
-      @ray.copyFrom(tray)
-
-      @picked.matrix.translate(np)
-
-      # Update the phyics webworker thread 
-      if @picked == @white_start
-          @physics.postMessage {cmd : "white_start_move", data: @picked.matrix.getPos() }
-      
-      else if @picked == @white_end
-          @physics.postMessage {cmd : "white_end_move", data: @picked.matrix.getPos() }
-      
-      else if @picked == @black_start
-          @physics.postMessage {cmd : "black_start_move", data: @picked.matrix.getPos() }
-      
-      else if @picked == @black_end
-          @physics.postMessage {cmd : "black_end_move", data: @picked.matrix.getPos() }
-
-    else
-      @c.onMouseMove(event)
-
-    
-
-  onMouseOver : (event) ->    
-    @mp.x = event.mouseX
-    @mp.y = event.mouseY
-
-  onMouseUp : (event) ->
-    @mdown = false
-    @picked = false
-
-  onMouseOut : (event) ->
-    @mp.x = @mpp.x = -1
-    @mp.y = @mpp.y = -1
-    @mpd.x = @mpd.y = 0
-
-    @mdown = false
-    @picked = undefined
-
+  
   onPhysicsEvent : (event) =>
     switch event.data.cmd
       when "physics" then @updatePhysics event.data.data
       when "ping" then console.log "Physics Ping: " + event.data.data
       else break
-
-
-  checkPicked : (pixel) ->
-    
-    @picked = undefined
-
-    if pixel[0] == 255
-      if pixel[1] == 255
-        if pixel[2] == 255
-          #console.log "Black End"
-          @picked = @black_end
-          #console.log pixel
-        else
-          #console.log "White end"
-          @picked = @white_end
-          #console.log pixel
-      else
-        #console.log "White Start"
-        @picked = @white_start
-        #console.log pixel
-    else if pixel[1] == 255
-      #console.log "Black Start"
-      @picked = @black_start
-      #console.log pixel
 
 
   draw : () =>
@@ -452,42 +291,39 @@ class Equatorie
     # Draw everything pickable to the pickable FBO
     if @shader_picker?
       @fbo_picking.bind()
+      @fbo_picking.clear()
       @shader_picker.bind()
       @pickable.draw()
     
       # Cx for picking
-      if @mp.y != -1 and @mp.x != -1 and not @mdown
+      if @mp.y != -1 and @mp.x != -1
         pixel = new Uint8Array(4);
         GL.readPixels(@mp.x, @fbo_picking.height - @mp.y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixel)
 
-        @checkPicked pixel
+        @interact.checkPicked pixel
     
       @shader_picker.unbind()
       @fbo_picking.unbind()
-  
-  
+
+
+  onMouseMove : (event) ->
+    @mp.x = event.mouseX
+    @mp.y = event.mouseY
+
+
+  onMouseOver : (event) ->    
+    @mp.x = event.mouseX
+    @mp.y = event.mouseY
+
+  onMouseOut : (event) ->
+    @mp.x = -1
+    @mp.y = -1
+
+
   resize : (w,h) ->
     @fbo_picking.resize(w,h)
 
-  _initGUI : () ->
-    # DAT Gui stuff
-    # https://gist.github.com/ikekou/5589109
-    @datgui =new dat.GUI()
-    @datgui.remember(@)
-    
-    planets = ["mars","venus","jupiter","saturn"]
-    @chosen_planet = "mars"
-
-
-    controller = @datgui.add(@,'chosen_planet',planets)
-    controller = @datgui.add(@,'solveForPlanet')
-    controller = @datgui.add(@,'advance_date',0,730)
-    controller.onChange( (value) => 
-      @solveForPlanet()
-    )
-
-  _setTangents : (obj) ->
-    geom = obj.geometry
+  _setTangents : (geom) ->
     for face in geom.faces
       [a,b,c] = CoffeeGL.precomputeTangent face.v[0].p, face.v[1].p, face.v[2].p, 
         face.v[0].n, face.v[1].n, face.v[2].n, face.v[0].t, face.v[1].t, face.v[2].t
@@ -495,6 +331,7 @@ class Equatorie
       face.v[0].tangent = a
       face.v[1].tangent = b
       face.v[2].tangent = c
+    @
   
 eq = new Equatorie()
 cgl = new CoffeeGL.App('webgl-canvas', eq, eq.init, eq.draw, eq.update)
