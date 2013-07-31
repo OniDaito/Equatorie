@@ -32,7 +32,7 @@
     var r;
     r = new CoffeeGL.Request('../models/equatorie.js');
     return r.get(function(data) {
-      obj.g = new CoffeeGL.JSONModel(data);
+      obj.equatorie_model = new CoffeeGL.JSONModel(data);
       return c.test();
     });
   };

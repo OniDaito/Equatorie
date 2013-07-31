@@ -22,7 +22,7 @@ _loadAniso = (obj, c) =>
 _loadModel = (obj, c) =>
   r = new CoffeeGL.Request('../models/equatorie.js')
   r.get (data) =>
-    obj.g = new CoffeeGL.JSONModel(data)
+    obj.equatorie_model = new CoffeeGL.JSONModel(data)
     c.test()
    
 _loadBasic = (obj, c) =>

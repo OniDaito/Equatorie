@@ -48,6 +48,8 @@ class Equatorie
 
     @system = new EquatorieSystem()
 
+    @ready = false
+
     @loaded = new CoffeeGL.Signal()
     
     # Function called when everything is loaded
@@ -55,31 +57,55 @@ class Equatorie
 
       console.log "Loaded Assets"
 
+      @_initGUI()
+
       @top_node.add @basic_nodes
       @basic_nodes.shader = @shader_basic
       @deferent.shader = @shader_basic
       @equant.shader = @shader_basic
       @marker.shader = @shader_basic
 
-      @top_node.add(@g)
+      @top_node.add(@equatorie_model)
 
       # Should be three children nodes with this model. Attach the shaders
       
-      @pointer  = @g.children[2]
-      @epicycle = @g.children[1]
-      @base     = @g.children[0]
+      @pointer  = @equatorie_model.children[2]
+      @epicycle = @equatorie_model.children[1]
+      @base     = @equatorie_model.children[0]
 
-      @pointer.shader   = @shader
-      @epicycle.shader  = @shader
+      @_setTangents @pointer
+      @_setTangents @epicycle
+
+      # Create the tangents
+
+      @pointer.shader   = @shader_aniso
+      @epicycle.shader  = @shader_aniso
       @base.shader      = @shader
 
-      @base.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.0,1.0,1.0,1.0)
+      @base.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(1.0,1.0,0.8,1.0)
 
-      @pointer.uColour = new CoffeeGL.Colour.RGBA(1.0,1.0,0.0,1.0)
-      @epicycle.uColour = new CoffeeGL.Colour.RGBA(0.6,0.6,0.0,1.0)
+      @epicycle.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.1,0.1,0.1,1.0)
+      @epicycle.uSpecColour = new CoffeeGL.Colour.RGBA(1.0,0.9,0.8,1.0)
+      @epicycle.uAlphaX = 0.2
+      @epicycle.uAlphaY = 0.01
+
+      @pointer.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.1,0.1,0.1,1.0)
+      @pointer.uSpecColour = new CoffeeGL.Colour.RGBA(1.0,0.9,0.9,1.0)
+      @pointer.uAlphaX = 0.2
+      @pointer.uAlphaY = 0.01
+
+      # Shader Controls
+      controller = @datgui.add(@pointer,'uAlphaX',0,1)
+      controller = @datgui.add(@pointer,'uAlphaY',0,1)
+
+      controller = @datgui.add(@epicycle,'uAlphaX',0,1)
+      controller = @datgui.add(@epicycle,'uAlphaY',0,1)
+      #controller.onChange( (value) =>  
+      #)
+
 
       # Remove the pointer and add it as a child of the Epicycle
-      @g.remove @pointer
+      @equatorie_model.remove @pointer
       @epicycle.add @pointer
 
       # Rotate the Base so the Sign of Aries is in the right place
@@ -114,17 +140,18 @@ class Equatorie
       CoffeeGL.Context.mouseMove.del @c.onMouseMove, @c
       CoffeeGL.Context.mouseDown.del @c.onMouseDown, @c
 
+      @ready = true
 
     # Fire off the loader with the signal
     @loaded.addOnce f, @
     loadAssets @, @loaded
-
 
     # Points on the surface of the Equatorie - cube markers for now
     cube = new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.2,0.2,0.2
     @deferent = new CoffeeGL.Node cube
     @deferent.uColour = new CoffeeGL.Colour.RGBA(1.0,0.0,0.0,1.0)
     @top_node.add @deferent
+
 
     @equant = new CoffeeGL.Node cube
     @equant.uColour = new CoffeeGL.Colour.RGBA(0.0,1.0,0.0,1.0)
@@ -151,23 +178,6 @@ class Equatorie
     GL.enable(GL.CULL_FACE)
     GL.cullFace(GL.BACK)
     GL.enable(GL.DEPTH_TEST)
-
-
-    # DAT Gui stuff
-    # https://gist.github.com/ikekou/5589109
-    g=new dat.GUI()
-    g.remember(@)
-    
-    planets = ["mars","venus","jupiter","saturn"]
-    @chosen_planet = "mars"
-
-
-    controller = g.add(@,'chosen_planet',planets)
-    controller = g.add(@,'solveForPlanet')
-    controller = g.add(@,'advance_date',0,730)
-    controller.onChange( (value) => 
-      @solveForPlanet()
-    )
 
     # Add Strings
     @white_string = new EquatorieString 8.0, 0.08, 20
@@ -207,6 +217,9 @@ class Equatorie
   update : (dt) =>
   
     #date = new Date("May 31, 1585 00:00:00")
+    if not @ready
+      return
+
     date = new Date()
 
     @angle = dt * 0.001 * CoffeeGL.degToRad(20.0)
@@ -455,6 +468,33 @@ class Equatorie
   
   resize : (w,h) ->
     @fbo_picking.resize(w,h)
+
+  _initGUI : () ->
+    # DAT Gui stuff
+    # https://gist.github.com/ikekou/5589109
+    @datgui =new dat.GUI()
+    @datgui.remember(@)
+    
+    planets = ["mars","venus","jupiter","saturn"]
+    @chosen_planet = "mars"
+
+
+    controller = @datgui.add(@,'chosen_planet',planets)
+    controller = @datgui.add(@,'solveForPlanet')
+    controller = @datgui.add(@,'advance_date',0,730)
+    controller.onChange( (value) => 
+      @solveForPlanet()
+    )
+
+  _setTangents : (obj) ->
+    geom = obj.geometry
+    for face in geom.faces
+      [a,b,c] = CoffeeGL.precomputeTangent face.v[0].p, face.v[1].p, face.v[2].p, 
+        face.v[0].n, face.v[1].n, face.v[2].n, face.v[0].t, face.v[1].t, face.v[2].t
+
+      face.v[0].tangent = a
+      face.v[1].tangent = b
+      face.v[2].tangent = c
   
 eq = new Equatorie()
 cgl = new CoffeeGL.App('webgl-canvas', eq, eq.init, eq.draw, eq.update)
