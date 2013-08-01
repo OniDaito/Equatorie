@@ -52,55 +52,63 @@ class Equatorie
       @top_node.add @basic_nodes
       @basic_nodes.shader = @shader_basic   
       @marker.shader = @shader_basic
-
   
       @top_node.add(@equatorie_model)
 
-      # Should be three children nodes with this model. Attach the shaders
+      # Should be five children nodes with this model. Attach the shaders
       
-      @pointer  = @equatorie_model.children[2]
+      @base     = @equatorie_model.children[3]
       @epicycle = @equatorie_model.children[1]
-      @base     = @equatorie_model.children[0]
+      @pointer  = @equatorie_model.children[4]
+      @rim      = @equatorie_model.children[2]
+      @plate     = @equatorie_model.children[0]
+
+      # Create the node for shiny ansio things
+      @shiny =  new CoffeeGL.Node()
+      @equatorie_model.add @shiny
+      @equatorie_model.remove @epicycle
+      @equatorie_model.remove @pointer
+      @equatorie_model.remove @rim
+      @equatorie_model.remove @plate
 
       # Create the tangents
       @_setTangents @pointer.geometry
       @_setTangents @epicycle.geometry
+      @_setTangents @rim.geometry
+      @_setTangents @plate.geometry
 
       @shiny.shader = @shader_aniso
       @shiny.add @epicycle
+      @shiny.add @rim
+      @shiny.add @plate
 
-      @base.shader      = @shader
+      # Add the normal textures
+      @pointer.add @pointer_normal
+      @rim.add @rim_normal
+      @plate.add @plate_normal
+      @epicycle.add @epicycle_normal
+
+      @shiny.uSamplerNormal = 1 # set for the first texture unit
+
+      # Add normal textures
+
+      @base.shader = @shader
 
       @base.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(1.0,1.0,0.8,1.0)
 
       @epicycle.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.1,0.1,0.1,1.0)
       @epicycle.uSpecColour = new CoffeeGL.Colour.RGBA(1.0,0.9,0.8,1.0)
-      @epicycle.uAlphaX = 0.2
-      @epicycle.uAlphaY = 0.01
+      @epicycle.uAlphaX = 0.4
+      @epicycle.uAlphaY = 0.28
 
       @pointer.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.1,0.1,0.1,1.0)
       @pointer.uSpecColour = new CoffeeGL.Colour.RGBA(1.0,0.9,0.9,1.0)
       @pointer.uAlphaX = 0.2
-      @pointer.uAlphaY = 0.01
+      @pointer.uAlphaY = 0.1
 
       @epicycle.uPickingColour = new CoffeeGL.Colour.RGBA 1.0,1.0,0.0,1.0
       @pointer.uPickingColour = new CoffeeGL.Colour.RGBA 0.0,1.0,1.0,1.0
       @pickable.add @epicycle
-
-
-      @deferents.uAmbientLightingColor = new CoffeeGL.Colour.RGBA 0.1,0.1,0.1,1.0
-      @deferents.uSpecColour = new CoffeeGL.Colour.RGBA 1.0,0.9,0.8,1.0
-      @deferents.uAlphaX = 0.2
-      @deferents.uAlphaY = 0.01
-
-      @deferents.textures = @epicycle.textures
-
-      @equants.uAmbientLightingColor = new CoffeeGL.Colour.RGBA 0.1,0.1,0.1,1.0
-      @equants.uSpecColour = new CoffeeGL.Colour.RGBA 1.0,0.9,0.8,1.0
-      @equants.uAlphaX = 0.2
-      @equants.uAlphaY = 0.01
-
-      @equants.textures = @epicycle.textures
 
 
       # Remove the pointer and add it as a child of the Epicycle
@@ -148,48 +156,16 @@ class Equatorie
 
       @ready = true
 
-    # Create the node for shiny ansio things
-    @shiny =  new CoffeeGL.Node()
-    @top_node.add @shiny
+    
 
     # Fire off the loader with the signal
     @loaded.addOnce f, @
     loadAssets @, @loaded
 
-    # Points on the surface of the Equatorie - cylinders punched out
-    cylinder = new CoffeeGL.Shapes.Cylinder 0.05, 24, 0.01
-    
-    @deferents = new CoffeeGL.Node
-    @shiny.add @deferents
-
-    @equants = new CoffeeGL.Node
-    @shiny.add @equants
-
     # Use today for the apsides precession
 
     date = new Date()
     
-    planets = ["mars", "venus", "jupiter", "saturn"]
-
-    # create the deferents and equants on the base for the main planets
-    for planet in planets
-
-      [x,y] = @system.calculateDeferentPosition planet, date
-
-      d = new CoffeeGL.Node cylinder
-      d.matrix.identity()
-      d.matrix.translate new CoffeeGL.Vec3 x, 0, y
-
-      @deferents.add d
-
-      e = new CoffeeGL.Node cylinder
-      ep = @system.calculateEquantPosition planet, date
-      e.matrix.identity()
-      e.matrix.translate new CoffeeGL.Vec3 ep.x, 0,ep.y
-  
-      @equants.add e
-
-
     # Our basic marker - this is part of our interaction
     cube = new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.2,0.2,0.2
     @marker = new CoffeeGL.Node cube
@@ -207,7 +183,6 @@ class Equatorie
 
     @top_node.add(@light)
     @top_node.add(@light2)
-
 
     # OpenGL Constants
     GL.enable(GL.CULL_FACE)

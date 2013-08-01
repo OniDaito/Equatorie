@@ -3,7 +3,7 @@
 {{ShaderLibrary.BasicCamera}}
 {{ShaderLibrary.VertexNormal}}
 {{ShaderLibrary.BasicTexture}}
-{{ShaderLibrary.Tangent}}
+{{ShaderLibrary.VertexTangent}}
 
 varying vec4 vTransformedNormal;
 varying vec4 vPosition;
@@ -25,7 +25,7 @@ precision mediump float;
 {{ShaderLibrary.Basic}}
 {{ShaderLibrary.VertexNormal}}
 {{ShaderLibrary.BasicTexture}}
-{{ShaderLibrary.Tangent}}
+{{ShaderLibrary.VertexTangent}}
 
 varying vec4 vTransformedNormal;
 varying vec4 vPosition;

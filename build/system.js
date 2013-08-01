@@ -41,7 +41,7 @@
         epicycle_speed: 0.95214939,
         epicycle_ratio: 0.10483,
         deferent_eccentricity: 0.05318,
-        apogee_longitude: 148.6166667,
+        apogee_longitude: 270.76666667,
         mean_longitude: 266.25,
         mean_anomaly: 13.45
       };

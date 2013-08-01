@@ -33,7 +33,7 @@
     }
 
     Equatorie.prototype.init = function() {
-      var cube, cylinder, d, date, e, ep, f, planet, planets, x, y, _i, _len, _ref,
+      var cube, date, f,
         _this = this;
       this.top_node = new CoffeeGL.Node();
       this.string_height = 0.4;
@@ -53,36 +53,43 @@
         _this.basic_nodes.shader = _this.shader_basic;
         _this.marker.shader = _this.shader_basic;
         _this.top_node.add(_this.equatorie_model);
-        _this.pointer = _this.equatorie_model.children[2];
+        _this.base = _this.equatorie_model.children[3];
         _this.epicycle = _this.equatorie_model.children[1];
-        _this.base = _this.equatorie_model.children[0];
+        _this.pointer = _this.equatorie_model.children[4];
+        _this.rim = _this.equatorie_model.children[2];
+        _this.plate = _this.equatorie_model.children[0];
+        _this.shiny = new CoffeeGL.Node();
+        _this.equatorie_model.add(_this.shiny);
+        _this.equatorie_model.remove(_this.epicycle);
+        _this.equatorie_model.remove(_this.pointer);
+        _this.equatorie_model.remove(_this.rim);
+        _this.equatorie_model.remove(_this.plate);
         _this._setTangents(_this.pointer.geometry);
         _this._setTangents(_this.epicycle.geometry);
+        _this._setTangents(_this.rim.geometry);
+        _this._setTangents(_this.plate.geometry);
         _this.shiny.shader = _this.shader_aniso;
         _this.shiny.add(_this.epicycle);
+        _this.shiny.add(_this.rim);
+        _this.shiny.add(_this.plate);
+        _this.pointer.add(_this.pointer_normal);
+        _this.rim.add(_this.rim_normal);
+        _this.plate.add(_this.plate_normal);
+        _this.epicycle.add(_this.epicycle_normal);
+        _this.shiny.uSamplerNormal = 1;
         _this.base.shader = _this.shader;
         _this.base.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(1.0, 1.0, 0.8, 1.0);
         _this.epicycle.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.1, 0.1, 0.1, 1.0);
         _this.epicycle.uSpecColour = new CoffeeGL.Colour.RGBA(1.0, 0.9, 0.8, 1.0);
-        _this.epicycle.uAlphaX = 0.2;
-        _this.epicycle.uAlphaY = 0.01;
+        _this.epicycle.uAlphaX = 0.4;
+        _this.epicycle.uAlphaY = 0.28;
         _this.pointer.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.1, 0.1, 0.1, 1.0);
         _this.pointer.uSpecColour = new CoffeeGL.Colour.RGBA(1.0, 0.9, 0.9, 1.0);
         _this.pointer.uAlphaX = 0.2;
-        _this.pointer.uAlphaY = 0.01;
+        _this.pointer.uAlphaY = 0.1;
         _this.epicycle.uPickingColour = new CoffeeGL.Colour.RGBA(1.0, 1.0, 0.0, 1.0);
         _this.pointer.uPickingColour = new CoffeeGL.Colour.RGBA(0.0, 1.0, 1.0, 1.0);
         _this.pickable.add(_this.epicycle);
-        _this.deferents.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.1, 0.1, 0.1, 1.0);
-        _this.deferents.uSpecColour = new CoffeeGL.Colour.RGBA(1.0, 0.9, 0.8, 1.0);
-        _this.deferents.uAlphaX = 0.2;
-        _this.deferents.uAlphaY = 0.01;
-        _this.deferents.textures = _this.epicycle.textures;
-        _this.equants.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.1, 0.1, 0.1, 1.0);
-        _this.equants.uSpecColour = new CoffeeGL.Colour.RGBA(1.0, 0.9, 0.8, 1.0);
-        _this.equants.uAlphaX = 0.2;
-        _this.equants.uAlphaY = 0.01;
-        _this.equants.textures = _this.epicycle.textures;
         _this.equatorie_model.remove(_this.pointer);
         _this.epicycle.add(_this.pointer);
         q = new CoffeeGL.Quaternion();
@@ -110,30 +117,9 @@
         CoffeeGL.Context.mouseDown.del(_this.c.onMouseDown, _this.c);
         return _this.ready = true;
       };
-      this.shiny = new CoffeeGL.Node();
-      this.top_node.add(this.shiny);
       this.loaded.addOnce(f, this);
       loadAssets(this, this.loaded);
-      cylinder = new CoffeeGL.Shapes.Cylinder(0.05, 24, 0.01);
-      this.deferents = new CoffeeGL.Node;
-      this.shiny.add(this.deferents);
-      this.equants = new CoffeeGL.Node;
-      this.shiny.add(this.equants);
       date = new Date();
-      planets = ["mars", "venus", "jupiter", "saturn"];
-      for (_i = 0, _len = planets.length; _i < _len; _i++) {
-        planet = planets[_i];
-        _ref = this.system.calculateDeferentPosition(planet, date), x = _ref[0], y = _ref[1];
-        d = new CoffeeGL.Node(cylinder);
-        d.matrix.identity();
-        d.matrix.translate(new CoffeeGL.Vec3(x, 0, y));
-        this.deferents.add(d);
-        e = new CoffeeGL.Node(cylinder);
-        ep = this.system.calculateEquantPosition(planet, date);
-        e.matrix.identity();
-        e.matrix.translate(new CoffeeGL.Vec3(ep.x, 0, ep.y));
-        this.equants.add(e);
-      }
       cube = new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.2, 0.2, 0.2));
       this.marker = new CoffeeGL.Node(cube);
       this.marker.uColour = new CoffeeGL.Colour.RGBA(0.0, 1.0, 1.0, 1.0);

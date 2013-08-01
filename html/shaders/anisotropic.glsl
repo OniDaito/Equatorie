@@ -13,7 +13,6 @@ uniform int uNumLights;
 void main(void) {
   vPosition =   uModelMatrix * vec4(aVertexPosition, 1.0);
   gl_Position =  uProjectionMatrix * uCameraMatrix * vPosition;
-
   vTexCoord = aVertexTexCoord;
   vEyePosition = uCameraInverseMatrix * vPosition;
   vTangent = aVertexTangent;
@@ -50,14 +49,28 @@ uniform vec3 uSpecColour;
 uniform float uAlphaX;
 uniform float uAlphaY;
 
+uniform sampler2D uSamplerNormal;
+
+vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord ) {
+  vec3 map = texture2D(uSamplerNormal, texcoord ).xyz;
+  map = map * 2.0 - 1.0;  
+  vec3 B = cross(vTangent,N);
+  mat3 TBN = mat3(vTangent,B,N);
+  return normalize(TBN * map);
+}
+
+
 void main(void) {
   vec3 ambientLightWeighting = uAmbientLightingColor;
   float alpha = 1.0;
 
   vec3 normal = normalize(vTransformedNormal.xyz);
+
   vec3 specularLightWeighting = vec3(0.0, 0.0, 0.0);
   vec3 diffuseLightWeighting = vec3(0.0, 0.0, 0.0);
   vec3 eyeDirection = normalize(vEyePosition.xyz);
+
+  normal = perturb_normal(normal, eyeDirection, vTexCoord);
 
   for (int i =0; i < 10; i++) {
     if (i >= uNumLights)

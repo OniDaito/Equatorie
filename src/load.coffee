@@ -1,6 +1,8 @@
 
 # Load the Resources we need for the simulation
 
+# We should properly add this as a coffeegl class for loading things in a queue
+
 _loadLighting = (obj, c) =>
   r = new CoffeeGL.Request ('../shaders/basic_lighting.glsl')
   r.get (data) =>
@@ -13,6 +15,7 @@ _loadAniso = (obj, c) =>
     obj.shader_aniso = new CoffeeGL.Shader(data, {
       "uAmbientLightingColor" : "uAmbientLightingColor",
       "uSpecColour" : "uSpecColour",
+      "uSamplerNormal" : "uSamplerNormal",
       "uAlphaX" : "uAlphaX",
       "uAlphaY" : "uAlphaY"
     })
@@ -37,6 +40,25 @@ _loadPicking = (obj, c) =>
     obj.shader_picker = new CoffeeGL.Shader(data, {"uPickingColour" : "uPickingColour"})
     c.test()
 
+_loadEpicycleNormal = (obj, c) =>
+  obj.epicycle_normal = new CoffeeGL.Texture("../models/epicycle_NRM.png",{unit : 1}, () => 
+    c.test()
+  )
+
+_loadPlateNormal = (obj, c) =>
+  obj.plate_normal = new CoffeeGL.Texture("../models/plate_NRM.png",{unit : 1}, () => 
+    c.test()
+  )
+
+_loadRimNormal = (obj, c) =>
+  obj.rim_normal = new CoffeeGL.Texture("../models/ring_NRM.png",{unit : 1}, () => 
+    c.test()
+  )
+
+_loadPointerNormal = (obj, c) =>
+  obj.pointer_normal = new CoffeeGL.Texture("../models/label_NRM.png",{unit : 1}, () => 
+    c.test()
+  )
 
 # Load all the things we need, firing off a final signal when we do
 loadAssets = (obj, signal) ->
@@ -55,8 +77,12 @@ loadAssets = (obj, signal) ->
   _loadBasic obj, counter
   _loadPicking obj, counter
   _loadAniso obj, counter
+  _loadEpicycleNormal obj, counter
+  _loadPlateNormal obj, counter
+  _loadRimNormal obj, counter
+  _loadPointerNormal obj, counter
   
-  counter.count = 5
+  counter.count = 9
   counter.signal = signal
 
   @

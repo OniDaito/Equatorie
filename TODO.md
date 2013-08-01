@@ -1,4 +1,5 @@
-* Currently, the Equatorie works in a Clockwise fashion. I believe it should be anti-clockwise. Best check that.
 * telnet horizons.jpl.nasa.gov 6775
-* resizing and such
 * http://astro.unl.edu/naap/ssm/animations/ptolemaic.swf
+* Webp conversion for the images
+* Currently the perturbing normals doesnt work.
+* Textures exported from illustrator appear to be off from 2048x2048 by a few pixels ><
