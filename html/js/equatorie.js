@@ -55,10 +55,10 @@
         _this.marker.shader = _this.shader_basic;
         _this.top_node.add(_this.equatorie_model);
         _this.base = _this.equatorie_model.children[3];
-        _this.epicycle = _this.equatorie_model.children[1];
+        _this.epicycle = _this.equatorie_model.children[0];
         _this.pointer = _this.equatorie_model.children[4];
         _this.rim = _this.equatorie_model.children[2];
-        _this.plate = _this.equatorie_model.children[0];
+        _this.plate = _this.equatorie_model.children[1];
         _this.shiny = new CoffeeGL.Node();
         _this.equatorie_model.add(_this.shiny);
         _this.equatorie_model.remove(_this.epicycle);
@@ -283,8 +283,8 @@
   EquatorieSystem = (function() {
     function EquatorieSystem() {
       this.base_radius = 6.0;
-      this.epicycle_radius = 6.353;
-      this.epicycle_thickness = this.epicycle_radius - this.base_radius;
+      this.epicycle_radius = 6.0;
+      this.epicycle_thickness = 0.333334;
       this.precession = 0.00003838;
       this.planet_data = {};
       this.planet_data.venus = {

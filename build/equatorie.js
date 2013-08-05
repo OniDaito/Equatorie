@@ -54,10 +54,10 @@
         _this.marker.shader = _this.shader_basic;
         _this.top_node.add(_this.equatorie_model);
         _this.base = _this.equatorie_model.children[3];
-        _this.epicycle = _this.equatorie_model.children[1];
+        _this.epicycle = _this.equatorie_model.children[0];
         _this.pointer = _this.equatorie_model.children[4];
         _this.rim = _this.equatorie_model.children[2];
-        _this.plate = _this.equatorie_model.children[0];
+        _this.plate = _this.equatorie_model.children[1];
         _this.shiny = new CoffeeGL.Node();
         _this.equatorie_model.add(_this.shiny);
         _this.equatorie_model.remove(_this.epicycle);

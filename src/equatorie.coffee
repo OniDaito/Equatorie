@@ -58,10 +58,10 @@ class Equatorie
       # Should be five children nodes with this model. Attach the shaders
       
       @base     = @equatorie_model.children[3]
-      @epicycle = @equatorie_model.children[1]
+      @epicycle = @equatorie_model.children[0]
       @pointer  = @equatorie_model.children[4]
       @rim      = @equatorie_model.children[2]
-      @plate     = @equatorie_model.children[0]
+      @plate     = @equatorie_model.children[1]
 
       # Create the node for shiny ansio things
       @shiny =  new CoffeeGL.Node()

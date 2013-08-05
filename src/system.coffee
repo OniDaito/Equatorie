@@ -4,8 +4,8 @@ class EquatorieSystem
   constructor : () ->
 
     @base_radius = 6.0        # used with epicycle ratio - Blender Units
-    @epicycle_radius = 6.353  # used with epicycle ratio - Blender Units
-    @epicycle_thickness = @epicycle_radius - @base_radius
+    @epicycle_radius = 6.0  # used with epicycle ratio - Blender Units
+    @epicycle_thickness = 0.333334
     @precession = 0.00003838  # Degrees per day
 
     @planet_data = {}
