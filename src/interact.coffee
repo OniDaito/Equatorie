@@ -13,7 +13,13 @@
 # The state of the Equatorie at present and the next stage for it to go to
 class EquatorieState
 
-  constructor : (@name, @func) ->
+  constructor : (@name, @func, @duration=3) ->
+    if not @duration?
+      @duration = 3.0
+
+  # dt being 0 - 1 progress for this bit
+  update : (dt) ->
+    @func(dt)
 
 
 class EquatorieInteract
@@ -30,38 +36,72 @@ class EquatorieInteract
 
     @advance_date  = 0
 
-    @state_stack = []   # A stack for the states of the system
-    @stack_idx = 0      # current stack position
+    @stack = []     # A stack for the states of the system
+    @stack_idx = 0  # current stack position
 
     @_initGUI()
 
+    @time = 
+      start : 0
+      dt : 0
+
+  # Takes the current system dt in milliseconds. Can run backwards too!
+  # At present the user cant move the items around but we should make that
+  # much more explicit. 
+
+
   update : (dt) ->
+    
+    if @stack.length > 0
+      if @time.dt / 1000 > @stack[@stack_idx].duration
+        @stack[@stack_idx].update(1.0) # Really we could just stop here?
+        return
+      else if @time.dt < 0
+        @stack[@stack_idx].update(0.0)
+        return
+      else
+        # 0 - 1 da progression for stack update
+        da = (@time.dt / 1000) / @stack[@stack_idx].duration
+        @stack[@stack_idx].update(da)
+        @time.dt += dt
+
+    @time.start = new Date().getTime()
 
 
   # A set of potential functions for moving parts of the Equatorie around
   
-  _stateSetPlanetDate : (planet, date) ->
+  _stateSetPlanetDate : (planet, date) =>
     @system.solveForPlanetDate(planet,date)
 
-  _stateCalculateMeanMotus : () ->
+  _stateCalculateMeanMotus : (dt) =>
 
     @
 
-  _stateMoveBlackThread : () ->
-    # Black to Centre and mean motus
-    @black_start.matrix.identity()
-    @black_start.matrix.translate(new CoffeeGL.Vec3(0,@string_height,0))
+  _stateMoveBlackThread : (dt) =>
+    # Black to Centre and mean motus  
+    # Hold an interpolation object on the state in question
 
-    mv = @system.state.meanMotusPosition
+    current_state = @stack[@stack_idx]
 
-    @black_end.matrix.identity()
-    @black_end.matrix.translate(new CoffeeGL.Vec3(mv.x, @string_height, mv.y) )
+    if not current_state.end_interp?
+
+      mv = @system.state.meanMotusPosition
+      mv.normalize()
+      mv.multScalar(10.0)
+      current_state.end_interp = new CoffeeGL.Interpolation @black_end.matrix.getPos(), new CoffeeGL.Vec3(mv.x, @string_height, mv.y) 
+
+    if not current_state.start_interp?
+      @black_start.matrix.identity()
+      current_state.start_interp = new CoffeeGL.Interpolation @black_start.matrix.getPos(), new CoffeeGL.Vec3(0, @string_height, 0) 
+
+    @black_start.matrix.setPos current_state.start_interp.set dt
+    @black_end.matrix.setPos current_state.end_interp.set dt
 
     @physics.postMessage {cmd : "black_start_move", data: @black_start.matrix.getPos() }
     @physics.postMessage {cmd : "black_end_move", data: @black_end.matrix.getPos() }
     @
 
-  _stateMoveWhiteThread : () ->
+  _stateMoveWhiteThread : (dt) =>
     eq = @system.state.equantPosition
     pv = @system.state.parallelPosition
     pv.sub(eq)
@@ -78,7 +118,7 @@ class EquatorieInteract
     @physics.postMessage {cmd : "white_start_move", data: @white_start.matrix.getPos() }
     @physics.postMessage {cmd : "white_end_move", data: @white_end.matrix.getPos() }
   
-  _stateMoveEpicycle : () ->
+  _stateMoveEpicycle : (dt) =>
 
     d = @system.state.deferentPosition
     c = @system.state.basePosition
@@ -100,10 +140,10 @@ class EquatorieInteract
     tmatrix.mult @epicycle.matrix
     @epicycle.matrix.copyFrom(tmatrix)
         
-  _stateRotateEpicycle : () ->
+  _stateRotateEpicycle : (dt) =>
 
 
-  _stateRotateLabel : () ->
+  _stateRotateLabel : (dt) =>
     pangle = @system.state.pointerAngle
     @pointer.matrix.identity()
     @pointer.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(pangle)
@@ -114,25 +154,39 @@ class EquatorieInteract
     @marker.matrix.translate(new CoffeeGL.Vec3(cp.x,0.6,cp.y))
 
 
-  _stateMoveBlackStringFinal : () ->
+  _stateMoveBlackStringFinal : (dt) =>
 
 
   addStates : (planet, date) ->
     if planet in ['mars','venus','jupiter','saturn']
-      @state_stack = []
-      @state_stack.push new EquatorieState "Select Date and Planet", do (planet,date) => @_stateSetPlanetDate(planet,date)
-      @state_stack.push new EquatorieState "Calculate Mean Motus", @_stateCalculateMeanMotus()
-      @state_stack.push new EquatorieState "Move Black Thread", @_stateMoveBlackThread()
+      @stack = []
+      @stack.push new EquatorieState "Select Date and Planet", () => do (planet,date) => @_stateSetPlanetDate(planet,date)
+      @stack.push new EquatorieState "Calculate Mean Motus", @_stateCalculateMeanMotus
+      @stack.push new EquatorieState "Move Black Thread", @_stateMoveBlackThread
+      @stack.push new EquatorieState "Move White Thread", @_stateMoveWhiteThread
+      @stack.push new EquatorieState "Move Epicycle", @_stateMoveEpicycle
+      @stack.push new EquatorieState "Rotate Label", @_stateRotateLabel
+
+  # reset all the things
+
+  reset : () ->
+    # Clear the stack
+    @stack = []
+    @stack_idx = 0
+
 
 
   # Called when the button is pressed in dat.gui. Solve for the chosen planet
   solveForPlanet : (planet, date) ->
-    @_stateSetPlanetDate(planet,date)
-    @_stateCalculateMeanMotus()
-    @_stateMoveBlackThread()
-    @_stateMoveWhiteThread()
-    @_stateMoveEpicycle()
-    @_stateRotateLabel()
+
+    # Clear the stack
+    @stack = []
+    @stack_idx = 0
+
+    @addStates(planet,date)
+
+    for state in @stack
+      state.update(1.0)
 
   onMouseDown : (event) ->
     console.log event
@@ -269,12 +323,19 @@ class EquatorieInteract
 
 
   stepForward : () ->
-    if @state_stack.length == 0
+
+    @time.start = new Date().getTime()
+
+    if @stack.length == 0
       @addStates(@chosen_planet, new Date() )
       @stack_idx = 0
     else
-      if @stack_idx + 1 < @state_stack.length
+      if @stack_idx + 1 < @stack.length
+        # Make sure current state has completed
+        @stack[@stack_idx].update(1.0)
+        @time.dt = 0
         @stack_idx +=1
+        
 
   onMouseOver : (event) ->    
     @mp.x = event.mouseX

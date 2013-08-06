@@ -239,6 +239,8 @@ class Equatorie
     m.fromAxisAngle(new CoffeeGL.Vec3(0,1,0), @angle)
     m.transVec3(@light.pos)
 
+    @interact.update(dt)
+
     @
 
   # update the physics - each body in the string needs to have its position and orientation updated

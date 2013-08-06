@@ -61,6 +61,25 @@ class EquatorieSystem
 
     # Set Planet and Calculate Date must be called first.
 
+    @reset()
+
+  # This function sets the state above and is the only function to be called externally 
+  # along with reset
+  
+  solveForPlanetDate : (planet, date) ->
+    @_setPlanet(planet)   
+    @_calculateDate(date)
+    @_calculateDeferentAngle()
+    @_calculateDeferentPosition()
+    @_calculateEquantPosition()
+    @_calculateMeanMotus()
+    @_calculateParallel()
+    @_calculateEpicyclePosition()
+    @_calculatePointerAngle()
+    @_calculatePointerPoint()
+    @_calculateTruePlace()
+
+  reset : () ->
     @state = 
       meanMotus : 0
       meanMotusPosition : 0
@@ -76,21 +95,6 @@ class EquatorieSystem
       epicyclePosition : 0
       basePosition : 0
       truePlace : 0
-
-  # This function sets the state above and is the only function to be called externally
-  
-  solveForPlanetDate : (planet, date) ->
-    @_setPlanet(planet)   
-    @_calculateDate(date)
-    @_calculateDeferentAngle()
-    @_calculateDeferentPosition()
-    @_calculateEquantPosition()
-    @_calculateMeanMotus()
-    @_calculateParallel()
-    @_calculateEpicyclePosition()
-    @_calculatePointerAngle()
-    @_calculatePointerPoint()
-    @_calculateTruePlace()
 
   _setPlanet : (planet) ->
     @state.planet = planet

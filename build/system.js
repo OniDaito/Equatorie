@@ -47,7 +47,25 @@
       };
       this.epoch = new Date("January 1, 1900 00:00:00");
       this.epoch_julian = 2415020;
-      this.state = {
+      this.reset();
+    }
+
+    EquatorieSystem.prototype.solveForPlanetDate = function(planet, date) {
+      this._setPlanet(planet);
+      this._calculateDate(date);
+      this._calculateDeferentAngle();
+      this._calculateDeferentPosition();
+      this._calculateEquantPosition();
+      this._calculateMeanMotus();
+      this._calculateParallel();
+      this._calculateEpicyclePosition();
+      this._calculatePointerAngle();
+      this._calculatePointerPoint();
+      return this._calculateTruePlace();
+    };
+
+    EquatorieSystem.prototype.reset = function() {
+      return this.state = {
         meanMotus: 0,
         meanMotusPosition: 0,
         deferentAngle: 0,
@@ -63,20 +81,6 @@
         basePosition: 0,
         truePlace: 0
       };
-    }
-
-    EquatorieSystem.prototype.solveForPlanetDate = function(planet, date) {
-      this._setPlanet(planet);
-      this._calculateDate(date);
-      this._calculateDeferentAngle();
-      this._calculateDeferentPosition();
-      this._calculateEquantPosition();
-      this._calculateMeanMotus();
-      this._calculateParallel();
-      this._calculateEpicyclePosition();
-      this._calculatePointerAngle();
-      this._calculatePointerPoint();
-      return this._calculateTruePlace();
     };
 
     EquatorieSystem.prototype._setPlanet = function(planet) {

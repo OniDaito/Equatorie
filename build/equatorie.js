@@ -174,6 +174,7 @@
       m = new CoffeeGL.Quaternion();
       m.fromAxisAngle(new CoffeeGL.Vec3(0, 1, 0), this.angle);
       m.transVec3(this.light.pos);
+      this.interact.update(dt);
       return this;
     };
 

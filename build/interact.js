@@ -13,13 +13,22 @@
 
 
 (function() {
-  var EquatorieInteract, EquatorieState;
+  var EquatorieInteract, EquatorieState,
+    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
   EquatorieState = (function() {
-    function EquatorieState(name, func) {
+    function EquatorieState(name, func, duration) {
       this.name = name;
       this.func = func;
+      this.duration = duration != null ? duration : 3;
+      if (this.duration == null) {
+        this.duration = 3.0;
+      }
     }
+
+    EquatorieState.prototype.update = function(dt) {
+      return this.func(dt);
+    };
 
     return EquatorieState;
 
@@ -38,6 +47,14 @@
       this.pointer = pointer;
       this.marker = marker;
       this.string_height = string_height;
+      this._stateMoveBlackStringFinal = __bind(this._stateMoveBlackStringFinal, this);
+      this._stateRotateLabel = __bind(this._stateRotateLabel, this);
+      this._stateRotateEpicycle = __bind(this._stateRotateEpicycle, this);
+      this._stateMoveEpicycle = __bind(this._stateMoveEpicycle, this);
+      this._stateMoveWhiteThread = __bind(this._stateMoveWhiteThread, this);
+      this._stateMoveBlackThread = __bind(this._stateMoveBlackThread, this);
+      this._stateCalculateMeanMotus = __bind(this._stateCalculateMeanMotus, this);
+      this._stateSetPlanetDate = __bind(this._stateSetPlanetDate, this);
       this.mp = new CoffeeGL.Vec2(-1, -1);
       this.mpp = new CoffeeGL.Vec2(-1, -1);
       this.mpd = new CoffeeGL.Vec2(0, 0);
@@ -45,28 +62,56 @@
       this.picked_item = void 0;
       this.dragging = false;
       this.advance_date = 0;
-      this.state_stack = [];
+      this.stack = [];
       this.stack_idx = 0;
       this._initGUI();
+      this.time = {
+        start: 0,
+        dt: 0
+      };
     }
 
-    EquatorieInteract.prototype.update = function(dt) {};
+    EquatorieInteract.prototype.update = function(dt) {
+      var da;
+      if (this.stack.length > 0) {
+        if (this.time.dt / 1000 > this.stack[this.stack_idx].duration) {
+          this.stack[this.stack_idx].update(1.0);
+          return;
+        } else if (this.time.dt < 0) {
+          this.stack[this.stack_idx].update(0.0);
+          return;
+        } else {
+          da = (this.time.dt / 1000) / this.stack[this.stack_idx].duration;
+          this.stack[this.stack_idx].update(da);
+          this.time.dt += dt;
+        }
+      }
+      return this.time.start = new Date().getTime();
+    };
 
     EquatorieInteract.prototype._stateSetPlanetDate = function(planet, date) {
       return this.system.solveForPlanetDate(planet, date);
     };
 
-    EquatorieInteract.prototype._stateCalculateMeanMotus = function() {
+    EquatorieInteract.prototype._stateCalculateMeanMotus = function(dt) {
       return this;
     };
 
-    EquatorieInteract.prototype._stateMoveBlackThread = function() {
-      var mv;
-      this.black_start.matrix.identity();
-      this.black_start.matrix.translate(new CoffeeGL.Vec3(0, this.string_height, 0));
-      mv = this.system.state.meanMotusPosition;
-      this.black_end.matrix.identity();
-      this.black_end.matrix.translate(new CoffeeGL.Vec3(mv.x, this.string_height, mv.y));
+    EquatorieInteract.prototype._stateMoveBlackThread = function(dt) {
+      var current_state, mv;
+      current_state = this.stack[this.stack_idx];
+      if (current_state.end_interp == null) {
+        mv = this.system.state.meanMotusPosition;
+        mv.normalize();
+        mv.multScalar(10.0);
+        current_state.end_interp = new CoffeeGL.Interpolation(this.black_end.matrix.getPos(), new CoffeeGL.Vec3(mv.x, this.string_height, mv.y));
+      }
+      if (current_state.start_interp == null) {
+        this.black_start.matrix.identity();
+        current_state.start_interp = new CoffeeGL.Interpolation(this.black_start.matrix.getPos(), new CoffeeGL.Vec3(0, this.string_height, 0));
+      }
+      this.black_start.matrix.setPos(current_state.start_interp.set(dt));
+      this.black_end.matrix.setPos(current_state.end_interp.set(dt));
       this.physics.postMessage({
         cmd: "black_start_move",
         data: this.black_start.matrix.getPos()
@@ -78,7 +123,7 @@
       return this;
     };
 
-    EquatorieInteract.prototype._stateMoveWhiteThread = function() {
+    EquatorieInteract.prototype._stateMoveWhiteThread = function(dt) {
       var eq, pv;
       eq = this.system.state.equantPosition;
       pv = this.system.state.parallelPosition;
@@ -100,7 +145,7 @@
       });
     };
 
-    EquatorieInteract.prototype._stateMoveEpicycle = function() {
+    EquatorieInteract.prototype._stateMoveEpicycle = function(dt) {
       var c, d, dr, mr, tmatrix, v;
       d = this.system.state.deferentPosition;
       c = this.system.state.basePosition;
@@ -117,9 +162,9 @@
       return this.epicycle.matrix.copyFrom(tmatrix);
     };
 
-    EquatorieInteract.prototype._stateRotateEpicycle = function() {};
+    EquatorieInteract.prototype._stateRotateEpicycle = function(dt) {};
 
-    EquatorieInteract.prototype._stateRotateLabel = function() {
+    EquatorieInteract.prototype._stateRotateLabel = function(dt) {
       var cp, pangle;
       pangle = this.system.state.pointerAngle;
       this.pointer.matrix.identity();
@@ -129,27 +174,42 @@
       return this.marker.matrix.translate(new CoffeeGL.Vec3(cp.x, 0.6, cp.y));
     };
 
-    EquatorieInteract.prototype._stateMoveBlackStringFinal = function() {};
+    EquatorieInteract.prototype._stateMoveBlackStringFinal = function(dt) {};
 
     EquatorieInteract.prototype.addStates = function(planet, date) {
       var _this = this;
       if (planet === 'mars' || planet === 'venus' || planet === 'jupiter' || planet === 'saturn') {
-        this.state_stack = [];
-        this.state_stack.push(new EquatorieState("Select Date and Planet", (function(planet, date) {
-          return _this._stateSetPlanetDate(planet, date);
-        })(planet, date)));
-        this.state_stack.push(new EquatorieState("Calculate Mean Motus", this._stateCalculateMeanMotus()));
-        return this.state_stack.push(new EquatorieState("Move Black Thread", this._stateMoveBlackThread()));
+        this.stack = [];
+        this.stack.push(new EquatorieState("Select Date and Planet", function() {
+          return (function(planet, date) {
+            return _this._stateSetPlanetDate(planet, date);
+          })(planet, date);
+        }));
+        this.stack.push(new EquatorieState("Calculate Mean Motus", this._stateCalculateMeanMotus));
+        this.stack.push(new EquatorieState("Move Black Thread", this._stateMoveBlackThread));
+        this.stack.push(new EquatorieState("Move White Thread", this._stateMoveWhiteThread));
+        this.stack.push(new EquatorieState("Move Epicycle", this._stateMoveEpicycle));
+        return this.stack.push(new EquatorieState("Rotate Label", this._stateRotateLabel));
       }
     };
 
+    EquatorieInteract.prototype.reset = function() {
+      this.stack = [];
+      return this.stack_idx = 0;
+    };
+
     EquatorieInteract.prototype.solveForPlanet = function(planet, date) {
-      this._stateSetPlanetDate(planet, date);
-      this._stateCalculateMeanMotus();
-      this._stateMoveBlackThread();
-      this._stateMoveWhiteThread();
-      this._stateMoveEpicycle();
-      return this._stateRotateLabel();
+      var state, _i, _len, _ref, _results;
+      this.stack = [];
+      this.stack_idx = 0;
+      this.addStates(planet, date);
+      _ref = this.stack;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        state = _ref[_i];
+        _results.push(state.update(1.0));
+      }
+      return _results;
     };
 
     EquatorieInteract.prototype.onMouseDown = function(event) {
@@ -271,11 +331,14 @@
     };
 
     EquatorieInteract.prototype.stepForward = function() {
-      if (this.state_stack.length === 0) {
+      this.time.start = new Date().getTime();
+      if (this.stack.length === 0) {
         this.addStates(this.chosen_planet, new Date());
         return this.stack_idx = 0;
       } else {
-        if (this.stack_idx + 1 < this.state_stack.length) {
+        if (this.stack_idx + 1 < this.stack.length) {
+          this.stack[this.stack_idx].update(1.0);
+          this.time.dt = 0;
           return this.stack_idx += 1;
         }
       }
