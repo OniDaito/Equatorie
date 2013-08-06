@@ -50,35 +50,53 @@ class EquatorieSystem
       mean_longitude : 266.25
       mean_anomaly : 13.45
 
-
     # Epoch from Evans
 
     @epoch = new Date ("January 1, 1900 00:00:00")
-
     @epoch_julian = 2415020
    
     # consistent pieces of information at each step
-    @mean_motus_angle = 0
+    # The system records its state as we progress through
+    # This means things must be done in order.
 
+    # Set Planet and Calculate Date must be called first.
 
-  calculateDeferentAngle : (planet, date) ->
-    
-    angle = -@planet_data[planet].apogee_longitude - ( @precession * @calculateDate date )
-    angle
+    @state = 
+      meanMotus : 0
+      meanMotusPosition : 0
+      deferentAngle : 0
+      deferentPosition : 0
+      passed : 0
+      planet : ''
+      date : 0
+      parallelPosition : 0
+      pointerAngle : 0
+      equantPosition : 0
+      epicycleRotation: 0
+      epicyclePosition : 0
+      basePosition : 0
+      truePlace : 0
 
-  calculateDeferentPosition : (planet, date) ->
+  # This function sets the state above and is the only function to be called externally
+  
+  solveForPlanetDate : (planet, date) ->
+    @_setPlanet(planet)   
+    @_calculateDate(date)
+    @_calculateDeferentAngle()
+    @_calculateDeferentPosition()
+    @_calculateEquantPosition()
+    @_calculateMeanMotus()
+    @_calculateParallel()
+    @_calculateEpicyclePosition()
+    @_calculatePointerAngle()
+    @_calculatePointerPoint()
+    @_calculateTruePlace()
 
-    x = @base_radius * @planet_data[planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad (@calculateDeferentAngle planet, date))
-    y = @base_radius * @planet_data[planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad (@calculateDeferentAngle planet, date))
-    [x,y]
+  _setPlanet : (planet) ->
+    @state.planet = planet
+    @
 
-  calculateEquantPosition : (planet, date) ->
-    [x,y] = @calculateDeferentPosition planet, date
-    new CoffeeGL.Vec2(x*2, y*2)
-
-
- 
-  calculateDate : (date) ->
+  _calculateDate : (date) ->
     # Worked out from the date (current) and the tables above
     # 1900, January 1st 00:00 evening (so midnight on the Dec 31)
     # return the number of days - use Julian dates
@@ -89,16 +107,46 @@ class EquatorieSystem
     j = date.getDate() + (153 * m  + 2)/ 5 + (365 * y) + (y/4) - (y/100) + (y/400) - 32045
 
     #Math.abs(date - @epoch) / 86400000
-    j - @epoch_julian
+    p = j - @epoch_julian
 
+    @state.passed = p
+    p
+
+  
+  _calculateDeferentAngle : () ->
+    if @state.planet in ['mars','venus','jupiter','saturn']
+      angle = -@planet_data[@state.planet].apogee_longitude - ( @precession * @state.date )
+      @state.deferentAngle = angle
+      return angle
+    @
+
+  _calculateDeferentPosition : () ->
+    if @state.planet in ['mars','venus','jupiter','saturn']
+      x = @base_radius * @planet_data[@state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad @state.deferentAngle)
+      y = @base_radius * @planet_data[@state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @state.deferentAngle)
+      @state.deferentPosition = new CoffeeGL.Vec2 x,y
+      return @state.deferentPosition
+    @
+
+  _calculateEquantPosition : () ->
+    if @state.planet in ['mars','venus','jupiter','saturn']
+      @state.equantPosition = new CoffeeGL.Vec2 @state.deferentPosition.x*2, @state.deferentPosition.y*2
+      return @state.equantPosition
+ 
+  
   # Return the mean motus angle plus the postion on the rim of the base
-  calculateMeanMotus : (planet, date) ->
+  _calculateMeanMotus : () ->
     
-    passed = @calculateDate date
-    mean_motus_angle = (@planet_data[planet].mean_longitude + (@planet_data[planet].deferent_speed * passed) ) % 360 * -1
-    
-    [mean_motus_angle, new CoffeeGL.Vec2(@base_radius * Math.cos( CoffeeGL.degToRad(mean_motus_angle) ), 
-      @base_radius * Math.sin( CoffeeGL.degToRad(mean_motus_angle) ))]
+    passed = @state.passed
+    mean_motus_angle = (@planet_data[@state.planet].mean_longitude + (@planet_data[@state.planet].deferent_speed * passed) ) % 360 * -1
+    @state.meanMotus = mean_motus_angle
+
+    mean_motus_position = new CoffeeGL.Vec2(@base_radius * Math.cos( CoffeeGL.degToRad(mean_motus_angle) ), 
+      @base_radius * Math.sin( CoffeeGL.degToRad(mean_motus_angle) ))
+
+    @state.meanMotusPosition = mean_motus_position
+
+    [mean_motus_angle, mean_motus_position]
 
   # http://stackoverflow.com/questions/1073336/circle-line-collision-detection
   # Given a ray and circle, solve the quadratic and find intersection points
@@ -132,81 +180,74 @@ class EquatorieSystem
     v
 
   # Find where the parallel line from the Equant, parallel with the meanmotus, cuts the rim
-  calculateParallel : (planet, date) ->
+  _calculateParallel : () ->
 
-    passed = @calculateDate date
-    dangle = @calculateDeferentAngle planet, date
+    passed = @state.passed
+    dangle = @state.deferentAngle
     
     cr = Math.cos CoffeeGL.degToRad dangle
     sr = Math.sin CoffeeGL.degToRad dangle
 
     base_position = new CoffeeGL.Vec2(@base_radius * cr, @base_radius * sr)
+    @state.basePosition = base_position
 
-    deferent_position = new CoffeeGL.Vec2(base_position.x * @planet_data[planet].deferent_eccentricity,
-      base_position.y * @planet_data[planet].deferent_eccentricity)
+    deferent_position = @state.deferentPosition
+    equant_position = @state.equantPosition
 
-    equant_position = @calculateEquantPosition(planet, date)
-
-    [motus_angle, motus_position] = @calculateMeanMotus(planet,date)
-    dir = motus_position.copy()
+    dir = @state.meanMotusPosition.copy()
     dir.normalize()
 
-    @rayCircleIntersection(equant_position, dir, deferent_position, @base_radius)
-    
+    @state.parallelPosition = @rayCircleIntersection(equant_position, dir, deferent_position, @base_radius)
+    @state.parallelPosition
 
-  calculateEpicyclePosition : (planet, date) ->
+  _calculateEpicyclePosition : () ->
     # Rotate the epicycle so its 0 point is on the deferent, then rotate around the deferent
     # by the mean motus - two steps
 
-    passed = @calculateDate date
-    dangle = @calculateDeferentAngle planet, date
+    passed = @state.passed
+    dangle = @state.deferentAngle
     
     cr = Math.cos CoffeeGL.degToRad dangle
     sr = Math.sin CoffeeGL.degToRad dangle
 
-    base_position = new CoffeeGL.Vec2(@base_radius * cr, @base_radius * sr)
-    
-    deferent_position = new CoffeeGL.Vec2(base_position.x * @planet_data[planet].deferent_eccentricity,
-      base_position.y * @planet_data[planet].deferent_eccentricity)
- 
-    equant_position = @calculateEquantPosition(planet, date)
+    @state.basePosition = new CoffeeGL.Vec2(@base_radius * cr, @base_radius * sr)
+    deferent_position = @state.deferentPosition
+    equant_position = @state.equantPosition
    
     # At this point we have the first transform, before we need to rotate the epicycle over
     # the white string
     fangle = 0
 
     # Line equation - p = s + tD
-    v = @calculateParallel planet,date
+    v = @state.parallelPosition
   
     if v.x != 0 and v.y != 0
 
-      f0 = CoffeeGL.radToDeg Math.atan2 base_position.y - deferent_position.y, base_position.x - deferent_position.x
+      f0 = CoffeeGL.radToDeg Math.atan2 @state.basePosition.y - deferent_position.y, @state.basePosition.x - deferent_position.x
       f1 = CoffeeGL.radToDeg Math.atan2 v.y - deferent_position.y, v.x - deferent_position.x
       fangle = f0 - f1
 
-    [deferent_position, base_position, v, dangle, fangle ]
+    @state.epicycleRotation = fangle
+
+    [deferent_position, @state.basePosition, v, dangle, fangle ]
 
   # Turned anti-clockwise around the epicycle
   # We count this as the angle from the white string, not the zero point
-  calculatePointerAngle : (planet, date) ->
-    passed = @calculateDate(date)
-    angle = @planet_data[planet].mean_anomaly + (@planet_data[planet].epicycle_speed * passed)
+  _calculatePointerAngle : () ->
+    passed = @state.passed
+    angle = @planet_data[@state.planet].mean_anomaly + (@planet_data[@state.planet].epicycle_speed * passed)
       
-    console.log "Label Angle Real: " + @planet_data[planet].mean_anomaly + "," + @planet_data[planet].epicycle_speed + "," + angle
+    ca = Math.cos(CoffeeGL.degToRad(-@state.epicycleRotation))
+    sa = Math.sin(CoffeeGL.degToRad(-@state.epicycleRotation))
 
-    [ma, mm] = @calculateMeanMotus(planet,date)
+    epipos = new CoffeeGL.Vec2(@state.basePosition.x * ca - @state.basePosition.y * sa, 
+        @state.basePosition.x * sa + @state.basePosition.y * ca)
+    epipos.add @state.deferentPosition
 
-    [deferent_position, base_position, v, dangle, fangle ] = @calculateEpicyclePosition(planet, date)
-   
-    ca = Math.cos(CoffeeGL.degToRad(-fangle))
-    sa = Math.sin(CoffeeGL.degToRad(-fangle))
+    @state.epicyclePosition = epipos
 
-    epipos = new CoffeeGL.Vec2(base_position.x * ca - base_position.y * sa, 
-        base_position.x * sa + base_position.y * ca)
-    epipos.add deferent_position
-
-    pt0 = CoffeeGL.Vec2.sub(mm, deferent_position )
-    pt1 = CoffeeGL.Vec2.sub(epipos, deferent_position)
+    pt0 = CoffeeGL.Vec2.sub(@state.meanMotusPosition, @state.deferentPosition)
+    pt1 = CoffeeGL.Vec2.sub(epipos, @state.deferentPosition)
 
     aa = CoffeeGL.radToDeg( Math.acos( CoffeeGL.Vec2.dot( CoffeeGL.Vec2.normalize( pt0), 
       CoffeeGL.Vec2.normalize(pt1))))
@@ -216,28 +257,29 @@ class EquatorieSystem
     if dv.x > 0
       aa *= -1
 
-    
 
-    90 - (aa/2) + angle
+    pa = 90 - (aa/2) + angle
+    @state.pointerAngle = pa
+    pa
   
 
   # in Global co-ordinates
-  calculatePointerPoint : (planet,date) ->
-    angle = @calculatePointerAngle planet,date
-    deferent_position = @calculateDeferentPosition(planet, date)
+  _calculatePointerPoint : () ->
+    angle = @state.pointerAngle
+    deferent_position = @state.deferentPosition
 
-    [motus_angle, motus_position] = @calculateMeanMotus(planet,date)
-    equant_position = @calculateEquantPosition(planet, date)
+    motus_angle = @state.meanMotus
+    motus_position = @state.meanMotusPosition
+
+    equant_position = @state.equantPosition
     dir = motus_position.copy()
     dir.normalize()
 
-    [deferent_position, base_position, v, dangle, fangle ] = @calculateEpicyclePosition(planet, date)
+    fangle = @state.epicycleRotation
     ca = Math.cos(CoffeeGL.degToRad(-fangle))
     sa = Math.sin(CoffeeGL.degToRad(-fangle))
 
-    epipos = new CoffeeGL.Vec2(base_position.x * ca - base_position.y * sa, 
-        base_position.x * sa + base_position.y * ca)
-    epipos.add deferent_position
+    epipos = @state.epicyclePosition 
 
     # At this point perp is the point underneath the epicycle
     dir = CoffeeGL.Vec2.normalize(CoffeeGL.Vec2.sub(epipos,deferent_position))
@@ -247,7 +289,7 @@ class EquatorieSystem
     perp.x = -dir.y
     perp.y = dir.x
 
-    perp.multScalar (@base_radius * @planet_data[planet].epicycle_ratio )
+    perp.multScalar (@base_radius * @planet_data[@state.planet].epicycle_ratio )
 
     ca = Math.cos (CoffeeGL.degToRad(-angle))
     sa = Math.sin (CoffeeGL.degToRad(-angle))
@@ -256,13 +298,17 @@ class EquatorieSystem
 
     perp.add epipos
 
+    @state.pointerPoint = perp
+    perp 
+
   # in degrees from the centre of the base and the sign of aries (x axis in this system)
-  calculateTruePlace : (planet, date) ->
-    pp = @calculatePointerPoint planet,date
+  _calculateTruePlace : () ->
+    pp = @state.pointerPoint
     dir = CoffeeGL.Vec2.normalize pp
     xaxis = new CoffeeGL.Vec2(1,0)
     angle = CoffeeGL.radToDeg Math.acos xaxis.dot dir
-    console.log "True Place: " + angle
+    @state.truePlace = angle
+    angle
 
 module.exports = 
   EquatorieSystem : EquatorieSystem
