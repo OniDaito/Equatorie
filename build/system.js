@@ -78,6 +78,7 @@
         equantPosition: 0,
         epicycleRotation: 0,
         epicyclePosition: 0,
+        epicyclePrePosition: 0,
         basePosition: 0,
         truePlace: 0
       };
@@ -179,14 +180,13 @@
     };
 
     EquatorieSystem.prototype._calculateEpicyclePosition = function() {
-      var cr, dangle, deferent_position, equant_position, f0, f1, fangle, passed, sr, v;
+      var dangle, deferent_position, equant_position, f0, f1, fangle, l, passed, v;
       passed = this.state.passed;
       dangle = this.state.deferentAngle;
-      cr = Math.cos(CoffeeGL.degToRad(dangle));
-      sr = Math.sin(CoffeeGL.degToRad(dangle));
-      this.state.basePosition = new CoffeeGL.Vec2(this.base_radius * cr, this.base_radius * sr);
       deferent_position = this.state.deferentPosition;
       equant_position = this.state.equantPosition;
+      l = deferent_position.length() + this.epicycle_radius - this.epicycle_thickness;
+      this.state.epicyclePrePosition = CoffeeGL.Vec2.normalize(deferent_position).multScalar(l);
       fangle = 0;
       v = this.state.parallelPosition;
       if (v.x !== 0 && v.y !== 0) {

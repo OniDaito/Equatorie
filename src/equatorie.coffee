@@ -172,7 +172,7 @@ class Equatorie
     @marker.uColour = new CoffeeGL.Colour.RGBA(0.0,1.0,1.0,1.0)
     @top_node.add @marker
 
-    @c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0,0,25))
+    @c = new CoffeeGL.Camera.TouchPerspCamera(new CoffeeGL.Vec3(0,0,25))
     @top_node.add(@c)
     @pickable.add(@c)
 
@@ -295,6 +295,7 @@ class Equatorie
   onMouseOut : (event) ->
     @mp.x = -1
     @mp.y = -1
+
 
 
   resize : (w,h) ->

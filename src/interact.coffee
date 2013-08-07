@@ -91,7 +91,6 @@ class EquatorieInteract
       current_state.end_interp = new CoffeeGL.Interpolation @black_end.matrix.getPos(), new CoffeeGL.Vec3(mv.x, @string_height, mv.y) 
 
     if not current_state.start_interp?
-      @black_start.matrix.identity()
       current_state.start_interp = new CoffeeGL.Interpolation @black_start.matrix.getPos(), new CoffeeGL.Vec3(0, @string_height, 0) 
 
     @black_start.matrix.setPos current_state.start_interp.set dt
@@ -102,46 +101,62 @@ class EquatorieInteract
     @
 
   _stateMoveWhiteThread : (dt) =>
-    eq = @system.state.equantPosition
-    pv = @system.state.parallelPosition
-    pv.sub(eq)
-    pv.normalize()
-    pv.multScalar(10.0)
-    pv.add(eq)
   
-    @white_start.matrix.identity()
-    @white_start.matrix.translate(new CoffeeGL.Vec3(eq.x,@string_height,eq.y))
+    current_state = @stack[@stack_idx]
 
-    @white_end.matrix.identity()
-    @white_end.matrix.translate(new CoffeeGL.Vec3(pv.x, @string_height, pv.y ))
+    if not current_state.end_interp?
+      eq = @system.state.equantPosition
+      pv = @system.state.parallelPosition
+      pv.sub(eq)
+      pv.normalize()
+      pv.multScalar(10.0)
+      pv.add(eq)
+
+      current_state.end_interp = new CoffeeGL.Interpolation @white_end.matrix.getPos(), new CoffeeGL.Vec3(pv.x, @string_height, pv.y) 
+
+    if not current_state.start_interp?
+    
+      eq = @system.state.equantPosition
+      current_state.start_interp = new CoffeeGL.Interpolation @white_start.matrix.getPos(), new CoffeeGL.Vec3(eq.x,@string_height,eq.y) 
+
+
+    @white_start.matrix.setPos current_state.start_interp.set dt
+    @white_end.matrix.setPos current_state.end_interp.set dt
   
     @physics.postMessage {cmd : "white_start_move", data: @white_start.matrix.getPos() }
     @physics.postMessage {cmd : "white_end_move", data: @white_end.matrix.getPos() }
   
   _stateMoveEpicycle : (dt) =>
 
-    d = @system.state.deferentPosition
-    c = @system.state.basePosition
-    v = @system.state.parallelPosition
-    dr = @system.state.deferentAngle
-    mr = @system.state.epicycleRotation
+    current_state = @stack[@stack_idx]
+
+    if not current_state.pos_interp?
+
+      d = @system.state.deferentPosition
+      c = @system.state.basePosition
+      v = @system.state.parallelPosition
+      dr = @system.state.deferentAngle
+      e = @system.state.epicyclePrePosition
+      
+
+      current_state.pos_interp = new CoffeeGL.Interpolation @epicycle.matrix.getPos(), new CoffeeGL.Vec3 e.x,0,e.y
 
     @epicycle.matrix.identity()
+    @epicycle.matrix.translate current_state.pos_interp.set dt
+    #@epicycle.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad 90 #sCoffeeGL.degToRad(90-dr)
     
-    @epicycle.matrix.translate new CoffeeGL.Vec3 c.x,0,c.y  
-    @epicycle.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(90-dr)
-    
-    # Now rotate the epicycle around the deferent till it reaches the white line      
-    tmatrix = new CoffeeGL.Matrix4()
-      
-    tmatrix.translate new CoffeeGL.Vec3 d.x, 0, d.y
-    tmatrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(mr)
-      
-    tmatrix.mult @epicycle.matrix
-    @epicycle.matrix.copyFrom(tmatrix)
+   
         
   _stateRotateEpicycle : (dt) =>
 
+     # Now rotate the epicycle around the deferent till it reaches the white line      
+    #tmatrix = new CoffeeGL.Matrix4()
+      
+    #tmatrix.translate new CoffeeGL.Vec3 d.x, 0, d.y
+    #tmatrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(mr)
+      
+    #tmatrix.mult @epicycle.matrix
+    #@epicycle.matrix.copyFrom(tmatrix)
 
   _stateRotateLabel : (dt) =>
     pangle = @system.state.pointerAngle
@@ -319,7 +334,6 @@ class EquatorieInteract
     date = new Date()
     date.setDate date.getDate() + @advance_date 
     @solveForPlanet(@chosen_planet, date)
-
 
 
   stepForward : () ->

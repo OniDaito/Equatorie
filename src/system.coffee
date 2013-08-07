@@ -93,6 +93,7 @@ class EquatorieSystem
       equantPosition : 0
       epicycleRotation: 0
       epicyclePosition : 0
+      epicyclePrePosition : 0
       basePosition : 0
       truePlace : 0
 
@@ -211,13 +212,13 @@ class EquatorieSystem
     passed = @state.passed
     dangle = @state.deferentAngle
     
-    cr = Math.cos CoffeeGL.degToRad dangle
-    sr = Math.sin CoffeeGL.degToRad dangle
-
-    @state.basePosition = new CoffeeGL.Vec2(@base_radius * cr, @base_radius * sr)
     deferent_position = @state.deferentPosition
     equant_position = @state.equantPosition
    
+    l = deferent_position.length() +  @epicycle_radius - @epicycle_thickness 
+
+    @state.epicyclePrePosition = CoffeeGL.Vec2.normalize(deferent_position).multScalar(l)
+
     # At this point we have the first transform, before we need to rotate the epicycle over
     # the white string
     fangle = 0

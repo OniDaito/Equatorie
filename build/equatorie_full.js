@@ -125,7 +125,7 @@
       this.marker = new CoffeeGL.Node(cube);
       this.marker.uColour = new CoffeeGL.Colour.RGBA(0.0, 1.0, 1.0, 1.0);
       this.top_node.add(this.marker);
-      this.c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0, 0, 25));
+      this.c = new CoffeeGL.Camera.TouchPerspCamera(new CoffeeGL.Vec3(0, 0, 25));
       this.top_node.add(this.c);
       this.pickable.add(this.c);
       this.light = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0, 5.0, 25.0), new CoffeeGL.Colour.RGB(1.0, 1.0, 1.0));
@@ -357,6 +357,7 @@
         equantPosition: 0,
         epicycleRotation: 0,
         epicyclePosition: 0,
+        epicyclePrePosition: 0,
         basePosition: 0,
         truePlace: 0
       };
@@ -458,14 +459,13 @@
     };
 
     EquatorieSystem.prototype._calculateEpicyclePosition = function() {
-      var cr, dangle, deferent_position, equant_position, f0, f1, fangle, passed, sr, v;
+      var dangle, deferent_position, equant_position, f0, f1, fangle, l, passed, v;
       passed = this.state.passed;
       dangle = this.state.deferentAngle;
-      cr = Math.cos(CoffeeGL.degToRad(dangle));
-      sr = Math.sin(CoffeeGL.degToRad(dangle));
-      this.state.basePosition = new CoffeeGL.Vec2(this.base_radius * cr, this.base_radius * sr);
       deferent_position = this.state.deferentPosition;
       equant_position = this.state.equantPosition;
+      l = deferent_position.length() + this.epicycle_radius - this.epicycle_thickness;
+      this.state.epicyclePrePosition = CoffeeGL.Vec2.normalize(deferent_position).multScalar(l);
       fangle = 0;
       v = this.state.parallelPosition;
       if (v.x !== 0 && v.y !== 0) {
@@ -829,7 +829,6 @@
         current_state.end_interp = new CoffeeGL.Interpolation(this.black_end.matrix.getPos(), new CoffeeGL.Vec3(mv.x, this.string_height, mv.y));
       }
       if (current_state.start_interp == null) {
-        this.black_start.matrix.identity();
         current_state.start_interp = new CoffeeGL.Interpolation(this.black_start.matrix.getPos(), new CoffeeGL.Vec3(0, this.string_height, 0));
       }
       this.black_start.matrix.setPos(current_state.start_interp.set(dt));
@@ -846,17 +845,23 @@
     };
 
     EquatorieInteract.prototype._stateMoveWhiteThread = function(dt) {
-      var eq, pv;
-      eq = this.system.state.equantPosition;
-      pv = this.system.state.parallelPosition;
-      pv.sub(eq);
-      pv.normalize();
-      pv.multScalar(10.0);
-      pv.add(eq);
-      this.white_start.matrix.identity();
-      this.white_start.matrix.translate(new CoffeeGL.Vec3(eq.x, this.string_height, eq.y));
-      this.white_end.matrix.identity();
-      this.white_end.matrix.translate(new CoffeeGL.Vec3(pv.x, this.string_height, pv.y));
+      var current_state, eq, pv;
+      current_state = this.stack[this.stack_idx];
+      if (current_state.end_interp == null) {
+        eq = this.system.state.equantPosition;
+        pv = this.system.state.parallelPosition;
+        pv.sub(eq);
+        pv.normalize();
+        pv.multScalar(10.0);
+        pv.add(eq);
+        current_state.end_interp = new CoffeeGL.Interpolation(this.white_end.matrix.getPos(), new CoffeeGL.Vec3(pv.x, this.string_height, pv.y));
+      }
+      if (current_state.start_interp == null) {
+        eq = this.system.state.equantPosition;
+        current_state.start_interp = new CoffeeGL.Interpolation(this.white_start.matrix.getPos(), new CoffeeGL.Vec3(eq.x, this.string_height, eq.y));
+      }
+      this.white_start.matrix.setPos(current_state.start_interp.set(dt));
+      this.white_end.matrix.setPos(current_state.end_interp.set(dt));
       this.physics.postMessage({
         cmd: "white_start_move",
         data: this.white_start.matrix.getPos()
@@ -868,20 +873,18 @@
     };
 
     EquatorieInteract.prototype._stateMoveEpicycle = function(dt) {
-      var c, d, dr, mr, tmatrix, v;
-      d = this.system.state.deferentPosition;
-      c = this.system.state.basePosition;
-      v = this.system.state.parallelPosition;
-      dr = this.system.state.deferentAngle;
-      mr = this.system.state.epicycleRotation;
+      var c, current_state, d, dr, e, v;
+      current_state = this.stack[this.stack_idx];
+      if (current_state.pos_interp == null) {
+        d = this.system.state.deferentPosition;
+        c = this.system.state.basePosition;
+        v = this.system.state.parallelPosition;
+        dr = this.system.state.deferentAngle;
+        e = this.system.state.epicyclePrePosition;
+        current_state.pos_interp = new CoffeeGL.Interpolation(this.epicycle.matrix.getPos(), new CoffeeGL.Vec3(e.x, 0, e.y));
+      }
       this.epicycle.matrix.identity();
-      this.epicycle.matrix.translate(new CoffeeGL.Vec3(c.x, 0, c.y));
-      this.epicycle.matrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(90 - dr));
-      tmatrix = new CoffeeGL.Matrix4();
-      tmatrix.translate(new CoffeeGL.Vec3(d.x, 0, d.y));
-      tmatrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(mr));
-      tmatrix.mult(this.epicycle.matrix);
-      return this.epicycle.matrix.copyFrom(tmatrix);
+      return this.epicycle.matrix.translate(current_state.pos_interp.set(dt));
     };
 
     EquatorieInteract.prototype._stateRotateEpicycle = function(dt) {};

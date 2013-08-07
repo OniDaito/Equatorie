@@ -124,7 +124,7 @@
       this.marker = new CoffeeGL.Node(cube);
       this.marker.uColour = new CoffeeGL.Colour.RGBA(0.0, 1.0, 1.0, 1.0);
       this.top_node.add(this.marker);
-      this.c = new CoffeeGL.Camera.MousePerspCamera(new CoffeeGL.Vec3(0, 0, 25));
+      this.c = new CoffeeGL.Camera.TouchPerspCamera(new CoffeeGL.Vec3(0, 0, 25));
       this.top_node.add(this.c);
       this.pickable.add(this.c);
       this.light = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0, 5.0, 25.0), new CoffeeGL.Colour.RGB(1.0, 1.0, 1.0));
