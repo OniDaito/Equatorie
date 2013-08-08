@@ -47,6 +47,20 @@
       this.system = new EquatorieSystem();
       this.ready = false;
       this.loaded = new CoffeeGL.Signal();
+      this.system._calculateDate(new Date("January 1, 1393 00:00:00"));
+      this.system._setPlanet("mars");
+      this.system._calculateDeferentAngle();
+      console.log(this.system._calculateDeferentPosition());
+      this.system._setPlanet("venus");
+      this.system._calculateDeferentAngle();
+      console.log(this.system._calculateDeferentPosition());
+      this.system._setPlanet("jupiter");
+      this.system._calculateDeferentAngle();
+      console.log(this.system._calculateDeferentPosition());
+      this.system._setPlanet("saturn");
+      this.system._calculateDeferentAngle();
+      console.log(this.system._calculateDeferentPosition());
+      this.system.reset();
       f = function() {
         var q;
         console.log("Loaded Assets");
@@ -284,48 +298,95 @@
   EquatorieSystem = (function() {
     function EquatorieSystem() {
       this.base_radius = 6.0;
+      this.base_to_inch = 0.166666666667;
       this.epicycle_radius = 6.0;
       this.epicycle_thickness = 0.333334;
       this.precession = 0.00003838;
       this.planet_data = {};
+      /*
+      
+      @planet_data.venus =
+        deferent_speed : 0.98564734
+        epicycle_speed : 0.61652156
+        epicycle_ratio : 0.72294
+        deferent_eccentricity : 0.0145
+        apogee_longitude : 98.1666667
+        mean_longitude : 279.7
+        mean_anomaly : 63.383
+      
+      @planet_data.mars =
+        deferent_speed : 0.52407116
+        epicycle_speed : 0.46157618
+        epicycle_ratio : 0.6563
+        deferent_eccentricity : 0.10284
+        apogee_longitude : 148.6166667
+        mean_longitude : 293.55
+        mean_anomaly : 346.15
+      
+      @planet_data.jupiter =
+        deferent_speed : 0.08312944
+        epicycle_speed : 0.90251790
+        epicycle_ratio : 0.1922
+        deferent_eccentricity : 0.04817
+        apogee_longitude : 188.9666667
+        mean_longitude : 238.16666667
+        mean_anomaly : 41.5333333
+      
+       @planet_data.saturn =
+        deferent_speed : 0.03349795
+        epicycle_speed : 0.95214939
+        epicycle_ratio : 0.10483
+        deferent_eccentricity : 0.05318
+        apogee_longitude : 270.76666667
+        mean_longitude : 266.25
+        mean_anomaly : 13.45
+      
+      
+      
+      # Epoch from Evans
+      
+      @epoch = new Date ("January 1, 1900 00:00:00")
+      @epoch_julian = 2415020
+      */
+
       this.planet_data.venus = {
-        deferent_speed: 0.98564734,
+        deferent_speed: 0.9856464,
         epicycle_speed: 0.61652156,
-        epicycle_ratio: 0.72294,
-        deferent_eccentricity: 0.0145,
-        apogee_longitude: 98.1666667,
-        mean_longitude: 279.7,
-        mean_anomaly: 63.383
+        epicycle_ratio: 0.76639,
+        deferent_eccentricity: 0.018056,
+        apogee_longitude: 90.15,
+        mean_longitude: 288.55,
+        mean_anomaly: 23.216667
       };
       this.planet_data.mars = {
-        deferent_speed: 0.52407116,
+        deferent_speed: 0.52406791,
         epicycle_speed: 0.46157618,
-        epicycle_ratio: 0.6563,
-        deferent_eccentricity: 0.10284,
-        apogee_longitude: 148.6166667,
-        mean_longitude: 293.55,
-        mean_anomaly: 346.15
+        epicycle_ratio: 0.68611,
+        deferent_eccentricity: 0.095,
+        apogee_longitude: 133.93333,
+        mean_longitude: 92.2,
+        mean_anomaly: 196.33333
       };
       this.planet_data.jupiter = {
-        deferent_speed: 0.08312944,
+        deferent_speed: 0.08312709,
         epicycle_speed: 0.90251790,
-        epicycle_ratio: 0.1922,
-        deferent_eccentricity: 0.04817,
-        apogee_longitude: 188.9666667,
-        mean_longitude: 238.16666667,
-        mean_anomaly: 41.5333333
+        epicycle_ratio: 0.184167,
+        deferent_eccentricity: 0.049583,
+        apogee_longitude: 172.333,
+        mean_longitude: 324.75,
+        mean_anomaly: 323.78333
       };
       this.planet_data.saturn = {
-        deferent_speed: 0.03349795,
+        deferent_speed: 0.03349673,
         epicycle_speed: 0.95214939,
-        epicycle_ratio: 0.10483,
-        deferent_eccentricity: 0.05318,
-        apogee_longitude: 270.76666667,
-        mean_longitude: 266.25,
-        mean_anomaly: 13.45
+        epicycle_ratio: 0.10361,
+        deferent_eccentricity: 0.0543056,
+        apogee_longitude: 252.11666667,
+        mean_longitude: 184.75,
+        mean_anomaly: 103.78333
       };
-      this.epoch = new Date("January 1, 1900 00:00:00");
-      this.epoch_julian = 2415020;
+      this.epoch = new Date("January 1, 1393 00:00:00");
+      this.epoch_julian = 2229851.5;
       this.reset();
     }
 
@@ -392,8 +453,8 @@
     EquatorieSystem.prototype._calculateDeferentPosition = function() {
       var x, y, _ref;
       if ((_ref = this.state.planet) === 'mars' || _ref === 'venus' || _ref === 'jupiter' || _ref === 'saturn') {
-        x = this.base_radius * this.planet_data[this.state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad(this.state.deferentAngle));
-        y = this.base_radius * this.planet_data[this.state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad(this.state.deferentAngle));
+        x = this.base_to_inch * 32 * this.planet_data[this.state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad(this.state.deferentAngle));
+        y = this.base_to_inch * 32 * this.planet_data[this.state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad(this.state.deferentAngle));
         this.state.deferentPosition = new CoffeeGL.Vec2(x, y);
         return this.state.deferentPosition;
       }

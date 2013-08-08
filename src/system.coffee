@@ -3,8 +3,9 @@ class EquatorieSystem
 
   constructor : () ->
 
-    @base_radius = 6.0        # used with epicycle ratio - Blender Units
-    @epicycle_radius = 6.0  # used with epicycle ratio - Blender Units
+    @base_radius = 6.0              # used with epicycle ratio - Blender Units
+    @base_to_inch = 0.166666666667  # Convert real into inches  
+    @epicycle_radius = 6.0          # used with epicycle ratio - Blender Units
     @epicycle_thickness = 0.333334
     @precession = 0.00003838  # Degrees per day
 
@@ -13,6 +14,8 @@ class EquatorieSystem
     # Data for the Equatorie mathematical model
     # Taken from the Evans book
     # Speed is in degrees per day (modified to be decimal)
+
+    ###
 
     @planet_data.venus =
       deferent_speed : 0.98564734
@@ -50,11 +53,58 @@ class EquatorieSystem
       mean_longitude : 266.25
       mean_anomaly : 13.45
 
+    
+
     # Epoch from Evans
 
     @epoch = new Date ("January 1, 1900 00:00:00")
     @epoch_julian = 2415020
    
+    ###
+
+    # Seb's Data
+
+    @planet_data.venus =
+      deferent_speed : 0.9856464
+      epicycle_speed : 0.61652156
+      epicycle_ratio : 0.76639
+      deferent_eccentricity : 0.018056
+      apogee_longitude : 90.15
+      mean_longitude : 288.55
+      mean_anomaly : 23.216667
+
+    @planet_data.mars =
+      deferent_speed : 0.52406791
+      epicycle_speed : 0.46157618
+      epicycle_ratio : 0.68611
+      deferent_eccentricity : 0.095
+      apogee_longitude : 133.93333
+      mean_longitude : 92.2
+      mean_anomaly : 196.33333
+
+    @planet_data.jupiter =
+      deferent_speed : 0.08312709
+      epicycle_speed : 0.90251790
+      epicycle_ratio : 0.184167
+      deferent_eccentricity : 0.049583
+      apogee_longitude : 172.333
+      mean_longitude : 324.75
+      mean_anomaly : 323.78333
+
+    @planet_data.saturn =
+      deferent_speed : 0.03349673 # CX This - Might be a mistake from Seb in his PDF
+      epicycle_speed : 0.95214939
+      epicycle_ratio : 0.10361
+      deferent_eccentricity : 0.0543056
+      apogee_longitude : 252.11666667
+      mean_longitude : 184.75
+      mean_anomaly : 103.78333
+
+
+    @epoch = new Date ("January 1, 1393 00:00:00")
+    @epoch_julian = 2229851.5
+   
+
     # consistent pieces of information at each step
     # The system records its state as we progress through
     # This means things must be done in order.
@@ -127,8 +177,8 @@ class EquatorieSystem
 
   _calculateDeferentPosition : () ->
     if @state.planet in ['mars','venus','jupiter','saturn']
-      x = @base_radius * @planet_data[@state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad @state.deferentAngle)
-      y = @base_radius * @planet_data[@state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @state.deferentAngle)
+      x = @base_to_inch * 32 * @planet_data[@state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad @state.deferentAngle)
+      y = @base_to_inch * 32 * @planet_data[@state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @state.deferentAngle)
       @state.deferentPosition = new CoffeeGL.Vec2 x,y
       return @state.deferentPosition
     @

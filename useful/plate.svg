@@ -1,15 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Generator: Adobe Illustrator 14.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 43363)  -->
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Basic//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-basic.dtd">
-<svg version="1.1" baseProfile="basic" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px"
-	 y="0px" width="2048px" height="2048px" viewBox="0 0 2048 2048" xml:space="preserve">
-<g id="Layer_2">
-	<image overflow="visible" width="2048" height="2048" xlink:href="brassfeb.jpg"  transform="matrix(1 0 0 1 0 -0.002)">
-	</image>
-</g>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="2048px"
+	 height="2048px" viewBox="0 0 2048 2048" enable-background="new 0 0 2048 2048" xml:space="preserve">
 <g id="Layer_1">
-	<ellipse fill="none" stroke="#000000" stroke-width="4" cx="1024" cy="1024" rx="961.059" ry="1000"/>
-	<ellipse fill="none" stroke="#000000" stroke-width="4" cx="1024" cy="1024" rx="850" ry="884.44"/>
-	<circle stroke="#000000" stroke-width="4" cx="627.61" cy="747.627" r="15.333"/>
+	<g id="Layer_2">
+		
+			<image overflow="visible" enable-background="new    " width="2048" height="2048" xlink:href="brassfeb.jpg"  transform="matrix(1 0 0 1 0 -0.002)">
+		</image>
+	</g>
+	<g id="Layer_1_1_">
+		<ellipse fill="none" stroke="#000000" stroke-width="4" cx="1024" cy="1024" rx="1000" ry="1000"/>
+		<ellipse fill="none" stroke="#000000" stroke-width="4" cx="1024" cy="1024" rx="884.44" ry="884.44"/>
+	</g>
+</g>
+<g id="Layer_2_1_">
+	<circle cx="754.02" cy="743.78" r="12"/>
+	<circle cx="484.04" cy="463.55" r="12"/>
+	<line fill="none" stroke="#000000" x1="484.04" y1="463.55" x2="1024" y2="1024"/>
+	<circle cx="1024" cy="1024" r="12"/>
+	<text transform="matrix(0.7181 -0.696 0.696 0.7181 768.5996 734.7803)" font-family="'Copperplate-Bold'" font-size="36">D</text>
+	<text transform="matrix(0.7181 -0.696 0.696 0.7181 496.04 451.5498)" font-family="'Copperplate-Bold'" font-size="36">E</text>
+	<circle cx="1023.81" cy="950.04" r="12"/>
+	<circle cx="1023.81" cy="875.09" r="12"/>
+	<text transform="matrix(1 0.008 -0.008 1 1039.7021 958.6382)" font-family="'Copperplate-Bold'" font-size="36">D</text>
+	<text transform="matrix(0.999 -0.0447 0.0447 0.999 1041.1992 881.9458)" font-family="'Copperplate-Bold'" font-size="36">E</text>
+	<line fill="none" stroke="#000000" x1="1023.811" y1="875.09" x2="1023.81" y2="1024"/>
+	<circle cx="621.439" cy="969.81" r="12"/>
+	<circle cx="822.72" cy="996.91" r="12"/>
+	<line fill="none" stroke="#000000" x1="621.439" y1="969.81" x2="1023.81" y2="1024"/>
+	<text transform="matrix(0.1036 -0.9946 0.9946 0.1036 834.1123 982.1816)" font-family="'Copperplate-Bold'" font-size="36">D</text>
+	<text transform="matrix(0.1007 -0.9949 0.9949 0.1007 633.4199 953.2368)" font-family="'Copperplate-Bold'" font-size="36">E</text>
+	<circle cx="955.689" cy="1235.69" r="12"/>
+	<circle cx="887.379" cy="1447.38" r="12"/>
+	<line fill="none" stroke="#000000" x1="1023.81" y1="1024" x2="887.379" y2="1447.38"/>
+	<text transform="matrix(0.999 -0.0447 0.0447 0.999 899.3799 1468.9463)" font-family="'Copperplate-Bold'" font-size="36">E</text>
+	<text transform="matrix(1 0.008 -0.008 1 967.689 1255.6387)" font-family="'Copperplate-Bold'" font-size="36">D</text>
 </g>
 </svg>

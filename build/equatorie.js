@@ -46,6 +46,20 @@
       this.system = new EquatorieSystem();
       this.ready = false;
       this.loaded = new CoffeeGL.Signal();
+      this.system._calculateDate(new Date("January 1, 1393 00:00:00"));
+      this.system._setPlanet("mars");
+      this.system._calculateDeferentAngle();
+      console.log(this.system._calculateDeferentPosition());
+      this.system._setPlanet("venus");
+      this.system._calculateDeferentAngle();
+      console.log(this.system._calculateDeferentPosition());
+      this.system._setPlanet("jupiter");
+      this.system._calculateDeferentAngle();
+      console.log(this.system._calculateDeferentPosition());
+      this.system._setPlanet("saturn");
+      this.system._calculateDeferentAngle();
+      console.log(this.system._calculateDeferentPosition());
+      this.system.reset();
       f = function() {
         var q;
         console.log("Loaded Assets");

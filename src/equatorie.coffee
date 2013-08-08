@@ -43,7 +43,28 @@ class Equatorie
     @ready = false
 
     @loaded = new CoffeeGL.Signal()
+
+    # test test
     
+    @system._calculateDate(new Date ("January 1, 1393 00:00:00") )
+    @system._setPlanet("mars")   
+    @system._calculateDeferentAngle()
+    console.log @system._calculateDeferentPosition()
+
+    @system._setPlanet("venus")   
+    @system._calculateDeferentAngle()
+    console.log @system._calculateDeferentPosition()
+
+    @system._setPlanet("jupiter")   
+    @system._calculateDeferentAngle()
+    console.log @system._calculateDeferentPosition()
+
+    @system._setPlanet("saturn")   
+    @system._calculateDeferentAngle()
+    console.log @system._calculateDeferentPosition()
+    
+    @system.reset()
+
     # Function called when everything is loaded
     f = () =>
 
