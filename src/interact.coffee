@@ -21,6 +21,10 @@ class EquatorieState
   update : (dt) ->
     @func(dt)
 
+  # called when activated
+  activate : () ->
+
+
 
 class EquatorieInteract
   constructor : (@system, @physics, @camera, @white_start, @white_end, @black_start, @black_end, @epicycle, @pointer, @marker, @string_height ) ->
@@ -72,9 +76,9 @@ class EquatorieInteract
   
   _stateSetPlanetDate : (planet, date) =>
     @system.solveForPlanetDate(planet,date)
+    @
 
   _stateCalculateMeanMotus : (dt) =>
-
     @
 
   _stateMoveBlackThread : (dt) =>
@@ -98,6 +102,7 @@ class EquatorieInteract
 
     @physics.postMessage {cmd : "black_start_move", data: @black_start.matrix.getPos() }
     @physics.postMessage {cmd : "black_end_move", data: @black_end.matrix.getPos() }
+
     @
 
   _stateMoveWhiteThread : (dt) =>
@@ -138,39 +143,90 @@ class EquatorieInteract
       dr = @system.state.deferentAngle
       e = @system.state.epicyclePrePosition
       
-
       current_state.pos_interp = new CoffeeGL.Interpolation @epicycle.matrix.getPos(), new CoffeeGL.Vec3 e.x,0,e.y
+      current_state.rot_interp = new CoffeeGL.Interpolation 0, -90-dr
 
     @epicycle.matrix.identity()
     @epicycle.matrix.translate current_state.pos_interp.set dt
-    #@epicycle.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad 90 #sCoffeeGL.degToRad(90-dr)
+    @epicycle.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad current_state.rot_interp.set dt
     
-   
+
+    @marker.matrix.identity()
+    @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.epicyclePrePosition.x,0.6,@system.state.epicyclePrePosition.y))
         
   _stateRotateEpicycle : (dt) =>
 
-     # Now rotate the epicycle around the deferent till it reaches the white line      
-    #tmatrix = new CoffeeGL.Matrix4()
-      
-    #tmatrix.translate new CoffeeGL.Vec3 d.x, 0, d.y
-    #tmatrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(mr)
-      
-    #tmatrix.mult @epicycle.matrix
-    #@epicycle.matrix.copyFrom(tmatrix)
+    # Now rotate the epicycle around the deferent till it reaches the white line      
+    current_state = @stack[@stack_idx]
+
+    if not current_state.rot_interp?
+      current_state.rot_interp = new CoffeeGL.Interpolation 0, @system.state.epicycleRotation
+
+    #@epicycle.matrix.identity()
+    v1 = @system.state.deferentPosition
+    v2 = CoffeeGL.Vec2.sub @system.state.epicyclePrePosition, v1
+    
+    
+    tmatrix = new CoffeeGL.Matrix4()
+    fmatrix = new CoffeeGL.Matrix4()
+
+    tmatrix.translate new CoffeeGL.Vec3(v2.x,0,v2.y)
+    tmatrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad -90-@system.state.deferentAngle
+
+    fmatrix.translate new CoffeeGL.Vec3(v1.x,0,v1.y)
+    fmatrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad current_state.rot_interp.set dt
+
+    @epicycle.matrix.copyFrom fmatrix.mult tmatrix 
+
+    cp = @system.state.epicyclePosition
+    @marker.matrix.identity()
+    @marker.matrix.translate(new CoffeeGL.Vec3(cp.x,0.6,cp.y))
+  
+    @
+
+    
+  _stateRotateMeanAux : (dt) =>
+    current_state = @stack[@stack_idx]
+
+    if not current_state.rot_interp?
+      current_state.rot_interp = new CoffeeGL.Interpolation 0, @system.state.meanAux
+
+    @pointer.matrix.identity()
+    @pointer.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad current_state.rot_interp.set dt
+
 
   _stateRotateLabel : (dt) =>
-    pangle = @system.state.pointerAngle
+
+    current_state = @stack[@stack_idx]
+
+    if not current_state.rot_interp?
+      current_state.rot_interp = new CoffeeGL.Interpolation 0, @system.state.pointerAngle
+
+
     @pointer.matrix.identity()
-    @pointer.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad(pangle)
+    @pointer.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad @system.state.meanAux + current_state.rot_interp.set dt
+
+    console.log current_state.rot_interp.set dt
 
     cp = @system.state.pointerPoint
-
     @marker.matrix.identity()
     @marker.matrix.translate(new CoffeeGL.Vec3(cp.x,0.6,cp.y))
 
+    @
+
 
   _stateMoveBlackStringFinal : (dt) =>
+    current_state = @stack[@stack_idx]
 
+    if not current_state.end_interp?
+      mv = new CoffeeGL.Vec3 @system.state.pointerPoint.x, @string_height, @system.state.pointerPoint.y
+      current_state.end_interp = new CoffeeGL.Interpolation @black_end.matrix.getPos(), mv
+
+    @black_end.matrix.setPos current_state.end_interp.set dt
+
+    @physics.postMessage {cmd : "black_end_move", data: @black_end.matrix.getPos() }
+
+    @
 
   addStates : (planet, date) ->
     if planet in ['mars','venus','jupiter','saturn']
@@ -180,7 +236,10 @@ class EquatorieInteract
       @stack.push new EquatorieState "Move Black Thread", @_stateMoveBlackThread
       @stack.push new EquatorieState "Move White Thread", @_stateMoveWhiteThread
       @stack.push new EquatorieState "Move Epicycle", @_stateMoveEpicycle
+      @stack.push new EquatorieState "Rotate Epicycle", @_stateRotateEpicycle
+      @stack.push new EquatorieState "Rotate to the Mean Aux", @_stateRotateMeanAux
       @stack.push new EquatorieState "Rotate Label", @_stateRotateLabel
+      @stack.push new EquatorieState "Move Black Thread", @_stateMoveBlackStringFinal
 
   # reset all the things
 
@@ -188,20 +247,25 @@ class EquatorieInteract
     # Clear the stack
     @stack = []
     @stack_idx = 0
-
+    @system.reset()
+    @marker.matrix.identity()
+    @epicycle.matrix.identity()
+    @pointer.matrix.identity()
 
 
   # Called when the button is pressed in dat.gui. Solve for the chosen planet
   solveForPlanet : (planet, date) ->
 
     # Clear the stack
-    @stack = []
-    @stack_idx = 0
-
+    @reset()
     @addStates(planet,date)
 
-    for state in @stack
-      state.update(1.0)
+    for s in [0..@stack.length-1]
+      @stack_idx = s
+      state = @stack[s]
+      state.activate()
+      state.update 1.0
+
 
   onMouseDown : (event) ->
     console.log event
@@ -322,6 +386,7 @@ class EquatorieInteract
     )
 
     controller = @datgui.add(@, "stepForward")
+    controller = @datgui.add(@, "reset")
 
     # Shader Controls
     controller = @datgui.add(@pointer,'uAlphaX',0,1)
@@ -349,7 +414,8 @@ class EquatorieInteract
         @stack[@stack_idx].update(1.0)
         @time.dt = 0
         @stack_idx +=1
-        
+    
+    @stack[@stack_idx].activate()
 
   onMouseOver : (event) ->    
     @mp.x = event.mouseX

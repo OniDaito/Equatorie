@@ -127,7 +127,8 @@
         epicyclePosition: 0,
         epicyclePrePosition: 0,
         basePosition: 0,
-        truePlace: 0
+        truePlace: 0,
+        meanAux: 0
       };
     };
 
@@ -227,7 +228,7 @@
     };
 
     EquatorieSystem.prototype._calculateEpicyclePosition = function() {
-      var dangle, deferent_position, equant_position, f0, f1, fangle, l, passed, v;
+      var cx, cy, dangle, deferent_position, epipos, equant_position, f0, f1, fangle, l, passed, tm, v;
       passed = this.state.passed;
       dangle = this.state.deferentAngle;
       deferent_position = this.state.deferentPosition;
@@ -242,44 +243,35 @@
         fangle = f0 - f1;
       }
       this.state.epicycleRotation = fangle;
-      return [deferent_position, this.state.basePosition, v, dangle, fangle];
+      tm = new CoffeeGL.Matrix3();
+      tm.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(fangle));
+      cx = this.state.epicyclePrePosition.x - this.state.deferentPosition.x;
+      cy = this.state.epicyclePrePosition.y - this.state.deferentPosition.y;
+      epipos = new CoffeeGL.Vec3(cx, 0, cy);
+      tm.multVec(epipos);
+      epipos = new CoffeeGL.Vec2(epipos.x, epipos.z);
+      epipos.add(this.state.deferentPosition);
+      this.state.epicyclePosition = epipos;
+      return epipos;
     };
 
     EquatorieSystem.prototype._calculatePointerAngle = function() {
-      var aa, angle, ca, dv, epipos, pa, passed, pt0, pt1, sa;
+      var a, angle, b, c, passed;
       passed = this.state.passed;
-      angle = this.planet_data[this.state.planet].mean_anomaly + (this.planet_data[this.state.planet].epicycle_speed * passed);
-      ca = Math.cos(CoffeeGL.degToRad(-this.state.epicycleRotation));
-      sa = Math.sin(CoffeeGL.degToRad(-this.state.epicycleRotation));
-      epipos = new CoffeeGL.Vec2(this.state.basePosition.x * ca - this.state.basePosition.y * sa, this.state.basePosition.x * sa + this.state.basePosition.y * ca);
-      epipos.add(this.state.deferentPosition);
-      this.state.epicyclePosition = epipos;
-      pt0 = CoffeeGL.Vec2.sub(this.state.meanMotusPosition, this.state.deferentPosition);
-      pt1 = CoffeeGL.Vec2.sub(epipos, this.state.deferentPosition);
-      aa = CoffeeGL.radToDeg(Math.acos(CoffeeGL.Vec2.dot(CoffeeGL.Vec2.normalize(pt0), CoffeeGL.Vec2.normalize(pt1))));
-      dv = CoffeeGL.Vec3.cross(new CoffeeGL.Vec3(0, 1, 0), new CoffeeGL.Vec3(pt0.x, 0, pt0.y));
-      if (dv.x > 0) {
-        aa *= -1;
-      }
-      pa = 90 - (aa / 2) + angle;
-      this.state.pointerAngle = pa;
-      return pa;
+      angle = (this.planet_data[this.state.planet].mean_anomaly + (this.planet_data[this.state.planet].epicycle_speed * passed)) % 360 * -1;
+      a = this.state.equantPosition.dist(this.state.epicyclePosition);
+      b = this.state.deferentPosition.dist(this.state.epicyclePosition);
+      c = this.state.equantPosition.dist(this.state.deferentPosition);
+      this.state.meanAux = 90 - CoffeeGL.radToDeg(Math.acos((a * a + b * b - c * c) / (2 * a * b)));
+      this.state.pointerAngle = -angle;
+      return angle;
     };
 
     EquatorieSystem.prototype._calculatePointerPoint = function() {
-      var angle, ca, deferent_position, dir, epipos, equant_position, fangle, motus_angle, motus_position, perp, sa;
-      angle = this.state.pointerAngle;
-      deferent_position = this.state.deferentPosition;
-      motus_angle = this.state.meanMotus;
-      motus_position = this.state.meanMotusPosition;
-      equant_position = this.state.equantPosition;
-      dir = motus_position.copy();
-      dir.normalize();
-      fangle = this.state.epicycleRotation;
-      ca = Math.cos(CoffeeGL.degToRad(-fangle));
-      sa = Math.sin(CoffeeGL.degToRad(-fangle));
+      var angle, ca, dir, epipos, perp, sa;
+      angle = this.state.pointerAngle + this.state.meanAux;
       epipos = this.state.epicyclePosition;
-      dir = CoffeeGL.Vec2.normalize(CoffeeGL.Vec2.sub(epipos, deferent_position));
+      dir = CoffeeGL.Vec2.normalize(CoffeeGL.Vec2.sub(this.state.epicyclePosition, this.state.deferentPosition));
       perp = dir.copy();
       perp.x = -dir.y;
       perp.y = dir.x;
@@ -287,7 +279,7 @@
       ca = Math.cos(CoffeeGL.degToRad(-angle));
       sa = Math.sin(CoffeeGL.degToRad(-angle));
       perp = new CoffeeGL.Vec2(perp.x * ca - perp.y * sa, perp.x * sa + perp.y * ca);
-      perp.add(epipos);
+      perp.add(this.state.epicyclePosition);
       this.state.pointerPoint = perp;
       return perp;
     };

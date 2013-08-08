@@ -30,6 +30,8 @@
       return this.func(dt);
     };
 
+    EquatorieState.prototype.activate = function() {};
+
     return EquatorieState;
 
   })();
@@ -49,6 +51,7 @@
       this.string_height = string_height;
       this._stateMoveBlackStringFinal = __bind(this._stateMoveBlackStringFinal, this);
       this._stateRotateLabel = __bind(this._stateRotateLabel, this);
+      this._stateRotateMeanAux = __bind(this._stateRotateMeanAux, this);
       this._stateRotateEpicycle = __bind(this._stateRotateEpicycle, this);
       this._stateMoveEpicycle = __bind(this._stateMoveEpicycle, this);
       this._stateMoveWhiteThread = __bind(this._stateMoveWhiteThread, this);
@@ -90,7 +93,8 @@
     };
 
     EquatorieInteract.prototype._stateSetPlanetDate = function(planet, date) {
-      return this.system.solveForPlanetDate(planet, date);
+      this.system.solveForPlanetDate(planet, date);
+      return this;
     };
 
     EquatorieInteract.prototype._stateCalculateMeanMotus = function(dt) {
@@ -160,24 +164,75 @@
         dr = this.system.state.deferentAngle;
         e = this.system.state.epicyclePrePosition;
         current_state.pos_interp = new CoffeeGL.Interpolation(this.epicycle.matrix.getPos(), new CoffeeGL.Vec3(e.x, 0, e.y));
+        current_state.rot_interp = new CoffeeGL.Interpolation(0, -90 - dr);
       }
       this.epicycle.matrix.identity();
-      return this.epicycle.matrix.translate(current_state.pos_interp.set(dt));
+      this.epicycle.matrix.translate(current_state.pos_interp.set(dt));
+      this.epicycle.matrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(current_state.rot_interp.set(dt)));
+      this.marker.matrix.identity();
+      return this.marker.matrix.translate(new CoffeeGL.Vec3(this.system.state.epicyclePrePosition.x, 0.6, this.system.state.epicyclePrePosition.y));
     };
 
-    EquatorieInteract.prototype._stateRotateEpicycle = function(dt) {};
+    EquatorieInteract.prototype._stateRotateEpicycle = function(dt) {
+      var cp, current_state, fmatrix, tmatrix, v1, v2;
+      current_state = this.stack[this.stack_idx];
+      if (current_state.rot_interp == null) {
+        current_state.rot_interp = new CoffeeGL.Interpolation(0, this.system.state.epicycleRotation);
+      }
+      v1 = this.system.state.deferentPosition;
+      v2 = CoffeeGL.Vec2.sub(this.system.state.epicyclePrePosition, v1);
+      tmatrix = new CoffeeGL.Matrix4();
+      fmatrix = new CoffeeGL.Matrix4();
+      tmatrix.translate(new CoffeeGL.Vec3(v2.x, 0, v2.y));
+      tmatrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(-90 - this.system.state.deferentAngle));
+      fmatrix.translate(new CoffeeGL.Vec3(v1.x, 0, v1.y));
+      fmatrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(current_state.rot_interp.set(dt)));
+      this.epicycle.matrix.copyFrom(fmatrix.mult(tmatrix));
+      cp = this.system.state.epicyclePosition;
+      this.marker.matrix.identity();
+      this.marker.matrix.translate(new CoffeeGL.Vec3(cp.x, 0.6, cp.y));
+      return this;
+    };
+
+    EquatorieInteract.prototype._stateRotateMeanAux = function(dt) {
+      var current_state;
+      current_state = this.stack[this.stack_idx];
+      if (current_state.rot_interp == null) {
+        current_state.rot_interp = new CoffeeGL.Interpolation(0, this.system.state.meanAux);
+      }
+      this.pointer.matrix.identity();
+      return this.pointer.matrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(current_state.rot_interp.set(dt)));
+    };
 
     EquatorieInteract.prototype._stateRotateLabel = function(dt) {
-      var cp, pangle;
-      pangle = this.system.state.pointerAngle;
+      var cp, current_state;
+      current_state = this.stack[this.stack_idx];
+      if (current_state.rot_interp == null) {
+        current_state.rot_interp = new CoffeeGL.Interpolation(0, this.system.state.pointerAngle);
+      }
       this.pointer.matrix.identity();
-      this.pointer.matrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(pangle));
+      this.pointer.matrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(this.system.state.meanAux + current_state.rot_interp.set(dt)));
+      console.log(current_state.rot_interp.set(dt));
       cp = this.system.state.pointerPoint;
       this.marker.matrix.identity();
-      return this.marker.matrix.translate(new CoffeeGL.Vec3(cp.x, 0.6, cp.y));
+      this.marker.matrix.translate(new CoffeeGL.Vec3(cp.x, 0.6, cp.y));
+      return this;
     };
 
-    EquatorieInteract.prototype._stateMoveBlackStringFinal = function(dt) {};
+    EquatorieInteract.prototype._stateMoveBlackStringFinal = function(dt) {
+      var current_state, mv;
+      current_state = this.stack[this.stack_idx];
+      if (current_state.end_interp == null) {
+        mv = new CoffeeGL.Vec3(this.system.state.pointerPoint.x, this.string_height, this.system.state.pointerPoint.y);
+        current_state.end_interp = new CoffeeGL.Interpolation(this.black_end.matrix.getPos(), mv);
+      }
+      this.black_end.matrix.setPos(current_state.end_interp.set(dt));
+      this.physics.postMessage({
+        cmd: "black_end_move",
+        data: this.black_end.matrix.getPos()
+      });
+      return this;
+    };
 
     EquatorieInteract.prototype.addStates = function(planet, date) {
       var _this = this;
@@ -192,24 +247,31 @@
         this.stack.push(new EquatorieState("Move Black Thread", this._stateMoveBlackThread));
         this.stack.push(new EquatorieState("Move White Thread", this._stateMoveWhiteThread));
         this.stack.push(new EquatorieState("Move Epicycle", this._stateMoveEpicycle));
-        return this.stack.push(new EquatorieState("Rotate Label", this._stateRotateLabel));
+        this.stack.push(new EquatorieState("Rotate Epicycle", this._stateRotateEpicycle));
+        this.stack.push(new EquatorieState("Rotate to the Mean Aux", this._stateRotateMeanAux));
+        this.stack.push(new EquatorieState("Rotate Label", this._stateRotateLabel));
+        return this.stack.push(new EquatorieState("Move Black Thread", this._stateMoveBlackStringFinal));
       }
     };
 
     EquatorieInteract.prototype.reset = function() {
       this.stack = [];
-      return this.stack_idx = 0;
+      this.stack_idx = 0;
+      this.system.reset();
+      this.marker.matrix.identity();
+      this.epicycle.matrix.identity();
+      return this.pointer.matrix.identity();
     };
 
     EquatorieInteract.prototype.solveForPlanet = function(planet, date) {
-      var state, _i, _len, _ref, _results;
-      this.stack = [];
-      this.stack_idx = 0;
+      var s, state, _i, _ref, _results;
+      this.reset();
       this.addStates(planet, date);
-      _ref = this.stack;
       _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        state = _ref[_i];
+      for (s = _i = 0, _ref = this.stack.length - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; s = 0 <= _ref ? ++_i : --_i) {
+        this.stack_idx = s;
+        state = this.stack[s];
+        state.activate();
         _results.push(state.update(1.0));
       }
       return _results;
@@ -320,6 +382,7 @@
         return _this.solveForCurrentDatePlanet();
       });
       controller = this.datgui.add(this, "stepForward");
+      controller = this.datgui.add(this, "reset");
       controller = this.datgui.add(this.pointer, 'uAlphaX', 0, 1);
       controller = this.datgui.add(this.pointer, 'uAlphaY', 0, 1);
       controller = this.datgui.add(this.epicycle, 'uAlphaX', 0, 1);
@@ -337,14 +400,15 @@
       this.time.start = new Date().getTime();
       if (this.stack.length === 0) {
         this.addStates(this.chosen_planet, new Date());
-        return this.stack_idx = 0;
+        this.stack_idx = 0;
       } else {
         if (this.stack_idx + 1 < this.stack.length) {
           this.stack[this.stack_idx].update(1.0);
           this.time.dt = 0;
-          return this.stack_idx += 1;
+          this.stack_idx += 1;
         }
       }
+      return this.stack[this.stack_idx].activate();
     };
 
     EquatorieInteract.prototype.onMouseOver = function(event) {

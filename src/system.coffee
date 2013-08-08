@@ -104,7 +104,6 @@ class EquatorieSystem
     @epoch = new Date ("January 1, 1393 00:00:00")
     @epoch_julian = 2229851.5
    
-
     # consistent pieces of information at each step
     # The system records its state as we progress through
     # This means things must be done in order.
@@ -146,6 +145,7 @@ class EquatorieSystem
       epicyclePrePosition : 0
       basePosition : 0
       truePlace : 0
+      meanAux : 0
 
   _setPlanet : (planet) ->
     @state.planet = planet
@@ -275,7 +275,7 @@ class EquatorieSystem
 
     # Line equation - p = s + tD
     v = @state.parallelPosition
-  
+
     if v.x != 0 and v.y != 0
 
       f0 = CoffeeGL.radToDeg Math.atan2 @state.basePosition.y - deferent_position.y, @state.basePosition.x - deferent_position.x
@@ -284,74 +284,67 @@ class EquatorieSystem
 
     @state.epicycleRotation = fangle
 
-    [deferent_position, @state.basePosition, v, dangle, fangle ]
+    tm = new CoffeeGL.Matrix3()
+    tm.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad fangle
+
+    cx = @state.epicyclePrePosition.x - @state.deferentPosition.x
+    cy = @state.epicyclePrePosition.y - @state.deferentPosition.y
+
+    epipos = new CoffeeGL.Vec3 cx, 0, cy
+    tm.multVec epipos
+
+    epipos = new CoffeeGL.Vec2 epipos.x, epipos.z
+    epipos.add @state.deferentPosition
+
+    @state.epicyclePosition = epipos
+
+    epipos
 
   # Turned anti-clockwise around the epicycle
   # We count this as the angle from the white string, not the zero point
   _calculatePointerAngle : () ->
     passed = @state.passed
-    angle = @planet_data[@state.planet].mean_anomaly + (@planet_data[@state.planet].epicycle_speed * passed)
-      
-    ca = Math.cos(CoffeeGL.degToRad(-@state.epicycleRotation))
-    sa = Math.sin(CoffeeGL.degToRad(-@state.epicycleRotation))
+    angle = (@planet_data[@state.planet].mean_anomaly + (@planet_data[@state.planet].epicycle_speed * passed)) % 360 * -1
+    
+    # Use the law of cosines to derive the mean aux
 
-    epipos = new CoffeeGL.Vec2(@state.basePosition.x * ca - @state.basePosition.y * sa, 
-        @state.basePosition.x * sa + @state.basePosition.y * ca)
-    epipos.add @state.deferentPosition
-
-    @state.epicyclePosition = epipos
-
-    pt0 = CoffeeGL.Vec2.sub(@state.meanMotusPosition, @state.deferentPosition)
-    pt1 = CoffeeGL.Vec2.sub(epipos, @state.deferentPosition)
-
-    aa = CoffeeGL.radToDeg( Math.acos( CoffeeGL.Vec2.dot( CoffeeGL.Vec2.normalize( pt0), 
-      CoffeeGL.Vec2.normalize(pt1))))
-
-    dv = CoffeeGL.Vec3.cross(new CoffeeGL.Vec3(0,1,0), new CoffeeGL.Vec3(pt0.x,0,pt0.y) )
-
-    if dv.x > 0
-      aa *= -1
+    a = @state.equantPosition.dist @state.epicyclePosition
+    b = @state.deferentPosition.dist @state.epicyclePosition
+    c = @state.equantPosition.dist @state.deferentPosition
 
 
-    pa = 90 - (aa/2) + angle
-    @state.pointerAngle = pa
-    pa
+    @state.meanAux = 90 - CoffeeGL.radToDeg Math.acos( (a*a + b*b - c*c) /  (2*a*b) )
+
+  
+    @state.pointerAngle = -angle
+    angle
   
 
   # in Global co-ordinates
   _calculatePointerPoint : () ->
-    angle = @state.pointerAngle
-    deferent_position = @state.deferentPosition
-
-    motus_angle = @state.meanMotus
-    motus_position = @state.meanMotusPosition
-
-    equant_position = @state.equantPosition
-    dir = motus_position.copy()
-    dir.normalize()
-
-    fangle = @state.epicycleRotation
-    ca = Math.cos(CoffeeGL.degToRad(-fangle))
-    sa = Math.sin(CoffeeGL.degToRad(-fangle))
+    angle = @state.pointerAngle + @state.meanAux
 
     epipos = @state.epicyclePosition 
 
     # At this point perp is the point underneath the epicycle
-    dir = CoffeeGL.Vec2.normalize(CoffeeGL.Vec2.sub(epipos,deferent_position))
+    dir = CoffeeGL.Vec2.normalize CoffeeGL.Vec2.sub @state.epicyclePosition,@state.deferentPosition
     
     # Move left down the limb
     perp = dir.copy()
     perp.x = -dir.y
     perp.y = dir.x
 
+  
     perp.multScalar (@base_radius * @planet_data[@state.planet].epicycle_ratio )
 
+    
     ca = Math.cos (CoffeeGL.degToRad(-angle))
     sa = Math.sin (CoffeeGL.degToRad(-angle))
 
     perp = new CoffeeGL.Vec2(perp.x * ca - perp.y * sa, perp.x * sa + perp.y * ca)
-
-    perp.add epipos
+     
+    perp.add @state.epicyclePosition
+  
 
     @state.pointerPoint = perp
     perp 
