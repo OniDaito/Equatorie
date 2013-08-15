@@ -41,22 +41,27 @@ _loadPicking = (obj, c) =>
     c.test()
 
 _loadEpicycleNormal = (obj, c) =>
-  obj.epicycle_normal = new CoffeeGL.Texture("../models/epicycle_NRM.png",{unit : 1}, () => 
+  obj.epicycle_normal = new CoffeeGL.Texture("../models/epicycle_NRM.webp",{unit : 1}, () => 
     c.test()
   )
 
 _loadPlateNormal = (obj, c) =>
-  obj.plate_normal = new CoffeeGL.Texture("../models/plate_NRM.png",{unit : 1}, () => 
+  obj.plate_normal = new CoffeeGL.Texture("../models/plate_NRM.webp",{unit : 1}, () => 
     c.test()
   )
 
 _loadRimNormal = (obj, c) =>
-  obj.rim_normal = new CoffeeGL.Texture("../models/ring_NRM.png",{unit : 1}, () => 
+  obj.rim_normal = new CoffeeGL.Texture("../models/ring_NRM.webp",{unit : 1}, () => 
     c.test()
   )
 
 _loadPointerNormal = (obj, c) =>
-  obj.pointer_normal = new CoffeeGL.Texture("../models/label_NRM.png",{unit : 1}, () => 
+  obj.pointer_normal = new CoffeeGL.Texture("../models/label_NRM.webp",{unit : 1}, () => 
+    c.test()
+  )
+
+_loadBaseNormal = (obj, c) =>
+  obj.base_normal = new CoffeeGL.Texture("../models/base_texture_NRM.webp",{unit : 1}, () => 
     c.test()
   )
 
@@ -81,8 +86,9 @@ loadAssets = (obj, signal) ->
   _loadPlateNormal obj, counter
   _loadRimNormal obj, counter
   _loadPointerNormal obj, counter
+  _loadBaseNormal obj, counter
   
-  counter.count = 9
+  counter.count = 10
   counter.signal = signal
 
   @

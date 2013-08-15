@@ -141,6 +141,8 @@ class EquatorieInteract
       c = @system.state.basePosition
       v = @system.state.parallelPosition
       dr = @system.state.deferentAngle
+      if @chosen_planet == "mercury"
+        dr = @system.state.mercuryDeferentAngle
       e = @system.state.epicyclePrePosition
       
       current_state.pos_interp = new CoffeeGL.Interpolation @epicycle.matrix.getPos(), new CoffeeGL.Vec3 e.x,0,e.y
@@ -152,8 +154,14 @@ class EquatorieInteract
     
 
     @marker.matrix.identity()
-    @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.epicyclePrePosition.x,0.6,@system.state.epicyclePrePosition.y))
-        
+    #@marker.matrix.translate(new CoffeeGL.Vec3(@system.state.epicyclePrePosition.x,0.6,@system.state.epicyclePrePosition.y))
+    
+    if @chosen_planet == "mercury"
+      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.mercuryDeferentPosition.x,0.0,@system.state.deferentPosition.y))
+    else if @chosen_planet in ["mars","venus","jupiter","saturn"]
+      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.deferentPosition.x,0.0,@system.state.deferentPosition.y))
+
+
   _stateRotateEpicycle : (dt) =>
 
     # Now rotate the epicycle around the deferent till it reaches the white line      
@@ -170,8 +178,13 @@ class EquatorieInteract
     tmatrix = new CoffeeGL.Matrix4()
     fmatrix = new CoffeeGL.Matrix4()
 
+    deferentAngle = @system.state.deferentAngle
+    if @chosen_planet == "mercury"
+      deferentAngle = @system.state.mercuryDeferentAngle
+ 
+      
     tmatrix.translate new CoffeeGL.Vec3(v2.x,0,v2.y)
-    tmatrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad -90-@system.state.deferentAngle
+    tmatrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad -90-deferentAngle
 
     fmatrix.translate new CoffeeGL.Vec3(v1.x,0,v1.y)
     fmatrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad current_state.rot_interp.set dt
@@ -206,7 +219,7 @@ class EquatorieInteract
     @pointer.matrix.identity()
     @pointer.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad @system.state.meanAux + current_state.rot_interp.set dt
 
-    console.log current_state.rot_interp.set dt
+    #console.log current_state.rot_interp.set dt
 
     cp = @system.state.pointerPoint
     @marker.matrix.identity()
@@ -229,7 +242,7 @@ class EquatorieInteract
     @
 
   addStates : (planet, date) ->
-    if planet in ['mars','venus','jupiter','saturn']
+    if planet in ['mars','venus','jupiter','saturn','mercury']
       @stack = []
       @stack.push new EquatorieState "Select Date and Planet", () => do (planet,date) => @_stateSetPlanetDate(planet,date)
       @stack.push new EquatorieState "Calculate Mean Motus", @_stateCalculateMeanMotus
@@ -375,7 +388,7 @@ class EquatorieInteract
     @datgui =new dat.GUI()
     @datgui.remember(@)
     
-    planets = ["mars","venus","jupiter","saturn"]
+    planets = ["mars","venus","jupiter","saturn","mercury"]
     @chosen_planet = "mars"
 
     controller = @datgui.add(@,'chosen_planet',planets)

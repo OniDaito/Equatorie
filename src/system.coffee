@@ -7,8 +7,8 @@ class EquatorieSystem
     @base_to_inch = 0.166666666667  # Convert real into inches  
     @epicycle_radius = 6.0          # used with epicycle ratio - Blender Units
     @epicycle_thickness = 0.333334
-    @precession = 0.00003838  # Degrees per day
-
+    @precession = 0.0 #0.00003838  # Degrees per day # ignored using Sebs values I think
+ 
     @planet_data = {}
 
     # Data for the Equatorie mathematical model
@@ -100,6 +100,15 @@ class EquatorieSystem
       mean_longitude : 184.75
       mean_anomaly : 103.78333
 
+    @planet_data.mercury =
+      deferent_speed : 0.9856464
+      epicycle_speed : 3.10670237
+      epicycle_ratio : 0.36722
+      deferent_eccentricity : 0.05056
+      apogee_longitude : 209.7666666
+      mean_longitude : 288.55
+      mean_anomaly : 259.78333
+
 
     @epoch = new Date ("January 1, 1393 00:00:00")
     @epoch_julian = 2229851.5
@@ -119,9 +128,9 @@ class EquatorieSystem
     @_setPlanet(planet)   
     @_calculateDate(date)
     @_calculateDeferentAngle()
+    @_calculateMeanMotus()
     @_calculateDeferentPosition()
     @_calculateEquantPosition()
-    @_calculateMeanMotus()
     @_calculateParallel()
     @_calculateEpicyclePosition()
     @_calculatePointerAngle()
@@ -134,6 +143,7 @@ class EquatorieSystem
       meanMotusPosition : 0
       deferentAngle : 0
       deferentPosition : 0
+      mercuryDeferentAngle : 0
       passed : 0
       planet : ''
       date : 0
@@ -146,6 +156,7 @@ class EquatorieSystem
       basePosition : 0
       truePlace : 0
       meanAux : 0
+      mercuryDeferentPosition: 0
 
   _setPlanet : (planet) ->
     @state.planet = planet
@@ -169,26 +180,66 @@ class EquatorieSystem
 
   
   _calculateDeferentAngle : () ->
-    if @state.planet in ['mars','venus','jupiter','saturn']
+    if @state.planet in ['mars','venus','jupiter','saturn','mercury']
       angle = -@planet_data[@state.planet].apogee_longitude - ( @precession * @state.date )
       @state.deferentAngle = angle
       return angle
+  
     @
 
   _calculateDeferentPosition : () ->
     if @state.planet in ['mars','venus','jupiter','saturn']
-      x = @base_to_inch * 32 * @planet_data[@state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad @state.deferentAngle)
-      y = @base_to_inch * 32 * @planet_data[@state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @state.deferentAngle)
+      x = @base_to_inch * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad @state.deferentAngle)
+      y = @base_to_inch * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @state.deferentAngle)
       @state.deferentPosition = new CoffeeGL.Vec2 x,y
       return @state.deferentPosition
+    else if @state.planet == "mercury"
+      # We need to makre sure we have the mean Motus at this point - it moves clockwise by the amount of the mean motus
+      # We also only have 180 holes in this model so we need to restrain to 2 degrees of accuracy
+      # Not sure where the angle is counted from. Going for the furthest away point
+      x = @base_to_inch * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad @state.deferentAngle)
+      y = @base_to_inch * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @state.deferentAngle)
+      @state.deferentPosition = new CoffeeGL.Vec2 x,y
+      
+  
+      meanCentre = @state.deferentAngle + (@state.meanMotus * -1)
+
+      l = @state.deferentPosition.length()
+      x = Math.cos CoffeeGL.degToRad meanCentre
+      y = Math.sin CoffeeGL.degToRad meanCentre
+
+      offset = new CoffeeGL.Vec2 x,y
+      offset.multScalar(l)
+
+      @state.mercuryDeferentPosition =  @state.deferentPosition
+      @state.mercuryDeferentPosition.multScalar(2)
+      @state.mercuryDeferentPosition.add offset
+    
+      # We need to re-adjust the deferent angle as this is used elsewhere in the code from now on
+
+      md = CoffeeGL.Vec2.normalize @state.mercuryDeferentPosition
+      xa = new CoffeeGL.Vec2 1,0
+
+      da = CoffeeGL.radToDeg Math.acos md.dot xa
+      if da < 0
+        da = 360 + da
+
+      @state.mercuryDeferentAngle = da
+
+      return @state.mercuryDeferentPosition
+
     @
 
   _calculateEquantPosition : () ->
     if @state.planet in ['mars','venus','jupiter','saturn']
       @state.equantPosition = new CoffeeGL.Vec2 @state.deferentPosition.x*2, @state.deferentPosition.y*2
       return @state.equantPosition
- 
-  
+    else if @state.planet == "mercury"
+      x = @base_to_inch * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad @state.deferentAngle)
+      y = @base_to_inch * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @state.deferentAngle)
+      @state.equantPosition = new CoffeeGL.Vec2 x,y
+    @
+
   # Return the mean motus angle plus the postion on the rim of the base
   _calculateMeanMotus : () ->
     
@@ -239,6 +290,8 @@ class EquatorieSystem
 
     passed = @state.passed
     dangle = @state.deferentAngle
+    if @state.planet == "mercury"
+      dangle = @state.mercuryDeferentAngle
     
     cr = Math.cos CoffeeGL.degToRad dangle
     sr = Math.sin CoffeeGL.degToRad dangle
@@ -247,6 +300,8 @@ class EquatorieSystem
     @state.basePosition = base_position
 
     deferent_position = @state.deferentPosition
+    if @state.planet == "mercury"
+      deferent_position = @state.mercuryDeferentPosition
     equant_position = @state.equantPosition
 
     dir = @state.meanMotusPosition.copy()
@@ -261,8 +316,13 @@ class EquatorieSystem
 
     passed = @state.passed
     dangle = @state.deferentAngle
+    if @state.planet == "mercury"
+      dangle = @state.mercuryDeferentAngle
     
     deferent_position = @state.deferentPosition
+    if @state.planet == "mercury"
+      deferent_position = @state.mercuryDeferentPosition
+    
     equant_position = @state.equantPosition
    
     l = deferent_position.length() +  @epicycle_radius - @epicycle_thickness 
@@ -287,14 +347,14 @@ class EquatorieSystem
     tm = new CoffeeGL.Matrix3()
     tm.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad fangle
 
-    cx = @state.epicyclePrePosition.x - @state.deferentPosition.x
-    cy = @state.epicyclePrePosition.y - @state.deferentPosition.y
+    cx = @state.epicyclePrePosition.x - deferent_position.x
+    cy = @state.epicyclePrePosition.y - deferent_position.y
 
     epipos = new CoffeeGL.Vec3 cx, 0, cy
     tm.multVec epipos
 
     epipos = new CoffeeGL.Vec2 epipos.x, epipos.z
-    epipos.add @state.deferentPosition
+    epipos.add deferent_position
 
     @state.epicyclePosition = epipos
 
@@ -308,14 +368,16 @@ class EquatorieSystem
     
     # Use the law of cosines to derive the mean aux
 
-    a = @state.equantPosition.dist @state.epicyclePosition
-    b = @state.deferentPosition.dist @state.epicyclePosition
-    c = @state.equantPosition.dist @state.deferentPosition
+    deferent_position = @state.deferentPosition
+    if @state.planet == "mercury"
+      deferent_position = @state.mercuryDeferentPosition
 
+    a = @state.equantPosition.dist @state.epicyclePosition
+    b = deferent_position.dist @state.epicyclePosition
+    c = @state.equantPosition.dist deferent_position
 
     @state.meanAux = 90 - CoffeeGL.radToDeg Math.acos( (a*a + b*b - c*c) /  (2*a*b) )
 
-  
     @state.pointerAngle = -angle
     angle
   
@@ -326,18 +388,20 @@ class EquatorieSystem
 
     epipos = @state.epicyclePosition 
 
+    deferent_position = @state.deferentPosition
+    if @state.planet == "mercury"
+      deferent_position = @state.mercuryDeferentPosition
+
     # At this point perp is the point underneath the epicycle
-    dir = CoffeeGL.Vec2.normalize CoffeeGL.Vec2.sub @state.epicyclePosition,@state.deferentPosition
+    dir = CoffeeGL.Vec2.normalize CoffeeGL.Vec2.sub @state.epicyclePosition,deferent_position
     
     # Move left down the limb
     perp = dir.copy()
     perp.x = -dir.y
     perp.y = dir.x
-
   
     perp.multScalar (@base_radius * @planet_data[@state.planet].epicycle_ratio )
 
-    
     ca = Math.cos (CoffeeGL.degToRad(-angle))
     sa = Math.sin (CoffeeGL.degToRad(-angle))
 
@@ -345,7 +409,6 @@ class EquatorieSystem
      
     perp.add @state.epicyclePosition
   
-
     @state.pointerPoint = perp
     perp 
 

@@ -8,7 +8,7 @@
       this.base_to_inch = 0.166666666667;
       this.epicycle_radius = 6.0;
       this.epicycle_thickness = 0.333334;
-      this.precession = 0.00003838;
+      this.precession = 0.0;
       this.planet_data = {};
       /*
       
@@ -92,6 +92,15 @@
         mean_longitude: 184.75,
         mean_anomaly: 103.78333
       };
+      this.planet_data.mercury = {
+        deferent_speed: 0.9856464,
+        epicycle_speed: 3.10670237,
+        epicycle_ratio: 0.36722,
+        deferent_eccentricity: 0.05056,
+        apogee_longitude: 209.7666666,
+        mean_longitude: 288.55,
+        mean_anomaly: 259.78333
+      };
       this.epoch = new Date("January 1, 1393 00:00:00");
       this.epoch_julian = 2229851.5;
       this.reset();
@@ -101,9 +110,9 @@
       this._setPlanet(planet);
       this._calculateDate(date);
       this._calculateDeferentAngle();
+      this._calculateMeanMotus();
       this._calculateDeferentPosition();
       this._calculateEquantPosition();
-      this._calculateMeanMotus();
       this._calculateParallel();
       this._calculateEpicyclePosition();
       this._calculatePointerAngle();
@@ -117,6 +126,7 @@
         meanMotusPosition: 0,
         deferentAngle: 0,
         deferentPosition: 0,
+        mercuryDeferentAngle: 0,
         passed: 0,
         planet: '',
         date: 0,
@@ -128,7 +138,8 @@
         epicyclePrePosition: 0,
         basePosition: 0,
         truePlace: 0,
-        meanAux: 0
+        meanAux: 0,
+        mercuryDeferentPosition: 0
       };
     };
 
@@ -150,7 +161,7 @@
 
     EquatorieSystem.prototype._calculateDeferentAngle = function() {
       var angle, _ref;
-      if ((_ref = this.state.planet) === 'mars' || _ref === 'venus' || _ref === 'jupiter' || _ref === 'saturn') {
+      if ((_ref = this.state.planet) === 'mars' || _ref === 'venus' || _ref === 'jupiter' || _ref === 'saturn' || _ref === 'mercury') {
         angle = -this.planet_data[this.state.planet].apogee_longitude - (this.precession * this.state.date);
         this.state.deferentAngle = angle;
         return angle;
@@ -159,22 +170,48 @@
     };
 
     EquatorieSystem.prototype._calculateDeferentPosition = function() {
-      var x, y, _ref;
+      var da, l, md, meanCentre, offset, x, xa, y, _ref;
       if ((_ref = this.state.planet) === 'mars' || _ref === 'venus' || _ref === 'jupiter' || _ref === 'saturn') {
-        x = this.base_to_inch * 32 * this.planet_data[this.state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad(this.state.deferentAngle));
-        y = this.base_to_inch * 32 * this.planet_data[this.state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad(this.state.deferentAngle));
+        x = this.base_to_inch * 34 * this.planet_data[this.state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad(this.state.deferentAngle));
+        y = this.base_to_inch * 34 * this.planet_data[this.state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad(this.state.deferentAngle));
         this.state.deferentPosition = new CoffeeGL.Vec2(x, y);
         return this.state.deferentPosition;
+      } else if (this.state.planet === "mercury") {
+        x = this.base_to_inch * 34 * this.planet_data[this.state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad(this.state.deferentAngle));
+        y = this.base_to_inch * 34 * this.planet_data[this.state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad(this.state.deferentAngle));
+        this.state.deferentPosition = new CoffeeGL.Vec2(x, y);
+        meanCentre = this.state.deferentAngle + (this.state.meanMotus * -1);
+        l = this.state.deferentPosition.length();
+        x = Math.cos(CoffeeGL.degToRad(meanCentre));
+        y = Math.sin(CoffeeGL.degToRad(meanCentre));
+        offset = new CoffeeGL.Vec2(x, y);
+        offset.multScalar(l);
+        this.state.mercuryDeferentPosition = this.state.deferentPosition;
+        this.state.mercuryDeferentPosition.multScalar(2);
+        this.state.mercuryDeferentPosition.add(offset);
+        md = CoffeeGL.Vec2.normalize(this.state.mercuryDeferentPosition);
+        xa = new CoffeeGL.Vec2(1, 0);
+        da = CoffeeGL.radToDeg(Math.acos(md.dot(xa)));
+        if (da < 0) {
+          da = 360 + da;
+        }
+        this.state.mercuryDeferentAngle = da;
+        return this.state.mercuryDeferentPosition;
       }
       return this;
     };
 
     EquatorieSystem.prototype._calculateEquantPosition = function() {
-      var _ref;
+      var x, y, _ref;
       if ((_ref = this.state.planet) === 'mars' || _ref === 'venus' || _ref === 'jupiter' || _ref === 'saturn') {
         this.state.equantPosition = new CoffeeGL.Vec2(this.state.deferentPosition.x * 2, this.state.deferentPosition.y * 2);
         return this.state.equantPosition;
+      } else if (this.state.planet === "mercury") {
+        x = this.base_to_inch * 34 * this.planet_data[this.state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad(this.state.deferentAngle));
+        y = this.base_to_inch * 34 * this.planet_data[this.state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad(this.state.deferentAngle));
+        this.state.equantPosition = new CoffeeGL.Vec2(x, y);
       }
+      return this;
     };
 
     EquatorieSystem.prototype._calculateMeanMotus = function() {
@@ -215,11 +252,17 @@
       var base_position, cr, dangle, deferent_position, dir, equant_position, passed, sr;
       passed = this.state.passed;
       dangle = this.state.deferentAngle;
+      if (this.state.planet === "mercury") {
+        dangle = this.state.mercuryDeferentAngle;
+      }
       cr = Math.cos(CoffeeGL.degToRad(dangle));
       sr = Math.sin(CoffeeGL.degToRad(dangle));
       base_position = new CoffeeGL.Vec2(this.base_radius * cr, this.base_radius * sr);
       this.state.basePosition = base_position;
       deferent_position = this.state.deferentPosition;
+      if (this.state.planet === "mercury") {
+        deferent_position = this.state.mercuryDeferentPosition;
+      }
       equant_position = this.state.equantPosition;
       dir = this.state.meanMotusPosition.copy();
       dir.normalize();
@@ -231,7 +274,13 @@
       var cx, cy, dangle, deferent_position, epipos, equant_position, f0, f1, fangle, l, passed, tm, v;
       passed = this.state.passed;
       dangle = this.state.deferentAngle;
+      if (this.state.planet === "mercury") {
+        dangle = this.state.mercuryDeferentAngle;
+      }
       deferent_position = this.state.deferentPosition;
+      if (this.state.planet === "mercury") {
+        deferent_position = this.state.mercuryDeferentPosition;
+      }
       equant_position = this.state.equantPosition;
       l = deferent_position.length() + this.epicycle_radius - this.epicycle_thickness;
       this.state.epicyclePrePosition = CoffeeGL.Vec2.normalize(deferent_position).multScalar(l);
@@ -245,33 +294,41 @@
       this.state.epicycleRotation = fangle;
       tm = new CoffeeGL.Matrix3();
       tm.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(fangle));
-      cx = this.state.epicyclePrePosition.x - this.state.deferentPosition.x;
-      cy = this.state.epicyclePrePosition.y - this.state.deferentPosition.y;
+      cx = this.state.epicyclePrePosition.x - deferent_position.x;
+      cy = this.state.epicyclePrePosition.y - deferent_position.y;
       epipos = new CoffeeGL.Vec3(cx, 0, cy);
       tm.multVec(epipos);
       epipos = new CoffeeGL.Vec2(epipos.x, epipos.z);
-      epipos.add(this.state.deferentPosition);
+      epipos.add(deferent_position);
       this.state.epicyclePosition = epipos;
       return epipos;
     };
 
     EquatorieSystem.prototype._calculatePointerAngle = function() {
-      var a, angle, b, c, passed;
+      var a, angle, b, c, deferent_position, passed;
       passed = this.state.passed;
       angle = (this.planet_data[this.state.planet].mean_anomaly + (this.planet_data[this.state.planet].epicycle_speed * passed)) % 360 * -1;
+      deferent_position = this.state.deferentPosition;
+      if (this.state.planet === "mercury") {
+        deferent_position = this.state.mercuryDeferentPosition;
+      }
       a = this.state.equantPosition.dist(this.state.epicyclePosition);
-      b = this.state.deferentPosition.dist(this.state.epicyclePosition);
-      c = this.state.equantPosition.dist(this.state.deferentPosition);
+      b = deferent_position.dist(this.state.epicyclePosition);
+      c = this.state.equantPosition.dist(deferent_position);
       this.state.meanAux = 90 - CoffeeGL.radToDeg(Math.acos((a * a + b * b - c * c) / (2 * a * b)));
       this.state.pointerAngle = -angle;
       return angle;
     };
 
     EquatorieSystem.prototype._calculatePointerPoint = function() {
-      var angle, ca, dir, epipos, perp, sa;
+      var angle, ca, deferent_position, dir, epipos, perp, sa;
       angle = this.state.pointerAngle + this.state.meanAux;
       epipos = this.state.epicyclePosition;
-      dir = CoffeeGL.Vec2.normalize(CoffeeGL.Vec2.sub(this.state.epicyclePosition, this.state.deferentPosition));
+      deferent_position = this.state.deferentPosition;
+      if (this.state.planet === "mercury") {
+        deferent_position = this.state.mercuryDeferentPosition;
+      }
+      dir = CoffeeGL.Vec2.normalize(CoffeeGL.Vec2.sub(this.state.epicyclePosition, deferent_position));
       perp = dir.copy();
       perp.x = -dir.y;
       perp.y = dir.x;

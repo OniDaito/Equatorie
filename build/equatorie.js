@@ -33,7 +33,7 @@
     }
 
     Equatorie.prototype.init = function() {
-      var cube, date, f,
+      var cube, cube2, date, f,
         _this = this;
       this.top_node = new CoffeeGL.Node();
       this.string_height = 0.4;
@@ -59,6 +59,9 @@
       this.system._setPlanet("saturn");
       this.system._calculateDeferentAngle();
       console.log(this.system._calculateDeferentPosition());
+      this.system._setPlanet("mercury");
+      this.system._calculateDeferentAngle();
+      console.log(this.system._calculateDeferentPosition());
       this.system.reset();
       f = function() {
         var q;
@@ -78,21 +81,27 @@
         _this.equatorie_model.remove(_this.pointer);
         _this.equatorie_model.remove(_this.rim);
         _this.equatorie_model.remove(_this.plate);
+        _this.equatorie_model.remove(_this.base);
         _this._setTangents(_this.pointer.geometry);
         _this._setTangents(_this.epicycle.geometry);
         _this._setTangents(_this.rim.geometry);
         _this._setTangents(_this.plate.geometry);
+        _this._setTangents(_this.base.geometry);
         _this.shiny.shader = _this.shader_aniso;
         _this.shiny.add(_this.epicycle);
         _this.shiny.add(_this.rim);
         _this.shiny.add(_this.plate);
+        _this.shiny.add(_this.base);
         _this.pointer.add(_this.pointer_normal);
         _this.rim.add(_this.rim_normal);
         _this.plate.add(_this.plate_normal);
         _this.epicycle.add(_this.epicycle_normal);
+        _this.base.add(_this.base_normal);
         _this.shiny.uSamplerNormal = 1;
-        _this.base.shader = _this.shader;
         _this.base.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(1.0, 1.0, 0.8, 1.0);
+        _this.base.uSpecColour = new CoffeeGL.Colour.RGBA(0.5, 0.5, 0.5, 1.0);
+        _this.base.uAlphaX = 0.05;
+        _this.base.uAlphaY = 0.05;
         _this.epicycle.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.1, 0.1, 0.1, 1.0);
         _this.epicycle.uSpecColour = new CoffeeGL.Colour.RGBA(1.0, 0.9, 0.8, 1.0);
         _this.epicycle.uAlphaX = 0.4;
@@ -135,7 +144,8 @@
       loadAssets(this, this.loaded);
       date = new Date();
       cube = new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.2, 0.2, 0.2));
-      this.marker = new CoffeeGL.Node(cube);
+      cube2 = new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.01, 0.5, 0.01));
+      this.marker = new CoffeeGL.Node(cube2);
       this.marker.uColour = new CoffeeGL.Colour.RGBA(0.0, 1.0, 1.0, 1.0);
       this.top_node.add(this.marker);
       this.c = new CoffeeGL.Camera.TouchPerspCamera(new CoffeeGL.Vec3(0, 0, 25));
@@ -148,8 +158,8 @@
       GL.enable(GL.CULL_FACE);
       GL.cullFace(GL.BACK);
       GL.enable(GL.DEPTH_TEST);
-      this.white_string = new EquatorieString(8.0, 0.08, 20);
-      this.black_string = new EquatorieString(8.0, 0.08, 20);
+      this.white_string = new EquatorieString(10.0, 0.01, 20);
+      this.black_string = new EquatorieString(10.0, 0.01, 20);
       this.white_start = new CoffeeGL.Node(cube);
       this.pickable.add(this.white_start);
       this.white_start.matrix.translate(new CoffeeGL.Vec3(2, this.string_height, 2));

@@ -62,6 +62,10 @@ class Equatorie
     @system._setPlanet("saturn")   
     @system._calculateDeferentAngle()
     console.log @system._calculateDeferentPosition()
+
+    @system._setPlanet("mercury")   
+    @system._calculateDeferentAngle()
+    console.log @system._calculateDeferentPosition()
     
     @system.reset()
 
@@ -82,7 +86,7 @@ class Equatorie
       @epicycle = @equatorie_model.children[0]
       @pointer  = @equatorie_model.children[4]
       @rim      = @equatorie_model.children[2]
-      @plate     = @equatorie_model.children[1]
+      @plate    = @equatorie_model.children[1]
 
       # Create the node for shiny ansio things
       @shiny =  new CoffeeGL.Node()
@@ -91,31 +95,37 @@ class Equatorie
       @equatorie_model.remove @pointer
       @equatorie_model.remove @rim
       @equatorie_model.remove @plate
+      @equatorie_model.remove @base
 
       # Create the tangents
       @_setTangents @pointer.geometry
       @_setTangents @epicycle.geometry
       @_setTangents @rim.geometry
       @_setTangents @plate.geometry
+      @_setTangents @base.geometry
 
       @shiny.shader = @shader_aniso
       @shiny.add @epicycle
       @shiny.add @rim
       @shiny.add @plate
+      @shiny.add @base
 
       # Add the normal textures
       @pointer.add @pointer_normal
       @rim.add @rim_normal
       @plate.add @plate_normal
       @epicycle.add @epicycle_normal
+      @base.add @base_normal
 
       @shiny.uSamplerNormal = 1 # set for the first texture unit
 
       # Add normal textures
 
-      @base.shader = @shader
-
+    
       @base.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(1.0,1.0,0.8,1.0)
+      @base.uSpecColour = new CoffeeGL.Colour.RGBA(0.5,0.5,0.5,1.0)
+      @base.uAlphaX = 0.05
+      @base.uAlphaY = 0.05
 
       @epicycle.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.1,0.1,0.1,1.0)
       @epicycle.uSpecColour = new CoffeeGL.Colour.RGBA(1.0,0.9,0.8,1.0)
@@ -131,7 +141,6 @@ class Equatorie
       @pointer.uPickingColour = new CoffeeGL.Colour.RGBA 0.0,1.0,1.0,1.0
       @pickable.add @epicycle
 
-
       # Remove the pointer and add it as a child of the Epicycle
       @equatorie_model.remove @pointer
       @epicycle.add @pointer
@@ -144,9 +153,7 @@ class Equatorie
         
       # Set the pickable shader for the pickables
       @pickable.shader = @shader_picker
-      
-
-      
+            
       @top_node.add @basic_nodes
       @basic_nodes.shader = @shader_basic
       @marker.shader = @shader_basic
@@ -189,7 +196,8 @@ class Equatorie
     
     # Our basic marker - this is part of our interaction
     cube = new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.2,0.2,0.2
-    @marker = new CoffeeGL.Node cube
+    cube2 = new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.01,0.5,0.01
+    @marker = new CoffeeGL.Node cube2
     @marker.uColour = new CoffeeGL.Colour.RGBA(0.0,1.0,1.0,1.0)
     @top_node.add @marker
 
@@ -211,8 +219,8 @@ class Equatorie
     GL.enable(GL.DEPTH_TEST)
 
     # Add Strings
-    @white_string = new EquatorieString 8.0, 0.08, 20
-    @black_string = new EquatorieString 8.0, 0.08, 20
+    @white_string = new EquatorieString 10.0, 0.01, 20
+    @black_string = new EquatorieString 10.0, 0.01, 20
     
 
     @white_start = new CoffeeGL.Node cube

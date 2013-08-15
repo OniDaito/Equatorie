@@ -155,13 +155,16 @@
     };
 
     EquatorieInteract.prototype._stateMoveEpicycle = function(dt) {
-      var c, current_state, d, dr, e, v;
+      var c, current_state, d, dr, e, v, _ref;
       current_state = this.stack[this.stack_idx];
       if (current_state.pos_interp == null) {
         d = this.system.state.deferentPosition;
         c = this.system.state.basePosition;
         v = this.system.state.parallelPosition;
         dr = this.system.state.deferentAngle;
+        if (this.chosen_planet === "mercury") {
+          dr = this.system.state.mercuryDeferentAngle;
+        }
         e = this.system.state.epicyclePrePosition;
         current_state.pos_interp = new CoffeeGL.Interpolation(this.epicycle.matrix.getPos(), new CoffeeGL.Vec3(e.x, 0, e.y));
         current_state.rot_interp = new CoffeeGL.Interpolation(0, -90 - dr);
@@ -170,11 +173,15 @@
       this.epicycle.matrix.translate(current_state.pos_interp.set(dt));
       this.epicycle.matrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(current_state.rot_interp.set(dt)));
       this.marker.matrix.identity();
-      return this.marker.matrix.translate(new CoffeeGL.Vec3(this.system.state.epicyclePrePosition.x, 0.6, this.system.state.epicyclePrePosition.y));
+      if (this.chosen_planet === "mercury") {
+        return this.marker.matrix.translate(new CoffeeGL.Vec3(this.system.state.mercuryDeferentPosition.x, 0.0, this.system.state.deferentPosition.y));
+      } else if ((_ref = this.chosen_planet) === "mars" || _ref === "venus" || _ref === "jupiter" || _ref === "saturn") {
+        return this.marker.matrix.translate(new CoffeeGL.Vec3(this.system.state.deferentPosition.x, 0.0, this.system.state.deferentPosition.y));
+      }
     };
 
     EquatorieInteract.prototype._stateRotateEpicycle = function(dt) {
-      var cp, current_state, fmatrix, tmatrix, v1, v2;
+      var cp, current_state, deferentAngle, fmatrix, tmatrix, v1, v2;
       current_state = this.stack[this.stack_idx];
       if (current_state.rot_interp == null) {
         current_state.rot_interp = new CoffeeGL.Interpolation(0, this.system.state.epicycleRotation);
@@ -183,8 +190,12 @@
       v2 = CoffeeGL.Vec2.sub(this.system.state.epicyclePrePosition, v1);
       tmatrix = new CoffeeGL.Matrix4();
       fmatrix = new CoffeeGL.Matrix4();
+      deferentAngle = this.system.state.deferentAngle;
+      if (this.chosen_planet === "mercury") {
+        deferentAngle = this.system.state.mercuryDeferentAngle;
+      }
       tmatrix.translate(new CoffeeGL.Vec3(v2.x, 0, v2.y));
-      tmatrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(-90 - this.system.state.deferentAngle));
+      tmatrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(-90 - deferentAngle));
       fmatrix.translate(new CoffeeGL.Vec3(v1.x, 0, v1.y));
       fmatrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(current_state.rot_interp.set(dt)));
       this.epicycle.matrix.copyFrom(fmatrix.mult(tmatrix));
@@ -212,7 +223,6 @@
       }
       this.pointer.matrix.identity();
       this.pointer.matrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(this.system.state.meanAux + current_state.rot_interp.set(dt)));
-      console.log(current_state.rot_interp.set(dt));
       cp = this.system.state.pointerPoint;
       this.marker.matrix.identity();
       this.marker.matrix.translate(new CoffeeGL.Vec3(cp.x, 0.6, cp.y));
@@ -236,7 +246,7 @@
 
     EquatorieInteract.prototype.addStates = function(planet, date) {
       var _this = this;
-      if (planet === 'mars' || planet === 'venus' || planet === 'jupiter' || planet === 'saturn') {
+      if (planet === 'mars' || planet === 'venus' || planet === 'jupiter' || planet === 'saturn' || planet === 'mercury') {
         this.stack = [];
         this.stack.push(new EquatorieState("Select Date and Planet", function() {
           return (function(planet, date) {
@@ -373,7 +383,7 @@
         _this = this;
       this.datgui = new dat.GUI();
       this.datgui.remember(this);
-      planets = ["mars", "venus", "jupiter", "saturn"];
+      planets = ["mars", "venus", "jupiter", "saturn", "mercury"];
       this.chosen_planet = "mars";
       controller = this.datgui.add(this, 'chosen_planet', planets);
       controller = this.datgui.add(this, 'solveForCurrentDatePlanet');
