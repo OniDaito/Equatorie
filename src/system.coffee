@@ -261,7 +261,7 @@ class EquatorieSystem
       offset = new CoffeeGL.Vec2 x,y
       offset.multScalar(l)
 
-      @state.mercuryDeferentPosition =  @state.deferentPosition
+      @state.mercuryDeferentPosition =  @state.deferentPosition.copy()
       @state.mercuryDeferentPosition.multScalar(2)
       @state.mercuryDeferentPosition.add offset
     
@@ -453,6 +453,8 @@ class EquatorieSystem
       c = @state.equantPosition.dist deferent_position
 
       @state.meanAux = 90 - CoffeeGL.radToDeg Math.acos( (a*a + b*b - c*c) /  (2*a*b) )
+
+      @state.pointerAngle = -angle
     
     else if @state.planet == "moon"
       deferent_position = @state.deferentPosition
@@ -462,7 +464,8 @@ class EquatorieSystem
 
       @state.meanAux = 90 - CoffeeGL.radToDeg Math.acos( (a*a + b*b - c*c) /  (2*a*b) )
 
-    @state.pointerAngle = -angle
+      @state.pointerAngle = angle
+
     angle
   
 

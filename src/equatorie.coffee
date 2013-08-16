@@ -65,8 +65,10 @@ class Equatorie
 
     @system._setPlanet("mercury")   
     @system._calculateDeferentAngle()
-    console.log @system._calculateDeferentPosition()
-    
+    @system._calculateDeferentPosition()
+    console.log @system.state.deferentPosition
+
+
     @system.reset()
 
     # Function called when everything is loaded

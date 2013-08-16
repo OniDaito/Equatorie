@@ -203,9 +203,9 @@
       this.epicycle.matrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(current_state.rot_interp.set(dt)));
       this.marker.matrix.identity();
       if (this.chosen_planet === "mercury") {
-        return this.marker.matrix.translate(new CoffeeGL.Vec3(this.system.state.mercuryDeferentPosition.x, 0.0, this.system.state.deferentPosition.y));
+        return this.marker.matrix.translate(new CoffeeGL.Vec3(this.system.state.mercuryDeferentPosition.x, 0.0, this.system.state.mercuryDeferentPosition.y));
       } else if ((_ref = this.chosen_planet) === "mars" || _ref === "venus" || _ref === "jupiter" || _ref === "saturn" || _ref === "moon") {
-        return this.marker.matrix.translate(new CoffeeGL.Vec3(this.system.state.epicyclePosition.x, 0.0, this.system.state.epicyclePosition.y));
+        return this.marker.matrix.translate(new CoffeeGL.Vec3(this.system.state.deferentPosition.x, 0.0, this.system.state.deferentPosition.y));
       }
     };
 

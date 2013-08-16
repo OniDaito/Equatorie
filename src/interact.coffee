@@ -183,9 +183,9 @@ class EquatorieInteract
     @marker.matrix.identity()
 
     if @chosen_planet == "mercury"
-      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.mercuryDeferentPosition.x,0.0,@system.state.deferentPosition.y))
+      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.mercuryDeferentPosition.x,0.0,@system.state.mercuryDeferentPosition.y))
     else if @chosen_planet in ["mars","venus","jupiter","saturn","moon"]
-      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.epicyclePosition.x,0.0,@system.state.epicyclePosition.y))
+      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.deferentPosition.x,0.0,@system.state.deferentPosition.y))
     
 
   _stateRotateEpicycle : (dt) =>

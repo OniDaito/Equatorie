@@ -61,7 +61,8 @@
       console.log(this.system._calculateDeferentPosition());
       this.system._setPlanet("mercury");
       this.system._calculateDeferentAngle();
-      console.log(this.system._calculateDeferentPosition());
+      this.system._calculateDeferentPosition();
+      console.log(this.system.state.deferentPosition);
       this.system.reset();
       f = function() {
         var q;

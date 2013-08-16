@@ -41,27 +41,27 @@ _loadPicking = (obj, c) =>
     c.test()
 
 _loadEpicycleNormal = (obj, c) =>
-  obj.epicycle_normal = new CoffeeGL.Texture("../models/epicycle_NRM.webp",{unit : 1}, () => 
+  obj.epicycle_normal = new CoffeeGL.Texture("../models/epicycle_NRM.jpg",{unit : 1}, () => 
     c.test()
   )
 
 _loadPlateNormal = (obj, c) =>
-  obj.plate_normal = new CoffeeGL.Texture("../models/plate_NRM.webp",{unit : 1}, () => 
+  obj.plate_normal = new CoffeeGL.Texture("../models/plate_NRM.jpg",{unit : 1}, () => 
     c.test()
   )
 
 _loadRimNormal = (obj, c) =>
-  obj.rim_normal = new CoffeeGL.Texture("../models/ring_NRM.webp",{unit : 1}, () => 
+  obj.rim_normal = new CoffeeGL.Texture("../models/ring_NRM.jpg",{unit : 1}, () => 
     c.test()
   )
 
 _loadPointerNormal = (obj, c) =>
-  obj.pointer_normal = new CoffeeGL.Texture("../models/label_NRM.webp",{unit : 1}, () => 
+  obj.pointer_normal = new CoffeeGL.Texture("../models/label_NRM.jpg",{unit : 1}, () => 
     c.test()
   )
 
 _loadBaseNormal = (obj, c) =>
-  obj.base_normal = new CoffeeGL.Texture("../models/base_texture_NRM.webp",{unit : 1}, () => 
+  obj.base_normal = new CoffeeGL.Texture("../models/base_texture_NRM.jpg",{unit : 1}, () => 
     c.test()
   )
 

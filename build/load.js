@@ -61,7 +61,7 @@
   };
 
   _loadEpicycleNormal = function(obj, c) {
-    return obj.epicycle_normal = new CoffeeGL.Texture("../models/epicycle_NRM.webp", {
+    return obj.epicycle_normal = new CoffeeGL.Texture("../models/epicycle_NRM.jpg", {
       unit: 1
     }, function() {
       return c.test();
@@ -69,7 +69,7 @@
   };
 
   _loadPlateNormal = function(obj, c) {
-    return obj.plate_normal = new CoffeeGL.Texture("../models/plate_NRM.webp", {
+    return obj.plate_normal = new CoffeeGL.Texture("../models/plate_NRM.jpg", {
       unit: 1
     }, function() {
       return c.test();
@@ -77,7 +77,7 @@
   };
 
   _loadRimNormal = function(obj, c) {
-    return obj.rim_normal = new CoffeeGL.Texture("../models/ring_NRM.webp", {
+    return obj.rim_normal = new CoffeeGL.Texture("../models/ring_NRM.jpg", {
       unit: 1
     }, function() {
       return c.test();
@@ -85,7 +85,7 @@
   };
 
   _loadPointerNormal = function(obj, c) {
-    return obj.pointer_normal = new CoffeeGL.Texture("../models/label_NRM.webp", {
+    return obj.pointer_normal = new CoffeeGL.Texture("../models/label_NRM.jpg", {
       unit: 1
     }, function() {
       return c.test();
@@ -93,7 +93,7 @@
   };
 
   _loadBaseNormal = function(obj, c) {
-    return obj.base_normal = new CoffeeGL.Texture("../models/base_texture_NRM.webp", {
+    return obj.base_normal = new CoffeeGL.Texture("../models/base_texture_NRM.jpg", {
       unit: 1
     }, function() {
       return c.test();

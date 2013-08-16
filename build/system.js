@@ -223,7 +223,7 @@
         y = Math.sin(CoffeeGL.degToRad(meanCentre));
         offset = new CoffeeGL.Vec2(x, y);
         offset.multScalar(l);
-        this.state.mercuryDeferentPosition = this.state.deferentPosition;
+        this.state.mercuryDeferentPosition = this.state.deferentPosition.copy();
         this.state.mercuryDeferentPosition.multScalar(2);
         this.state.mercuryDeferentPosition.add(offset);
         md = CoffeeGL.Vec2.normalize(this.state.mercuryDeferentPosition);
@@ -368,14 +368,15 @@
         b = deferent_position.dist(this.state.epicyclePosition);
         c = this.state.equantPosition.dist(deferent_position);
         this.state.meanAux = 90 - CoffeeGL.radToDeg(Math.acos((a * a + b * b - c * c) / (2 * a * b)));
+        this.state.pointerAngle = -angle;
       } else if (this.state.planet === "moon") {
         deferent_position = this.state.deferentPosition;
         a = this.state.epicyclePosition.length();
         b = deferent_position.dist(this.state.epicyclePosition);
         c = deferent_position.length();
         this.state.meanAux = 90 - CoffeeGL.radToDeg(Math.acos((a * a + b * b - c * c) / (2 * a * b)));
+        this.state.pointerAngle = angle;
       }
-      this.state.pointerAngle = -angle;
       return angle;
     };
 
