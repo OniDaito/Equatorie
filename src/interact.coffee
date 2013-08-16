@@ -89,7 +89,7 @@ class EquatorieInteract
 
     if not current_state.end_interp?
 
-      mv = @system.state.meanMotusPosition
+      mv = @system.state.meanMotusPosition.copy()
       mv.normalize()
       mv.multScalar(10.0)
       current_state.end_interp = new CoffeeGL.Interpolation @black_end.matrix.getPos(), new CoffeeGL.Vec3(mv.x, @string_height, mv.y) 
@@ -130,6 +130,34 @@ class EquatorieInteract
   
     @physics.postMessage {cmd : "white_start_move", data: @white_start.matrix.getPos() }
     @physics.postMessage {cmd : "white_end_move", data: @white_end.matrix.getPos() }
+
+  _stateMoveWhiteThreadMoon : (dt) =>
+  
+    current_state = @stack[@stack_idx]
+
+    if not current_state.end_interp?
+      pv = @system.state.pointerPoint.copy()
+      pv.sub @system.state.equantPosition
+      pv.normalize()
+      pv.multScalar(10.0)
+      pv.add @system.state.equantPosition
+      pv = new CoffeeGL.Vec3 pv.x,@string_height,pv.y
+
+
+      current_state.end_interp = new CoffeeGL.Interpolation @white_end.matrix.getPos(), pv
+
+    if not current_state.start_interp?
+    
+      eq = @system.state.equantPosition
+      current_state.start_interp = new CoffeeGL.Interpolation @white_start.matrix.getPos(), new CoffeeGL.Vec3(eq.x,@string_height,eq.y) 
+
+
+    @white_start.matrix.setPos current_state.start_interp.set dt
+    @white_end.matrix.setPos current_state.end_interp.set dt
+  
+    @physics.postMessage {cmd : "white_start_move", data: @white_start.matrix.getPos() }
+    @physics.postMessage {cmd : "white_end_move", data: @white_end.matrix.getPos() }
+  
   
   _stateMoveEpicycle : (dt) =>
 
@@ -152,15 +180,13 @@ class EquatorieInteract
     @epicycle.matrix.translate current_state.pos_interp.set dt
     @epicycle.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad current_state.rot_interp.set dt
     
-
     @marker.matrix.identity()
-    #@marker.matrix.translate(new CoffeeGL.Vec3(@system.state.epicyclePrePosition.x,0.6,@system.state.epicyclePrePosition.y))
-    
+
     if @chosen_planet == "mercury"
       @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.mercuryDeferentPosition.x,0.0,@system.state.deferentPosition.y))
-    else if @chosen_planet in ["mars","venus","jupiter","saturn"]
-      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.deferentPosition.x,0.0,@system.state.deferentPosition.y))
-
+    else if @chosen_planet in ["mars","venus","jupiter","saturn","moon"]
+      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.epicyclePosition.x,0.0,@system.state.epicyclePosition.y))
+    
 
   _stateRotateEpicycle : (dt) =>
 
@@ -193,7 +219,7 @@ class EquatorieInteract
 
     cp = @system.state.epicyclePosition
     @marker.matrix.identity()
-    @marker.matrix.translate(new CoffeeGL.Vec3(cp.x,0.6,cp.y))
+    @marker.matrix.translate(new CoffeeGL.Vec3(cp.x,0.0,cp.y))
   
     @
 
@@ -215,11 +241,8 @@ class EquatorieInteract
     if not current_state.rot_interp?
       current_state.rot_interp = new CoffeeGL.Interpolation 0, @system.state.pointerAngle
 
-
     @pointer.matrix.identity()
     @pointer.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad @system.state.meanAux + current_state.rot_interp.set dt
-
-    #console.log current_state.rot_interp.set dt
 
     cp = @system.state.pointerPoint
     @marker.matrix.identity()
@@ -232,7 +255,12 @@ class EquatorieInteract
     current_state = @stack[@stack_idx]
 
     if not current_state.end_interp?
-      mv = new CoffeeGL.Vec3 @system.state.pointerPoint.x, @string_height, @system.state.pointerPoint.y
+
+      mv = new CoffeeGL.Vec3 @system.state.pointerPoint.x,0, @system.state.pointerPoint.y
+      mv.normalize()
+      mv.multScalar(10.0)
+      mv.y = @string_height
+      
       current_state.end_interp = new CoffeeGL.Interpolation @black_end.matrix.getPos(), mv
 
     @black_end.matrix.setPos current_state.end_interp.set dt
@@ -242,9 +270,11 @@ class EquatorieInteract
     @
 
   addStates : (planet, date) ->
+    @stack = []
+    @stack.push new EquatorieState "Select Date and Planet", () => do (planet,date) => @_stateSetPlanetDate(planet,date)
+
     if planet in ['mars','venus','jupiter','saturn','mercury']
-      @stack = []
-      @stack.push new EquatorieState "Select Date and Planet", () => do (planet,date) => @_stateSetPlanetDate(planet,date)
+      
       @stack.push new EquatorieState "Calculate Mean Motus", @_stateCalculateMeanMotus
       @stack.push new EquatorieState "Move Black Thread", @_stateMoveBlackThread
       @stack.push new EquatorieState "Move White Thread", @_stateMoveWhiteThread
@@ -253,6 +283,15 @@ class EquatorieInteract
       @stack.push new EquatorieState "Rotate to the Mean Aux", @_stateRotateMeanAux
       @stack.push new EquatorieState "Rotate Label", @_stateRotateLabel
       @stack.push new EquatorieState "Move Black Thread", @_stateMoveBlackStringFinal
+
+    if planet == 'moon'
+      @stack.push new EquatorieState "Calculate Mean Motus for the Moon", @_stateCalculateMeanMotus
+      @stack.push new EquatorieState "Move Black Thread", @_stateMoveBlackThread
+      @stack.push new EquatorieState "Move Epicycle", @_stateMoveEpicycle
+      @stack.push new EquatorieState "Rotate Epicycle", @_stateRotateEpicycle
+      @stack.push new EquatorieState "Rotate to the Mean Aux", @_stateRotateMeanAux
+      @stack.push new EquatorieState "Rotate Label", @_stateRotateLabel
+      @stack.push new EquatorieState "Move White Thread Moon", @_stateMoveWhiteThreadMoon
 
   # reset all the things
 
@@ -388,7 +427,7 @@ class EquatorieInteract
     @datgui =new dat.GUI()
     @datgui.remember(@)
     
-    planets = ["mars","venus","jupiter","saturn","mercury"]
+    planets = ["mars","venus","jupiter","saturn","mercury","moon"]
     @chosen_planet = "mars"
 
     controller = @datgui.add(@,'chosen_planet',planets)
