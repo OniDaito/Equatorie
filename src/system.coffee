@@ -4,7 +4,7 @@ class EquatorieSystem
   constructor : () ->
 
     @base_radius = 6.0              # used with epicycle ratio - Blender Units
-    @base_to_inch = 0.166666666667  # Convert real into inches  
+    @inch_to_base = 0.166666666667  # Convert inches into blender units  
     @epicycle_radius = 6.0          # used with epicycle ratio - Blender Units
     @epicycle_thickness = 0.333334
     @precession = 0.0 #0.00003838  # Degrees per day # ignored using Sebs values I think
@@ -114,6 +114,7 @@ class EquatorieSystem
       deferent_speed : 0.9856464
       apogee_longitude : 90.15
       mean_longitude : 288.55
+      equant_ratio : 1/32
 
     @planet_data.moon = 
       deferent_speed : 13.1763947
@@ -145,7 +146,6 @@ class EquatorieSystem
 
 
     if planet in ["mercury","venus","mars","jupiter","saturn"]
-      @_setPlanet(planet)
       @_calculateDeferentAngle()
       @_calculateMeanMotus()
       @_calculateDeferentPosition()
@@ -157,6 +157,10 @@ class EquatorieSystem
       @_calculateTruePlace()
 
     else if planet == "sun"
+      @_calculateEquantPosition()
+      @_calculateMeanMotus()
+      @_calculateParallel()
+      @_calculateSunCrossingPoint()
       
     else if planet == "moon"
       @_calculateMeanMotus()
@@ -177,6 +181,7 @@ class EquatorieSystem
       deferentAngle : 0
       deferentPosition : 0
       mercuryDeferentAngle : 0
+      sunCirclePoint : 0
       passed : 0
       planet : ''
       date : 0
@@ -233,8 +238,8 @@ class EquatorieSystem
 
   _calculateDeferentPosition : () ->
     if @state.planet in ['mars','venus','jupiter','saturn']
-      x = @base_to_inch * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad @state.deferentAngle)
-      y = @base_to_inch * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @state.deferentAngle)
+      x = @inch_to_base * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad @state.deferentAngle)
+      y = @inch_to_base * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @state.deferentAngle)
       @state.deferentPosition = new CoffeeGL.Vec2 x,y
 
       cr = Math.cos CoffeeGL.degToRad @state.deferentAngle
@@ -247,8 +252,8 @@ class EquatorieSystem
       # We need to makre sure we have the mean Motus at this point - it moves clockwise by the amount of the mean motus
       # We also only have 180 holes in this model so we need to restrain to 2 degrees of accuracy
       # Not sure where the angle is counted from. Going for the furthest away point
-      x = @base_to_inch * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad @state.deferentAngle)
-      y = @base_to_inch * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @state.deferentAngle)
+      x = @inch_to_base * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad @state.deferentAngle)
+      y = @inch_to_base * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @state.deferentAngle)
       @state.deferentPosition = new CoffeeGL.Vec2 x,y
       
   
@@ -297,25 +302,31 @@ class EquatorieSystem
 
     @
 
+  # Find the position of the equant in global co-ordinates
   _calculateEquantPosition : () ->
     if @state.planet in ['mars','venus','jupiter','saturn']
       @state.equantPosition = new CoffeeGL.Vec2 @state.deferentPosition.x*2, @state.deferentPosition.y*2
       return @state.equantPosition
     else if @state.planet == "mercury"
-      x = @base_to_inch * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad @state.deferentAngle)
-      y = @base_to_inch * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @state.deferentAngle)
+      x = @inch_to_base * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad @state.deferentAngle)
+      y = @inch_to_base * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @state.deferentAngle)
       @state.equantPosition = new CoffeeGL.Vec2 x,y
 
     else if @state.planet == "moon"
       tm = new CoffeeGL.Matrix2 [-1,0,0,-1]
       @state.equantPosition = new CoffeeGL.Vec2  @state.deferentPosition.x,  @state.deferentPosition.y
       tm.multVec @state.equantPosition
+
+    else if @state.planet == "sun"
+      l = @inch_to_base * 34 * @planet_data["sun"].equant_ratio
+      x = Math.cos CoffeeGL.degToRad -@planet_data["sun"].apogee_longitude
+      y = Math.sin CoffeeGL.degToRad -@planet_data["sun"].apogee_longitude
+      @state.equantPosition = new CoffeeGL.Vec2 x,y
+      @state.equantPosition.multScalar l
+
     @
 
   # Return the mean motus angle plus the postion on the rim of the base
-
- 
-
   _calculateMeanMotusBody : (body) ->
     
     passed = @state.passed
@@ -328,6 +339,7 @@ class EquatorieSystem
     [mean_motus_angle, mean_motus_position]
 
 
+  # calcute the mean motus
   _calculateMeanMotus : () ->
 
     [mean_motus_angle, mean_motus_position] = @_calculateMeanMotusBody @state.planet
@@ -373,6 +385,10 @@ class EquatorieSystem
     deferent_position = @state.deferentPosition
     if @state.planet == "mercury"
       deferent_position = @state.mercuryDeferentPosition
+
+    if @state.planet == "sun"
+      deferent_position = @state.equantPosition
+
     equant_position = @state.equantPosition
 
     dir = @state.meanMotusPosition.copy()
@@ -380,6 +396,12 @@ class EquatorieSystem
 
     @state.parallelPosition = @rayCircleIntersection(equant_position, dir, deferent_position, @base_radius)
     @state.parallelPosition
+
+
+  _calculateSunCrossingPoint : () ->
+    dir = CoffeeGL.Vec2.sub @state.parallelPosition, @state.equantPosition
+    dir.normalize()
+    @state.sunCirclePoint = @rayCircleIntersection(@state.equantPosition, dir, @state.equantPosition, 32 * @inch_to_base)
 
   _calculateEpicyclePosition : () ->
     # Rotate the epicycle so its 0 point is on the deferent, then rotate around the deferent

@@ -143,7 +143,6 @@ class EquatorieInteract
       pv.add @system.state.equantPosition
       pv = new CoffeeGL.Vec3 pv.x,@string_height,pv.y
 
-
       current_state.end_interp = new CoffeeGL.Interpolation @white_end.matrix.getPos(), pv
 
     if not current_state.start_interp?
@@ -157,7 +156,55 @@ class EquatorieInteract
   
     @physics.postMessage {cmd : "white_start_move", data: @white_start.matrix.getPos() }
     @physics.postMessage {cmd : "white_end_move", data: @white_end.matrix.getPos() }
+
+    @
+
+  _stateMoveWhiteThreadSun : (dt) =>
+
+    current_state = @stack[@stack_idx]
+
+    if not current_state.end_interp?
+      ev = new CoffeeGL.Vec3 @system.state.equantPosition.x, @string_height, @system.state.equantPosition.y
+      current_state.end_interp = new CoffeeGL.Interpolation @white_end.matrix.getPos(), ev
+
+    if not current_state.start_interp?
+    
+      pv = @system.state.parallelPosition.copy()
+      pv.sub @system.state.equantPosition
+      pv.normalize()
+      pv.multScalar(10.0)
+      pv.add @system.state.equantPosition
+      pv = new CoffeeGL.Vec3 pv.x,@string_height,pv.y
+
+      current_state.start_interp = new CoffeeGL.Interpolation @white_start.matrix.getPos(), pv
+
+    @white_start.matrix.setPos current_state.start_interp.set dt
+    @white_end.matrix.setPos current_state.end_interp.set dt
   
+    @physics.postMessage {cmd : "white_start_move", data: @white_start.matrix.getPos() }
+    @physics.postMessage {cmd : "white_end_move", data: @white_end.matrix.getPos() }
+
+    @
+
+    
+  _stateMoveBlackThreadSun : (dt) =>
+
+    current_state = @stack[@stack_idx]
+
+    if not current_state.end_interp?
+      pv = @system.state.sunCirclePoint.copy()
+      pv.normalize()
+      pv.multScalar(10.0)
+      pv = new CoffeeGL.Vec3 pv.x,@string_height,pv.y
+
+      current_state.end_interp = new CoffeeGL.Interpolation @white_start.matrix.getPos(), pv
+
+    @black_end.matrix.setPos current_state.end_interp.set dt
+
+    @physics.postMessage {cmd : "black_end_move", data: @black_end.matrix.getPos() }
+
+    @
+
   
   _stateMoveEpicycle : (dt) =>
 
@@ -187,6 +234,7 @@ class EquatorieInteract
     else if @chosen_planet in ["mars","venus","jupiter","saturn","moon"]
       @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.deferentPosition.x,0.0,@system.state.deferentPosition.y))
     
+    @
 
   _stateRotateEpicycle : (dt) =>
 
@@ -233,6 +281,7 @@ class EquatorieInteract
     @pointer.matrix.identity()
     @pointer.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad current_state.rot_interp.set dt
 
+    @
 
   _stateRotateLabel : (dt) =>
 
@@ -284,7 +333,7 @@ class EquatorieInteract
       @stack.push new EquatorieState "Rotate Label", @_stateRotateLabel
       @stack.push new EquatorieState "Move Black Thread", @_stateMoveBlackStringFinal
 
-    if planet == 'moon'
+    else if planet == 'moon'
       @stack.push new EquatorieState "Calculate Mean Motus for the Moon", @_stateCalculateMeanMotus
       @stack.push new EquatorieState "Move Black Thread", @_stateMoveBlackThread
       @stack.push new EquatorieState "Move Epicycle", @_stateMoveEpicycle
@@ -292,6 +341,14 @@ class EquatorieInteract
       @stack.push new EquatorieState "Rotate to the Mean Aux", @_stateRotateMeanAux
       @stack.push new EquatorieState "Rotate Label", @_stateRotateLabel
       @stack.push new EquatorieState "Move White Thread Moon", @_stateMoveWhiteThreadMoon
+
+    else if planet == "moon_latitude"
+
+    else if planet == "sun"
+      @stack.push new EquatorieState "Calculate Mean Motus", @_stateCalculateMeanMotus
+      @stack.push new EquatorieState "Move Black Thread", @_stateMoveBlackThread
+      @stack.push new EquatorieState "Move White Thread Sun", @_stateMoveWhiteThreadSun
+      @stack.push new EquatorieState "Move Black Thread Sun", @_stateMoveBlackThreadSun
 
   # reset all the things
 
@@ -427,7 +484,7 @@ class EquatorieInteract
     @datgui =new dat.GUI()
     @datgui.remember(@)
     
-    planets = ["mars","venus","jupiter","saturn","mercury","moon"]
+    planets = ["mars","venus","jupiter","saturn","mercury","moon","sun"]
     @chosen_planet = "mars"
 
     controller = @datgui.add(@,'chosen_planet',planets)
