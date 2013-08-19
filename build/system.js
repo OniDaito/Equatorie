@@ -115,6 +115,11 @@
         mean_longitude: 130.46666,
         mean_anomaly: 84.63333
       };
+      this.planet_data.moon_latitude = this.planet_data.moon;
+      this.planet_data.caput_draconis = {
+        start_motus: 15.35,
+        speed: 0.05295426
+      };
       this.epoch = new Date("January 1, 1393 00:00:00");
       this.epoch_julian = 2229851.5;
       this.reset();
@@ -140,12 +145,13 @@
         this._calculateMeanMotus();
         this._calculateParallel();
         return this._calculateSunCrossingPoint();
-      } else if (planet === "moon") {
+      } else if (planet === "moon" || planet === "moon_latitude") {
         this._calculateMeanMotus();
         this._calculateDeferentAngle();
         this._calculateDeferentPosition();
         this._calculateEquantPosition();
         this._calculateEpicyclePosition();
+        this._calculateMoonEquations();
         this._calculatePointerAngle();
         return this._calculatePointerPoint();
       }
@@ -174,7 +180,13 @@
         basePosition: 0,
         truePlace: 0,
         meanAux: 0,
-        mercuryDeferentPosition: 0
+        mercuryDeferentPosition: 0,
+        moonEquationCentre: 0,
+        moonTrueMotus: 0,
+        caputDraconisMotus: 0,
+        moonLatitudeDegree: 0,
+        moonLatitudeLeft: 0,
+        moonLatitudeRight: 0
       };
     };
 
@@ -195,12 +207,12 @@
     };
 
     EquatorieSystem.prototype._calculateDeferentAngle = function() {
-      var angle, _ref;
+      var angle, _ref, _ref1;
       if ((_ref = this.state.planet) === 'mars' || _ref === 'venus' || _ref === 'jupiter' || _ref === 'saturn' || _ref === 'mercury') {
         angle = -this.planet_data[this.state.planet].apogee_longitude - (this.precession * this.state.date);
         this.state.deferentAngle = angle;
         return angle;
-      } else if (this.state.planet === "moon") {
+      } else if ((_ref1 = this.state.planet) === "moon" || _ref1 === "moon_latitude") {
         this.state.deferentAngle = this.state.meanMotus + Math.abs(this.state.meanMotus - this.state.sunMeanMotus);
         return this.state.deferentAngle;
       }
@@ -208,7 +220,7 @@
     };
 
     EquatorieSystem.prototype._calculateDeferentPosition = function() {
-      var base_position, cr, da, l, md, meanCentre, offset, sr, x, xa, y, _ref;
+      var base_position, cr, da, l, md, meanCentre, offset, sr, x, xa, y, _ref, _ref1;
       if ((_ref = this.state.planet) === 'mars' || _ref === 'venus' || _ref === 'jupiter' || _ref === 'saturn') {
         x = this.inch_to_base * 34 * this.planet_data[this.state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad(this.state.deferentAngle));
         y = this.inch_to_base * 34 * this.planet_data[this.state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad(this.state.deferentAngle));
@@ -242,7 +254,7 @@
         base_position = new CoffeeGL.Vec2(this.base_radius * cr, this.base_radius * sr);
         this.state.basePosition = base_position;
         return this.state.mercuryDeferentPosition;
-      } else if (this.state.planet === "moon") {
+      } else if ((_ref1 = this.state.planet) === "moon" || _ref1 === "moon_latitude") {
         cr = Math.cos(CoffeeGL.degToRad(this.state.deferentAngle));
         sr = Math.sin(CoffeeGL.degToRad(this.state.deferentAngle));
         x = this.moon_radius * cr;
@@ -254,7 +266,7 @@
     };
 
     EquatorieSystem.prototype._calculateEquantPosition = function() {
-      var l, tm, x, y, _ref;
+      var l, tm, x, y, _ref, _ref1;
       if ((_ref = this.state.planet) === 'mars' || _ref === 'venus' || _ref === 'jupiter' || _ref === 'saturn') {
         this.state.equantPosition = new CoffeeGL.Vec2(this.state.deferentPosition.x * 2, this.state.deferentPosition.y * 2);
         return this.state.equantPosition;
@@ -262,7 +274,7 @@
         x = this.inch_to_base * 34 * this.planet_data[this.state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad(this.state.deferentAngle));
         y = this.inch_to_base * 34 * this.planet_data[this.state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad(this.state.deferentAngle));
         this.state.equantPosition = new CoffeeGL.Vec2(x, y);
-      } else if (this.state.planet === "moon") {
+      } else if ((_ref1 = this.state.planet) === "moon" || _ref1 === "moon_latitude") {
         tm = new CoffeeGL.Matrix2([-1, 0, 0, -1]);
         this.state.equantPosition = new CoffeeGL.Vec2(this.state.deferentPosition.x, this.state.deferentPosition.y);
         tm.multVec(this.state.equantPosition);
@@ -336,11 +348,42 @@
       var dir;
       dir = CoffeeGL.Vec2.sub(this.state.parallelPosition, this.state.equantPosition);
       dir.normalize();
-      return this.state.sunCirclePoint = this.rayCircleIntersection(this.state.equantPosition, dir, this.state.equantPosition, 32 * this.inch_to_base);
+      this.state.sunCirclePoint = this.rayCircleIntersection(this.state.equantPosition, dir, this.state.equantPosition, 32 * this.inch_to_base);
+      return this;
+    };
+
+    EquatorieSystem.prototype._calculateMoonEquations = function() {
+      var a, b, e, l, p, s, x, x2, y, y2;
+      a = this.state.equantPosition.copy().normalize();
+      b = this.state.epicyclePosition.copy().normalize();
+      this.state.moonEquationCentre = CoffeeGL.radToDeg(Math.acos(a.dot(b)));
+      this.state.moonTrueMotus = this.state.meanMotus + this.state.moonEquationCentre;
+      this.state.caputDraconisMotus = (this.planet_data["caput_draconis"].start_motus + (this.state.passed * this.planet_data["caput_draconis"].speed)) % 360;
+      p = this.state.moonTrueMotus;
+      if (p < 0) {
+        p = 360 + p;
+      }
+      l = Math.abs(p - this.state.caputDraconisMotus);
+      if (l > 180) {
+        l = l - 180;
+      }
+      this.state.moonLatitudeDegree = l;
+      console.log(l, p);
+      x = Math.cos(CoffeeGL.degToRad(-this.state.moonLatitudeDegree));
+      y = Math.sin(CoffeeGL.degToRad(-this.state.moonLatitudeDegree));
+      s = new CoffeeGL.Vec2(x, y);
+      s.multScalar(this.base_radius);
+      x2 = Math.cos(CoffeeGL.degToRad(this.state.moonLatitudeDegree - 180));
+      y2 = Math.sin(CoffeeGL.degToRad(this.state.moonLatitudeDegree - 180));
+      e = new CoffeeGL.Vec2(x2, y2);
+      e.multScalar(this.base_radius);
+      this.state.moonLatitudeLeft = s;
+      this.state.moonLatitudeRight = e;
+      return this;
     };
 
     EquatorieSystem.prototype._calculateEpicyclePosition = function() {
-      var dangle, deferent_position, edir, equant_position, f0, f1, fangle, l, passed, _ref;
+      var dangle, deferent_position, edir, equant_position, f0, f1, fangle, l, passed, _ref, _ref1;
       passed = this.state.passed;
       dangle = this.state.deferentAngle;
       if (this.state.planet === "mercury") {
@@ -363,7 +406,7 @@
         fangle = f0 - f1;
         this.state.epicycleRotation = fangle;
         return this.state.epicyclePosition;
-      } else if (this.state.planet === "moon") {
+      } else if ((_ref1 = this.state.planet) === "moon" || _ref1 === "moon_latitude") {
         edir = this.state.meanMotusPosition.copy();
         edir.normalize();
         this.state.epicyclePosition = this.rayCircleIntersection(new CoffeeGL.Vec2(0, 0), edir, this.state.deferentPosition, this.base_radius - this.epicycle_thickness);
@@ -376,7 +419,7 @@
     };
 
     EquatorieSystem.prototype._calculatePointerAngle = function() {
-      var a, angle, b, c, deferent_position, passed, _ref;
+      var a, angle, b, c, deferent_position, passed, _ref, _ref1;
       passed = this.state.passed;
       angle = (this.planet_data[this.state.planet].mean_anomaly + (this.planet_data[this.state.planet].epicycle_speed * passed)) % 360 * -1;
       if ((_ref = this.state.planet) === "mercury" || _ref === "venus" || _ref === "mars" || _ref === "jupiter" || _ref === "saturn") {
@@ -389,7 +432,7 @@
         c = this.state.equantPosition.dist(deferent_position);
         this.state.meanAux = 90 - CoffeeGL.radToDeg(Math.acos((a * a + b * b - c * c) / (2 * a * b)));
         this.state.pointerAngle = -angle;
-      } else if (this.state.planet === "moon") {
+      } else if ((_ref1 = this.state.planet) === "moon" || _ref1 === "moon_latitude") {
         deferent_position = this.state.deferentPosition;
         a = this.state.epicyclePosition.length();
         b = deferent_position.dist(this.state.epicyclePosition);
@@ -422,13 +465,15 @@
     };
 
     EquatorieSystem.prototype._calculateTruePlace = function() {
-      var angle, dir, pp, xaxis;
-      pp = this.state.pointerPoint;
-      dir = CoffeeGL.Vec2.normalize(pp);
-      xaxis = new CoffeeGL.Vec2(1, 0);
-      angle = CoffeeGL.radToDeg(Math.acos(xaxis.dot(dir)));
-      this.state.truePlace = angle;
-      return angle;
+      var angle, dir, pp, xaxis, _ref;
+      if ((_ref = this.state.planet) === "mercury" || _ref === "venus" || _ref === "mars" || _ref === "jupiter" || _ref === "saturn") {
+        pp = this.state.pointerPoint;
+        dir = CoffeeGL.Vec2.normalize(pp);
+        xaxis = new CoffeeGL.Vec2(1, 0);
+        angle = CoffeeGL.radToDeg(Math.acos(xaxis.dot(dir)));
+        this.state.truePlace = angle;
+        return angle;
+      }
     };
 
     return EquatorieSystem;

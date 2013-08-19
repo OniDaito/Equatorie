@@ -49,6 +49,7 @@
       this.pointer = pointer;
       this.marker = marker;
       this.string_height = string_height;
+      this._stateMoveBlackStringLatitude = __bind(this._stateMoveBlackStringLatitude, this);
       this._stateMoveBlackStringFinal = __bind(this._stateMoveBlackStringFinal, this);
       this._stateRotateLabel = __bind(this._stateRotateLabel, this);
       this._stateRotateMeanAux = __bind(this._stateRotateMeanAux, this);
@@ -328,6 +329,33 @@
       return this;
     };
 
+    EquatorieInteract.prototype._stateMoveBlackStringLatitude = function(dt) {
+      var current_state, e, l, s;
+      current_state = this.stack[this.stack_idx];
+      if ((current_state.start_interp == null) && (current_state.end_interp == null)) {
+        s = new CoffeeGL.Vec3(this.system.state.moonLatitudeLeft.x, 0, this.system.state.moonLatitudeLeft.y);
+        e = new CoffeeGL.Vec3(this.system.state.moonLatitudeRight.x, 0, this.system.state.moonLatitudeRight.y);
+        l = s.dist(e);
+        s.x = s.x - (6 - l / 2);
+        e.x = e.x + (6 - l / 2);
+        s.y = this.string_height;
+        e.y = this.string_height;
+        current_state.start_interp = new CoffeeGL.Interpolation(this.black_start.matrix.getPos(), s);
+        current_state.end_interp = new CoffeeGL.Interpolation(this.black_end.matrix.getPos(), e);
+      }
+      this.black_start.matrix.setPos(current_state.start_interp.set(dt));
+      this.black_end.matrix.setPos(current_state.end_interp.set(dt));
+      this.physics.postMessage({
+        cmd: "black_start_move",
+        data: this.black_start.matrix.getPos()
+      });
+      this.physics.postMessage({
+        cmd: "black_end_move",
+        data: this.black_end.matrix.getPos()
+      });
+      return this;
+    };
+
     EquatorieInteract.prototype.addStates = function(planet, date) {
       var _this = this;
       this.stack = [];
@@ -354,7 +382,8 @@
         this.stack.push(new EquatorieState("Rotate Label", this._stateRotateLabel));
         return this.stack.push(new EquatorieState("Move White Thread Moon", this._stateMoveWhiteThreadMoon));
       } else if (planet === "moon_latitude") {
-
+        this.stack.push(new EquatorieState("Calculate Mean Motus", this._stateCalculateMeanMotus));
+        return this.stack.push(new EquatorieState("Move to Latitude", this._stateMoveBlackStringLatitude));
       } else if (planet === "sun") {
         this.stack.push(new EquatorieState("Calculate Mean Motus", this._stateCalculateMeanMotus));
         this.stack.push(new EquatorieState("Move Black Thread", this._stateMoveBlackThread));
@@ -482,7 +511,7 @@
         _this = this;
       this.datgui = new dat.GUI();
       this.datgui.remember(this);
-      planets = ["mars", "venus", "jupiter", "saturn", "mercury", "moon", "sun"];
+      planets = ["mars", "venus", "jupiter", "saturn", "mercury", "moon", "sun", "moon_latitude"];
       this.chosen_planet = "mars";
       controller = this.datgui.add(this, 'chosen_planet', planets);
       controller = this.datgui.add(this, 'solveForCurrentDatePlanet');

@@ -123,6 +123,12 @@ class EquatorieSystem
       mean_longitude : 130.46666
       mean_anomaly : 84.63333
 
+    @planet_data.moon_latitude = @planet_data.moon
+
+    @planet_data.caput_draconis = 
+      start_motus : 15.35
+      speed : 0.05295426  # degrees per day
+
 
     @epoch = new Date ("January 1, 1393 00:00:00")
     @epoch_julian = 2229851.5
@@ -162,17 +168,20 @@ class EquatorieSystem
       @_calculateParallel()
       @_calculateSunCrossingPoint()
       
-    else if planet == "moon"
+    else if planet == "moon" or planet == "moon_latitude"
       @_calculateMeanMotus()
       @_calculateDeferentAngle()
       @_calculateDeferentPosition()
       @_calculateEquantPosition()
       @_calculateEpicyclePosition()
+      @_calculateMoonEquations()
       @_calculatePointerAngle()
       @_calculatePointerPoint()
 
-
+  # set the state of the system to all zeroes
   reset : () ->
+
+    # state represents the variables in our Equatorie we may need at any one time
     @state = 
       meanMotus : 0
       sunMeanMotus: 0
@@ -196,6 +205,15 @@ class EquatorieSystem
       truePlace : 0
       meanAux : 0
       mercuryDeferentPosition: 0
+      moonEquationCentre: 0
+      moonTrueMotus : 0
+      caputDraconisMotus : 0
+      moonLatitudeDegree : 0
+      moonLatitudeLeft : 0
+      moonLatitudeRight : 0
+
+  # The following are private subroutines and are executed in a particular order to generate
+  # the system state
 
   _setPlanet : (planet) ->
     @state.planet = planet
@@ -226,7 +244,7 @@ class EquatorieSystem
       @state.deferentAngle = angle
       return angle
 
-    else if @state.planet == "moon"
+    else if @state.planet in ["moon","moon_latitude"]
       @state.deferentAngle = @state.meanMotus + Math.abs(@state.meanMotus - @state.sunMeanMotus)
       return @state.deferentAngle
 
@@ -289,7 +307,7 @@ class EquatorieSystem
 
       return @state.mercuryDeferentPosition
 
-    else if @state.planet == "moon"
+    else if @state.planet in ["moon","moon_latitude"]
 
       cr = Math.cos CoffeeGL.degToRad @state.deferentAngle
       sr = Math.sin CoffeeGL.degToRad @state.deferentAngle
@@ -312,7 +330,7 @@ class EquatorieSystem
       y = @inch_to_base * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @state.deferentAngle)
       @state.equantPosition = new CoffeeGL.Vec2 x,y
 
-    else if @state.planet == "moon"
+    else if @state.planet in ["moon","moon_latitude"]
       tm = new CoffeeGL.Matrix2 [-1,0,0,-1]
       @state.equantPosition = new CoffeeGL.Vec2  @state.deferentPosition.x,  @state.deferentPosition.y
       tm.multVec @state.equantPosition
@@ -402,6 +420,47 @@ class EquatorieSystem
     dir = CoffeeGL.Vec2.sub @state.parallelPosition, @state.equantPosition
     dir.normalize()
     @state.sunCirclePoint = @rayCircleIntersection(@state.equantPosition, dir, @state.equantPosition, 32 * @inch_to_base)
+    @
+
+  # The moon requires a few more angles and things to be worked out for its latitude
+  _calculateMoonEquations : () ->
+    a = @state.equantPosition.copy().normalize()
+    b = @state.epicyclePosition.copy().normalize()
+    @state.moonEquationCentre = CoffeeGL.radToDeg Math.acos a.dot b 
+    @state.moonTrueMotus = @state.meanMotus + @state.moonEquationCentre
+
+    @state.caputDraconisMotus =  (@planet_data["caput_draconis"].start_motus + ( @state.passed * @planet_data["caput_draconis"].speed)) % 360
+
+    p = @state.moonTrueMotus
+    
+    if p < 0 
+      p = 360 + p
+    l = Math.abs p - @state.caputDraconisMotus
+    
+    if l > 180
+      l = l - 180
+
+    @state.moonLatitudeDegree = l
+
+    console.log l,p
+
+    x = Math.cos CoffeeGL.degToRad -@state.moonLatitudeDegree
+    y = Math.sin CoffeeGL.degToRad -@state.moonLatitudeDegree
+
+    s = new CoffeeGL.Vec2 x,y
+    s.multScalar @base_radius
+
+    x2 = Math.cos CoffeeGL.degToRad(@state.moonLatitudeDegree-180)
+    y2 = Math.sin CoffeeGL.degToRad(@state.moonLatitudeDegree-180)
+
+    e = new CoffeeGL.Vec2 x2, y2
+    e.multScalar @base_radius
+
+    @state.moonLatitudeLeft = s
+    @state.moonLatitudeRight = e
+
+    @
+
 
   _calculateEpicyclePosition : () ->
     # Rotate the epicycle so its 0 point is on the deferent, then rotate around the deferent
@@ -442,7 +501,7 @@ class EquatorieSystem
       
       return @state.epicyclePosition 
 
-    else if @state.planet == "moon"
+    else if @state.planet in ["moon","moon_latitude"]
     
       edir = @state.meanMotusPosition.copy()
       edir.normalize()
@@ -478,7 +537,7 @@ class EquatorieSystem
 
       @state.pointerAngle = -angle
     
-    else if @state.planet == "moon"
+    else if @state.planet in ["moon","moon_latitude"]
       deferent_position = @state.deferentPosition
       a = @state.epicyclePosition.length()
       b = deferent_position.dist @state.epicyclePosition
@@ -522,12 +581,13 @@ class EquatorieSystem
 
   # in degrees from the centre of the base and the sign of aries (x axis in this system)
   _calculateTruePlace : () ->
-    pp = @state.pointerPoint
-    dir = CoffeeGL.Vec2.normalize pp
-    xaxis = new CoffeeGL.Vec2(1,0)
-    angle = CoffeeGL.radToDeg Math.acos xaxis.dot dir
-    @state.truePlace = angle
-    angle
+    if @state.planet in ["mercury","venus","mars","jupiter","saturn"]
+      pp = @state.pointerPoint
+      dir = CoffeeGL.Vec2.normalize pp
+      xaxis = new CoffeeGL.Vec2(1,0)
+      angle = CoffeeGL.radToDeg Math.acos xaxis.dot dir
+      @state.truePlace = angle
+      angle
 
 module.exports = 
   EquatorieSystem : EquatorieSystem

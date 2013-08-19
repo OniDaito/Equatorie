@@ -318,6 +318,35 @@ class EquatorieInteract
 
     @
 
+  _stateMoveBlackStringLatitude : (dt) =>
+
+    current_state = @stack[@stack_idx]
+
+    if not current_state.start_interp? and not current_state.end_interp?
+
+      s = new CoffeeGL.Vec3(@system.state.moonLatitudeLeft.x, 0, @system.state.moonLatitudeLeft.y)
+      e = new CoffeeGL.Vec3(@system.state.moonLatitudeRight.x, 0, @system.state.moonLatitudeRight.y)
+
+      # stretch the string
+      l = s.dist e
+      s.x = s.x - (6-l/2)
+      e.x = e.x + (6-l/2)
+
+      s.y = @string_height
+      e.y = @string_height
+      
+      current_state.start_interp = new CoffeeGL.Interpolation @black_start.matrix.getPos(), s
+      current_state.end_interp = new CoffeeGL.Interpolation @black_end.matrix.getPos(), e
+
+    @black_start.matrix.setPos current_state.start_interp.set dt
+    @black_end.matrix.setPos current_state.end_interp.set dt
+
+    @physics.postMessage {cmd : "black_start_move", data: @black_start.matrix.getPos() }
+    @physics.postMessage {cmd : "black_end_move", data: @black_end.matrix.getPos() }
+
+    @
+
+
   addStates : (planet, date) ->
     @stack = []
     @stack.push new EquatorieState "Select Date and Planet", () => do (planet,date) => @_stateSetPlanetDate(planet,date)
@@ -343,6 +372,8 @@ class EquatorieInteract
       @stack.push new EquatorieState "Move White Thread Moon", @_stateMoveWhiteThreadMoon
 
     else if planet == "moon_latitude"
+      @stack.push new EquatorieState "Calculate Mean Motus", @_stateCalculateMeanMotus
+      @stack.push new EquatorieState "Move to Latitude", @_stateMoveBlackStringLatitude
 
     else if planet == "sun"
       @stack.push new EquatorieState "Calculate Mean Motus", @_stateCalculateMeanMotus
@@ -484,7 +515,7 @@ class EquatorieInteract
     @datgui =new dat.GUI()
     @datgui.remember(@)
     
-    planets = ["mars","venus","jupiter","saturn","mercury","moon","sun"]
+    planets = ["mars","venus","jupiter","saturn","mercury","moon","sun","moon_latitude"]
     @chosen_planet = "mars"
 
     controller = @datgui.add(@,'chosen_planet',planets)
