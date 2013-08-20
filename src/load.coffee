@@ -66,13 +66,14 @@ _loadBaseNormal = (obj, c) =>
   )
 
 # Load all the things we need, firing off a final signal when we do
-loadAssets = (obj, signal) ->
+loadAssets = (obj, signal, signal_progress) ->
 
   counter = {}
 
 
   counter.test = () ->
     @count--
+    @signal_progress.dispatch( (10 - @count) / 10 )
     if @count <= 0
       @signal.dispatch()
 
@@ -90,6 +91,7 @@ loadAssets = (obj, signal) ->
   
   counter.count = 10
   counter.signal = signal
+  counter.signal_progress = signal_progress
 
   @
 

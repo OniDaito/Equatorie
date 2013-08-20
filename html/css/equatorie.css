@@ -3,3 +3,40 @@
   padding: 0;
   overflow: hidden;
 }
+
+#equatorie_text {
+  position: absolute;
+  display: none;
+  bottom: 10px;
+  width: 100%;
+  height:80px;
+  z-index: 1002;
+}
+
+#equatorie_loading {
+  position: absolute;
+  width: 8%;
+  top: 46%;
+  left: 48%;
+}
+
+#buttonAbout {
+  float: right;
+}
+
+#popupContainer {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  top: 100px;
+  left: 100px;
+  z-index: 1003;
+}
+
+#button_next {
+  display: none;
+}
+
+#button_reset {
+  display: none;
+}

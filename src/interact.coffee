@@ -13,7 +13,7 @@
 # The state of the Equatorie at present and the next stage for it to go to
 class EquatorieState
 
-  constructor : (@name, @func, @duration=3) ->
+  constructor : (@func, @_activate, @duration=3) ->
     if not @duration?
       @duration = 3.0
 
@@ -23,7 +23,7 @@ class EquatorieState
 
   # called when activated
   activate : () ->
-
+     @_activate() if @_activate?
 
 
 class EquatorieInteract
@@ -39,6 +39,10 @@ class EquatorieInteract
     @dragging = false
 
     @advance_date  = 0
+
+    # signal for moving the point of interest
+    @move_poi = new CoffeeGL.Signal()
+    window.EquatorieMovePOI = @move_poi if window?
 
     @stack = []     # A stack for the states of the system
     @stack_idx = 0  # current stack position
@@ -72,85 +76,121 @@ class EquatorieInteract
     @time.start = new Date().getTime()
 
 
+  _setPOI : (node) ->
+    i0 = node.matrix
+    i1 = @camera.m
+    i2 = @camera.p.copy()
+
+    vt = new CoffeeGL.Vec3 0,0,0.1
+    i2.mult(i1).mult(i0)
+    i2.multVec vt
+
+    new CoffeeGL.Vec2 (vt.x+1) / 2 * CoffeeGL.Context.width, CoffeeGL.Context.height - ((vt.y+1) / 2 * CoffeeGL.Context.height)
+
+
   # A set of potential functions for moving parts of the Equatorie around
   
+  _stateSetPlanetDateInit : () =>
+    current_state = @stack[@stack_idx]
+    current_state.text = "Set the planet you are looking for and work out the number of days passed since 1392"
+
+
   _stateSetPlanetDate : (planet, date) =>
     @system.solveForPlanetDate(planet,date)
     @
 
+  _stateCalculateMeanMotusInit : () =>
+    current_state = @stack[@stack_idx]
+    current_state.text = "Find the mean motus for the planet in question"
+    current_state.pos = @_setPOI @epicycle
+
+
   _stateCalculateMeanMotus : (dt) =>
+    current_state = @stack[@stack_idx]
+    current_state.pos = @_setPOI @epicycle
+    #@move_poi.dispatch current_state.pos
+
     @
+
+  
+  _stateMoveBlackThreadInit : () =>
+
+    current_state = @stack[@stack_idx]
+    current_state.text = "Move the black thread so it runs from the Earth to the Mean Motus"
+    current_state.pos = @_setPOI(@black_end)
+    mv = @system.state.meanMotusPosition.copy()
+    mv.normalize()
+    mv.multScalar(10.0)
+    current_state.end_interp = new CoffeeGL.Interpolation @black_end.matrix.getPos(), new CoffeeGL.Vec3(mv.x, @string_height, mv.y) 
+    current_state.start_interp = new CoffeeGL.Interpolation @black_start.matrix.getPos(), new CoffeeGL.Vec3(0, @string_height, 0) 
+
 
   _stateMoveBlackThread : (dt) =>
     # Black to Centre and mean motus  
     # Hold an interpolation object on the state in question
 
     current_state = @stack[@stack_idx]
-
-    if not current_state.end_interp?
-
-      mv = @system.state.meanMotusPosition.copy()
-      mv.normalize()
-      mv.multScalar(10.0)
-      current_state.end_interp = new CoffeeGL.Interpolation @black_end.matrix.getPos(), new CoffeeGL.Vec3(mv.x, @string_height, mv.y) 
-
-    if not current_state.start_interp?
-      current_state.start_interp = new CoffeeGL.Interpolation @black_start.matrix.getPos(), new CoffeeGL.Vec3(0, @string_height, 0) 
-
     @black_start.matrix.setPos current_state.start_interp.set dt
     @black_end.matrix.setPos current_state.end_interp.set dt
 
     @physics.postMessage {cmd : "black_start_move", data: @black_start.matrix.getPos() }
     @physics.postMessage {cmd : "black_end_move", data: @black_end.matrix.getPos() }
 
+    current_state.pos = @_setPOI @black_end
+    @move_poi.dispatch current_state.pos
+
     @
+
+  _stateMoveWhiteThreadInit : () =>
+
+    current_state = @stack[@stack_idx]
+    current_state.text = "Move the white thread so it runs from the Equant, parallel to the black thread"
+
+    eq = @system.state.equantPosition
+    pv = @system.state.parallelPosition
+    pv.sub(eq)
+    pv.normalize()
+    pv.multScalar(10.0)
+    pv.add(eq)
+
+    current_state.end_interp = new CoffeeGL.Interpolation @white_end.matrix.getPos(), new CoffeeGL.Vec3(pv.x, @string_height, pv.y) 
+
+    eq = @system.state.equantPosition
+    current_state.start_interp = new CoffeeGL.Interpolation @white_start.matrix.getPos(), new CoffeeGL.Vec3(eq.x,@string_height,eq.y) 
+
 
   _stateMoveWhiteThread : (dt) =>
   
     current_state = @stack[@stack_idx]
-
-    if not current_state.end_interp?
-      eq = @system.state.equantPosition
-      pv = @system.state.parallelPosition
-      pv.sub(eq)
-      pv.normalize()
-      pv.multScalar(10.0)
-      pv.add(eq)
-
-      current_state.end_interp = new CoffeeGL.Interpolation @white_end.matrix.getPos(), new CoffeeGL.Vec3(pv.x, @string_height, pv.y) 
-
-    if not current_state.start_interp?
-    
-      eq = @system.state.equantPosition
-      current_state.start_interp = new CoffeeGL.Interpolation @white_start.matrix.getPos(), new CoffeeGL.Vec3(eq.x,@string_height,eq.y) 
-
-
     @white_start.matrix.setPos current_state.start_interp.set dt
     @white_end.matrix.setPos current_state.end_interp.set dt
   
     @physics.postMessage {cmd : "white_start_move", data: @white_start.matrix.getPos() }
     @physics.postMessage {cmd : "white_end_move", data: @white_end.matrix.getPos() }
+
+  _stateMoveWhiteThreadMoonInit : () =>
+
+    current_state = @stack[@stack_idx]
+    current_state.text = "Move the white thread."
+
+
+    pv = @system.state.pointerPoint.copy()
+    pv.sub @system.state.equantPosition
+    pv.normalize()
+    pv.multScalar(10.0)
+    pv.add @system.state.equantPosition
+    pv = new CoffeeGL.Vec3 pv.x,@string_height,pv.y
+
+    current_state.end_interp = new CoffeeGL.Interpolation @white_end.matrix.getPos(), pv
+
+    eq = @system.state.equantPosition
+    current_state.start_interp = new CoffeeGL.Interpolation @white_start.matrix.getPos(), new CoffeeGL.Vec3(eq.x,@string_height,eq.y) 
+
 
   _stateMoveWhiteThreadMoon : (dt) =>
   
     current_state = @stack[@stack_idx]
 
-    if not current_state.end_interp?
-      pv = @system.state.pointerPoint.copy()
-      pv.sub @system.state.equantPosition
-      pv.normalize()
-      pv.multScalar(10.0)
-      pv.add @system.state.equantPosition
-      pv = new CoffeeGL.Vec3 pv.x,@string_height,pv.y
-
-      current_state.end_interp = new CoffeeGL.Interpolation @white_end.matrix.getPos(), pv
-
-    if not current_state.start_interp?
-    
-      eq = @system.state.equantPosition
-      current_state.start_interp = new CoffeeGL.Interpolation @white_start.matrix.getPos(), new CoffeeGL.Vec3(eq.x,@string_height,eq.y) 
-
-
     @white_start.matrix.setPos current_state.start_interp.set dt
     @white_end.matrix.setPos current_state.end_interp.set dt
   
@@ -158,70 +198,71 @@ class EquatorieInteract
     @physics.postMessage {cmd : "white_end_move", data: @white_end.matrix.getPos() }
 
     @
+
+  _stateMoveWhiteThreadSunInit : () =>
+    current_state = @stack[@stack_idx]
+    ev = new CoffeeGL.Vec3 @system.state.equantPosition.x, @string_height, @system.state.equantPosition.y
+    current_state.end_interp = new CoffeeGL.Interpolation @white_end.matrix.getPos(), ev
+
+  
+    pv = @system.state.parallelPosition.copy()
+    pv.sub @system.state.equantPosition
+    pv.normalize()
+    pv.multScalar(10.0)
+    pv.add @system.state.equantPosition
+    pv = new CoffeeGL.Vec3 pv.x,@string_height,pv.y
+
+    current_state.start_interp = new CoffeeGL.Interpolation @white_start.matrix.getPos(), pv
+
 
   _stateMoveWhiteThreadSun : (dt) =>
 
     current_state = @stack[@stack_idx]
-
-    if not current_state.end_interp?
-      ev = new CoffeeGL.Vec3 @system.state.equantPosition.x, @string_height, @system.state.equantPosition.y
-      current_state.end_interp = new CoffeeGL.Interpolation @white_end.matrix.getPos(), ev
-
-    if not current_state.start_interp?
-    
-      pv = @system.state.parallelPosition.copy()
-      pv.sub @system.state.equantPosition
-      pv.normalize()
-      pv.multScalar(10.0)
-      pv.add @system.state.equantPosition
-      pv = new CoffeeGL.Vec3 pv.x,@string_height,pv.y
-
-      current_state.start_interp = new CoffeeGL.Interpolation @white_start.matrix.getPos(), pv
-
     @white_start.matrix.setPos current_state.start_interp.set dt
     @white_end.matrix.setPos current_state.end_interp.set dt
-  
     @physics.postMessage {cmd : "white_start_move", data: @white_start.matrix.getPos() }
     @physics.postMessage {cmd : "white_end_move", data: @white_end.matrix.getPos() }
 
     @
 
-    
-  _stateMoveBlackThreadSun : (dt) =>
+
+  _stateMoveBlackThreadSunInit : () =>
 
     current_state = @stack[@stack_idx]
+    pv = @system.state.sunCirclePoint.copy()
+    pv.normalize()
+    pv.multScalar(10.0)
+    pv = new CoffeeGL.Vec3 pv.x,@string_height,pv.y
+    current_state.end_interp = new CoffeeGL.Interpolation @white_start.matrix.getPos(), pv
 
-    if not current_state.end_interp?
-      pv = @system.state.sunCirclePoint.copy()
-      pv.normalize()
-      pv.multScalar(10.0)
-      pv = new CoffeeGL.Vec3 pv.x,@string_height,pv.y
 
-      current_state.end_interp = new CoffeeGL.Interpolation @white_start.matrix.getPos(), pv
-
+  _stateMoveBlackThreadSun : (dt) =>
+    current_state = @stack[@stack_idx]
     @black_end.matrix.setPos current_state.end_interp.set dt
-
     @physics.postMessage {cmd : "black_end_move", data: @black_end.matrix.getPos() }
-
     @
 
   
+  _stateMoveEpicycleInit : () =>
+    current_state = @stack[@stack_idx]
+    current_state.text = "Move the epicycle so its common centre deferent is over the deferent point"
+
+
+    d = @system.state.deferentPosition
+    c = @system.state.basePosition
+    v = @system.state.parallelPosition
+    dr = @system.state.deferentAngle
+    if @chosen_planet == "mercury"
+      dr = @system.state.mercuryDeferentAngle
+    e = @system.state.epicyclePrePosition
+    
+    current_state.pos_interp = new CoffeeGL.Interpolation @epicycle.matrix.getPos(), new CoffeeGL.Vec3 e.x,0,e.y
+    current_state.rot_interp = new CoffeeGL.Interpolation 0, -90-dr
+
+
   _stateMoveEpicycle : (dt) =>
 
     current_state = @stack[@stack_idx]
-
-    if not current_state.pos_interp?
-
-      d = @system.state.deferentPosition
-      c = @system.state.basePosition
-      v = @system.state.parallelPosition
-      dr = @system.state.deferentAngle
-      if @chosen_planet == "mercury"
-        dr = @system.state.mercuryDeferentAngle
-      e = @system.state.epicyclePrePosition
-      
-      current_state.pos_interp = new CoffeeGL.Interpolation @epicycle.matrix.getPos(), new CoffeeGL.Vec3 e.x,0,e.y
-      current_state.rot_interp = new CoffeeGL.Interpolation 0, -90-dr
 
     @epicycle.matrix.identity()
     @epicycle.matrix.translate current_state.pos_interp.set dt
@@ -236,13 +277,17 @@ class EquatorieInteract
     
     @
 
+  _stateRotateEpicycleInit : () =>
+    current_state = @stack[@stack_idx]
+    current_state.text = "Rotate the epicycle until it's centre is over the white string"
+
+    current_state.rot_interp = new CoffeeGL.Interpolation 0, @system.state.epicycleRotation
+
+
   _stateRotateEpicycle : (dt) =>
 
     # Now rotate the epicycle around the deferent till it reaches the white line      
     current_state = @stack[@stack_idx]
-
-    if not current_state.rot_interp?
-      current_state.rot_interp = new CoffeeGL.Interpolation 0, @system.state.epicycleRotation
 
     #@epicycle.matrix.identity()
     v1 = @system.state.deferentPosition
@@ -272,23 +317,27 @@ class EquatorieInteract
     @
 
     
+  _stateRotateMeanAuxInit : () =>
+    current_state = @stack[@stack_idx]
+    current_state.text = "Rotate the label till it is aligned with the white string"
+    current_state.rot_interp = new CoffeeGL.Interpolation 0, @system.state.meanAux
+
   _stateRotateMeanAux : (dt) =>
     current_state = @stack[@stack_idx]
-
-    if not current_state.rot_interp?
-      current_state.rot_interp = new CoffeeGL.Interpolation 0, @system.state.meanAux
 
     @pointer.matrix.identity()
     @pointer.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad current_state.rot_interp.set dt
 
     @
 
+  _stateRotateLabelInit : () =>
+    current_state = @stack[@stack_idx]
+    current_state.text = "Rotate the label by the Mean Argument"
+    current_state.rot_interp = new CoffeeGL.Interpolation 0, @system.state.pointerAngle
+
   _stateRotateLabel : (dt) =>
 
     current_state = @stack[@stack_idx]
-
-    if not current_state.rot_interp?
-      current_state.rot_interp = new CoffeeGL.Interpolation 0, @system.state.pointerAngle
 
     @pointer.matrix.identity()
     @pointer.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad @system.state.meanAux + current_state.rot_interp.set dt
@@ -300,43 +349,44 @@ class EquatorieInteract
     @
 
 
+  _stateMoveBlackStringFinalInit : () =>
+    current_state = @stack[@stack_idx]
+    current_state.text = "Move the white string till it meets the point on the label. Read off the true place where the string crosses the limb"
+    mv = new CoffeeGL.Vec3 @system.state.pointerPoint.x,0, @system.state.pointerPoint.y
+    mv.normalize()
+    mv.multScalar(10.0)
+    mv.y = @string_height
+    current_state.end_interp = new CoffeeGL.Interpolation @black_end.matrix.getPos(), mv
+
   _stateMoveBlackStringFinal : (dt) =>
     current_state = @stack[@stack_idx]
-
-    if not current_state.end_interp?
-
-      mv = new CoffeeGL.Vec3 @system.state.pointerPoint.x,0, @system.state.pointerPoint.y
-      mv.normalize()
-      mv.multScalar(10.0)
-      mv.y = @string_height
-      
-      current_state.end_interp = new CoffeeGL.Interpolation @black_end.matrix.getPos(), mv
-
     @black_end.matrix.setPos current_state.end_interp.set dt
-
     @physics.postMessage {cmd : "black_end_move", data: @black_end.matrix.getPos() }
 
     @
 
+  _stateMoveBlackStringLatitudeInit : () =>
+
+    current_state = @stack[@stack_idx]
+    
+    s = new CoffeeGL.Vec3(@system.state.moonLatitudeLeft.x, 0, @system.state.moonLatitudeLeft.y)
+    e = new CoffeeGL.Vec3(@system.state.moonLatitudeRight.x, 0, @system.state.moonLatitudeRight.y)
+
+    # stretch the string
+    l = s.dist e
+    s.x = s.x - (6-l/2)
+    e.x = e.x + (6-l/2)
+
+    s.y = @string_height
+    e.y = @string_height
+    
+    current_state.start_interp = new CoffeeGL.Interpolation @black_start.matrix.getPos(), s
+    current_state.end_interp = new CoffeeGL.Interpolation @black_end.matrix.getPos(), e
+
+
   _stateMoveBlackStringLatitude : (dt) =>
 
     current_state = @stack[@stack_idx]
-
-    if not current_state.start_interp? and not current_state.end_interp?
-
-      s = new CoffeeGL.Vec3(@system.state.moonLatitudeLeft.x, 0, @system.state.moonLatitudeLeft.y)
-      e = new CoffeeGL.Vec3(@system.state.moonLatitudeRight.x, 0, @system.state.moonLatitudeRight.y)
-
-      # stretch the string
-      l = s.dist e
-      s.x = s.x - (6-l/2)
-      e.x = e.x + (6-l/2)
-
-      s.y = @string_height
-      e.y = @string_height
-      
-      current_state.start_interp = new CoffeeGL.Interpolation @black_start.matrix.getPos(), s
-      current_state.end_interp = new CoffeeGL.Interpolation @black_end.matrix.getPos(), e
 
     @black_start.matrix.setPos current_state.start_interp.set dt
     @black_end.matrix.setPos current_state.end_interp.set dt
@@ -349,37 +399,37 @@ class EquatorieInteract
 
   addStates : (planet, date) ->
     @stack = []
-    @stack.push new EquatorieState "Select Date and Planet", () => do (planet,date) => @_stateSetPlanetDate(planet,date)
+    @stack.push new EquatorieState () => do (planet,date) => @_stateSetPlanetDate(planet,date)
 
     if planet in ['mars','venus','jupiter','saturn','mercury']
       
-      @stack.push new EquatorieState "Calculate Mean Motus", @_stateCalculateMeanMotus
-      @stack.push new EquatorieState "Move Black Thread", @_stateMoveBlackThread
-      @stack.push new EquatorieState "Move White Thread", @_stateMoveWhiteThread
-      @stack.push new EquatorieState "Move Epicycle", @_stateMoveEpicycle
-      @stack.push new EquatorieState "Rotate Epicycle", @_stateRotateEpicycle
-      @stack.push new EquatorieState "Rotate to the Mean Aux", @_stateRotateMeanAux
-      @stack.push new EquatorieState "Rotate Label", @_stateRotateLabel
-      @stack.push new EquatorieState "Move Black Thread", @_stateMoveBlackStringFinal
+      @stack.push new EquatorieState @_stateCalculateMeanMotus, @_stateCalculateMeanMotusInit
+      @stack.push new EquatorieState @_stateMoveBlackThread, @_stateMoveBlackThreadInit
+      @stack.push new EquatorieState @_stateMoveWhiteThread, @_stateMoveWhiteThreadInit
+      @stack.push new EquatorieState @_stateMoveEpicycle, @_stateMoveEpicycleInit
+      @stack.push new EquatorieState @_stateRotateEpicycle, @_stateRotateEpicycleInit
+      @stack.push new EquatorieState @_stateRotateMeanAux, @_stateRotateMeanAuxInit
+      @stack.push new EquatorieState @_stateRotateLabel, @_stateRotateLabelInit
+      @stack.push new EquatorieState @_stateMoveBlackStringFinal, @_stateMoveBlackStringFinalInit
 
     else if planet == 'moon'
-      @stack.push new EquatorieState "Calculate Mean Motus for the Moon", @_stateCalculateMeanMotus
-      @stack.push new EquatorieState "Move Black Thread", @_stateMoveBlackThread
-      @stack.push new EquatorieState "Move Epicycle", @_stateMoveEpicycle
-      @stack.push new EquatorieState "Rotate Epicycle", @_stateRotateEpicycle
-      @stack.push new EquatorieState "Rotate to the Mean Aux", @_stateRotateMeanAux
-      @stack.push new EquatorieState "Rotate Label", @_stateRotateLabel
-      @stack.push new EquatorieState "Move White Thread Moon", @_stateMoveWhiteThreadMoon
+      @stack.push new EquatorieState @_stateCalculateMeanMotus, @_stateCalculateMeanMotusInit
+      @stack.push new EquatorieState @_stateMoveBlackThread, @_stateMoveBlackThreadInit
+      @stack.push new EquatorieState @_stateMoveEpicycle, @_stateMoveEpicycleInit
+      @stack.push new EquatorieState @_stateRotateEpicycle, @_stateRotateEpicycleInit
+      @stack.push new EquatorieState @_stateRotateMeanAux, @_stateRotateMeanAuxInit
+      @stack.push new EquatorieState @_stateRotateLabel, @_stateRotateLabelInit
+      @stack.push new EquatorieState @_stateMoveWhiteThreadMoon, @_stateMoveWhiteThreadMoonInit
 
     else if planet == "moon_latitude"
-      @stack.push new EquatorieState "Calculate Mean Motus", @_stateCalculateMeanMotus
-      @stack.push new EquatorieState "Move to Latitude", @_stateMoveBlackStringLatitude
+      @stack.push new EquatorieState @_stateCalculateMeanMotus, @_stateCalculateMeanMotusInit
+      @stack.push new EquatorieState @_stateMoveBlackStringLatitude, @_stateMoveBlackStringLatitudeInit
 
     else if planet == "sun"
-      @stack.push new EquatorieState "Calculate Mean Motus", @_stateCalculateMeanMotus
-      @stack.push new EquatorieState "Move Black Thread", @_stateMoveBlackThread
-      @stack.push new EquatorieState "Move White Thread Sun", @_stateMoveWhiteThreadSun
-      @stack.push new EquatorieState "Move Black Thread Sun", @_stateMoveBlackThreadSun
+      @stack.push new EquatorieState @_stateCalculateMeanMotus, @_stateCalculateMeanMotusInit
+      @stack.push new EquatorieState @_stateMoveBlackThread, @_stateMoveBlackThreadInit
+      @stack.push new EquatorieState @_stateMoveWhiteThreadSun, @_stateMoveWhiteThreadSunInit
+      @stack.push new EquatorieState @_stateMoveBlackThreadSun, @_stateMoveBlackThreadSunInit
 
   # reset all the things
 
@@ -408,7 +458,6 @@ class EquatorieInteract
 
 
   onMouseDown : (event) ->
-    console.log event
     @mp.x = event.mouseX
     @mp.y = event.mouseY
     @ray = @camera.castRay @mp.x, @mp.y
@@ -556,6 +605,13 @@ class EquatorieInteract
         @stack_idx +=1
     
     @stack[@stack_idx].activate()
+
+    # Return data for the JQuery / Bootstrap front end
+    rval = {}
+
+    rval.text = @stack[@stack_idx].text if @stack[@stack_idx].text?
+    rval.pos = @stack[@stack_idx].pos if @stack[@stack_idx].pos?
+    rval
 
   onMouseOver : (event) ->    
     @mp.x = event.mouseX

@@ -100,11 +100,12 @@
     });
   };
 
-  loadAssets = function(obj, signal) {
+  loadAssets = function(obj, signal, signal_progress) {
     var counter;
     counter = {};
     counter.test = function() {
       this.count--;
+      this.signal_progress.dispatch((10 - this.count) / 10);
       if (this.count <= 0) {
         return this.signal.dispatch();
       }
@@ -121,6 +122,7 @@
     _loadBaseNormal(obj, counter);
     counter.count = 10;
     counter.signal = signal;
+    counter.signal_progress = signal_progress;
     return this;
   };
 

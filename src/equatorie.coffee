@@ -42,7 +42,11 @@ class Equatorie
 
     @ready = false
 
+    # Loaded signal - export to JQuery / Bootstrap Also
     @loaded = new CoffeeGL.Signal()
+    @load_progress = new CoffeeGL.Signal()
+    window.EquatorieLoaded = @loaded if window?
+    window.EquatorieLoadProgress = @load_progress if window?
 
     # test test
     
@@ -169,6 +173,8 @@ class Equatorie
       # This class takes quite a lot of objects so its not ideal
       @interact = new EquatorieInteract(@system, @physics, @c, @white_start, @white_end, @black_start, @black_end, @epicycle, @pointer, @marker, @string_height )
 
+      window.Equatorie = eq.interact if window? # Export the interaction part for JQuery / Bootstrap interaction
+
       # Register for mouse events
       CoffeeGL.Context.mouseDown.add @interact.onMouseDown, @interact
       CoffeeGL.Context.mouseOver.add @interact.onMouseOver, @interact
@@ -190,7 +196,7 @@ class Equatorie
 
     # Fire off the loader with the signal
     @loaded.addOnce f, @
-    loadAssets @, @loaded
+    loadAssets @, @loaded, @load_progress
 
     # Use today for the apsides precession
 
@@ -294,6 +300,9 @@ class Equatorie
 
     @c.update CoffeeGL.Context.width, CoffeeGL.Context.height
 
+    if not @ready
+      return
+
     @top_node.draw() if @top_node?
     
     # Draw everything pickable to the pickable FBO
@@ -361,5 +370,6 @@ f = () ->
 
 $(window).bind("resize", f)
 $(window).bind("ready", f)
+
 
 

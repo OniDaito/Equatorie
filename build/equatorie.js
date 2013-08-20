@@ -46,6 +46,13 @@
       this.system = new EquatorieSystem();
       this.ready = false;
       this.loaded = new CoffeeGL.Signal();
+      this.load_progress = new CoffeeGL.Signal();
+      if (typeof window !== "undefined" && window !== null) {
+        window.EquatorieLoaded = this.loaded;
+      }
+      if (typeof window !== "undefined" && window !== null) {
+        window.EquatorieLoadProgress = this.load_progress;
+      }
       this.system._calculateDate(new Date("January 1, 1393 00:00:00"));
       this.system._setPlanet("mars");
       this.system._calculateDeferentAngle();
@@ -129,6 +136,9 @@
           cmd: "startup"
         });
         _this.interact = new EquatorieInteract(_this.system, _this.physics, _this.c, _this.white_start, _this.white_end, _this.black_start, _this.black_end, _this.epicycle, _this.pointer, _this.marker, _this.string_height);
+        if (typeof window !== "undefined" && window !== null) {
+          window.Equatorie = eq.interact;
+        }
         CoffeeGL.Context.mouseDown.add(_this.interact.onMouseDown, _this.interact);
         CoffeeGL.Context.mouseOver.add(_this.interact.onMouseOver, _this.interact);
         CoffeeGL.Context.mouseOut.add(_this.interact.onMouseOut, _this.interact);
@@ -142,7 +152,7 @@
         return _this.ready = true;
       };
       this.loaded.addOnce(f, this);
-      loadAssets(this, this.loaded);
+      loadAssets(this, this.loaded, this.load_progress);
       date = new Date();
       cube = new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.2, 0.2, 0.2));
       cube2 = new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.01, 0.5, 0.01));
@@ -224,6 +234,9 @@
       GL.clearColor(0.15, 0.15, 0.15, 1.0);
       GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
       this.c.update(CoffeeGL.Context.width, CoffeeGL.Context.height);
+      if (!this.ready) {
+        return;
+      }
       if (this.top_node != null) {
         this.top_node.draw();
       }
