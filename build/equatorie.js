@@ -33,7 +33,7 @@
     }
 
     Equatorie.prototype.init = function() {
-      var cube, cube2, date, f,
+      var cube, cube_thin, date, f, sphere,
         _this = this;
       this.top_node = new CoffeeGL.Node();
       this.string_height = 0.4;
@@ -77,6 +77,8 @@
         _this.top_node.add(_this.basic_nodes);
         _this.basic_nodes.shader = _this.shader_basic;
         _this.marker.shader = _this.shader_basic;
+        _this.backing = new CoffeeGL.Node(new CoffeeGL.Quad());
+        _this.backing.shader = _this.shader_background;
         _this.top_node.add(_this.equatorie_model);
         _this.base = _this.equatorie_model.children[4];
         _this.epicycle = _this.equatorie_model.children[1];
@@ -155,11 +157,18 @@
       loadAssets(this, this.loaded, this.load_progress);
       date = new Date();
       cube = new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.2, 0.2, 0.2));
-      cube2 = new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.01, 0.5, 0.01));
-      this.marker = new CoffeeGL.Node(cube2);
+      sphere = new CoffeeGL.Node(new CoffeeGL.Shapes.Sphere(0.1, 12));
+      cube_thin = new CoffeeGL.Node(new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.01, 0.5, 0.01)));
+      cube_thin.matrix.translate(new CoffeeGL.Vec3(0, -0.2, 0));
+      sphere.matrix.translate(new CoffeeGL.Vec3(0, 0.1, 0));
+      this.pin = new CoffeeGL.Node();
+      this.pin.add(sphere);
+      this.pin.add(cube_thin);
+      this.marker = this.pin.copy();
       this.marker.uColour = new CoffeeGL.Colour.RGBA(0.0, 1.0, 1.0, 1.0);
       this.top_node.add(this.marker);
-      this.c = new CoffeeGL.Camera.TouchPerspCamera(new CoffeeGL.Vec3(0, 0, 25));
+      this.c = new CoffeeGL.Camera.TouchPerspCamera(new CoffeeGL.Vec3(0, 0, 10));
+      this.c.rotateFocal(new CoffeeGL.Vec3(1, 0, 0), CoffeeGL.degToRad(-25));
       this.top_node.add(this.c);
       this.pickable.add(this.c);
       this.light = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0, 5.0, 25.0), new CoffeeGL.Colour.RGB(1.0, 1.0, 1.0));
@@ -171,19 +180,19 @@
       GL.enable(GL.DEPTH_TEST);
       this.white_string = new EquatorieString(10.0, 0.01, 20);
       this.black_string = new EquatorieString(10.0, 0.01, 20);
-      this.white_start = new CoffeeGL.Node(cube);
+      this.white_start = this.pin.copy();
       this.pickable.add(this.white_start);
       this.white_start.matrix.translate(new CoffeeGL.Vec3(2, this.string_height, 2));
       this.white_start.uPickingColour = new CoffeeGL.Colour.RGBA(1.0, 0.0, 0.0, 1.0);
-      this.white_end = new CoffeeGL.Node(cube);
+      this.white_end = this.pin.copy();
       this.pickable.add(this.white_end);
       this.white_end.matrix.translate(new CoffeeGL.Vec3(-2, this.string_height, -2));
       this.white_end.uPickingColour = new CoffeeGL.Colour.RGBA(0.0, 1.0, 0.0, 1.0);
-      this.black_start = new CoffeeGL.Node(cube);
+      this.black_start = this.pin.copy();
       this.pickable.add(this.black_start);
       this.black_start.matrix.translate(new CoffeeGL.Vec3(-2, this.string_height, 2));
       this.black_start.uPickingColour = new CoffeeGL.Colour.RGBA(0.0, 0.0, 1.0, 1.0);
-      this.black_end = new CoffeeGL.Node(cube);
+      this.black_end = this.pin.copy();
       this.pickable.add(this.black_end);
       this.black_end.matrix.translate(new CoffeeGL.Vec3(-4, this.string_height, 2));
       this.black_end.uPickingColour = new CoffeeGL.Colour.RGBA(1.0, 1.0, 1.0, 1.0);
@@ -237,6 +246,11 @@
       if (!this.ready) {
         return;
       }
+      GL.disable(GL.DEPTH_TEST);
+      if (this.backing != null) {
+        this.backing.draw();
+      }
+      GL.enable(GL.DEPTH_TEST);
       if (this.top_node != null) {
         this.top_node.draw();
       }

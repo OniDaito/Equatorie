@@ -47,7 +47,7 @@ class EquatorieInteract
     @stack = []     # A stack for the states of the system
     @stack_idx = 0  # current stack position
 
-    @_initGUI()
+    #@_initGUI()
 
     @time = 
       start : 0
@@ -108,7 +108,7 @@ class EquatorieInteract
   _stateCalculateMeanMotus : (dt) =>
     current_state = @stack[@stack_idx]
     current_state.pos = @_setPOI @epicycle
-    #@move_poi.dispatch current_state.pos
+    @move_poi.dispatch current_state.pos
 
     @
 
@@ -168,6 +168,9 @@ class EquatorieInteract
     @physics.postMessage {cmd : "white_start_move", data: @white_start.matrix.getPos() }
     @physics.postMessage {cmd : "white_end_move", data: @white_end.matrix.getPos() }
 
+    current_state.pos = @_setPOI @white_end
+    @move_poi.dispatch current_state.pos
+
   _stateMoveWhiteThreadMoonInit : () =>
 
     current_state = @stack[@stack_idx]
@@ -186,7 +189,6 @@ class EquatorieInteract
     eq = @system.state.equantPosition
     current_state.start_interp = new CoffeeGL.Interpolation @white_start.matrix.getPos(), new CoffeeGL.Vec3(eq.x,@string_height,eq.y) 
 
-
   _stateMoveWhiteThreadMoon : (dt) =>
   
     current_state = @stack[@stack_idx]
@@ -196,6 +198,9 @@ class EquatorieInteract
   
     @physics.postMessage {cmd : "white_start_move", data: @white_start.matrix.getPos() }
     @physics.postMessage {cmd : "white_end_move", data: @white_end.matrix.getPos() }
+
+    current_state.pos = @_setPOI @white_end
+    @move_poi.dispatch current_state.pos
 
     @
 
@@ -271,10 +276,13 @@ class EquatorieInteract
     @marker.matrix.identity()
 
     if @chosen_planet == "mercury"
-      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.mercuryDeferentPosition.x,0.0,@system.state.mercuryDeferentPosition.y))
+      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.mercuryDeferentPosition.x,0.4,@system.state.mercuryDeferentPosition.y))
     else if @chosen_planet in ["mars","venus","jupiter","saturn","moon"]
-      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.deferentPosition.x,0.0,@system.state.deferentPosition.y))
+      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.deferentPosition.x,0.4,@system.state.deferentPosition.y))
     
+    current_state.pos = @_setPOI @marker
+    @move_poi.dispatch current_state.pos
+
     @
 
   _stateRotateEpicycleInit : () =>
@@ -291,6 +299,9 @@ class EquatorieInteract
 
     #@epicycle.matrix.identity()
     v1 = @system.state.deferentPosition
+    if @chosen_planet == "mercury"
+      v1 = @system.state.mercuryDeferentPosition
+
     v2 = CoffeeGL.Vec2.sub @system.state.epicyclePrePosition, v1
     
     
@@ -301,7 +312,7 @@ class EquatorieInteract
     if @chosen_planet == "mercury"
       deferentAngle = @system.state.mercuryDeferentAngle
  
-      
+     
     tmatrix.translate new CoffeeGL.Vec3(v2.x,0,v2.y)
     tmatrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad -90-deferentAngle
 
@@ -313,6 +324,9 @@ class EquatorieInteract
     cp = @system.state.epicyclePosition
     @marker.matrix.identity()
     @marker.matrix.translate(new CoffeeGL.Vec3(cp.x,0.0,cp.y))
+
+    current_state.pos = @_setPOI @epicycle
+    @move_poi.dispatch current_state.pos
   
     @
 
@@ -327,6 +341,9 @@ class EquatorieInteract
 
     @pointer.matrix.identity()
     @pointer.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad current_state.rot_interp.set dt
+
+    current_state.pos = @_setPOI @epicycle
+    @move_poi.dispatch current_state.pos
 
     @
 
@@ -346,6 +363,9 @@ class EquatorieInteract
     @marker.matrix.identity()
     @marker.matrix.translate(new CoffeeGL.Vec3(cp.x,0.6,cp.y))
 
+    current_state.pos = @_setPOI @marker
+    @move_poi.dispatch current_state.pos
+
     @
 
 
@@ -362,6 +382,9 @@ class EquatorieInteract
     current_state = @stack[@stack_idx]
     @black_end.matrix.setPos current_state.end_interp.set dt
     @physics.postMessage {cmd : "black_end_move", data: @black_end.matrix.getPos() }
+
+    current_state.pos = @_setPOI @black_end
+    @move_poi.dispatch current_state.pos
 
     @
 
@@ -442,6 +465,12 @@ class EquatorieInteract
     @epicycle.matrix.identity()
     @pointer.matrix.identity()
 
+    # Move the camera back
+
+    @camera.pos = new CoffeeGL.Vec3 0,0,10
+    @camera.look = new CoffeeGL.Vec3 0,0,0
+    @camera.up = new CoffeeGL.Vec3 0,1,0
+    @camera.rotateFocal new CoffeeGL.Vec3(1,0,0), CoffeeGL.degToRad -25
 
   # Called when the button is pressed in dat.gui. Solve for the chosen planet
   solveForPlanet : (planet, date) ->
@@ -590,12 +619,16 @@ class EquatorieInteract
     @solveForPlanet(@chosen_planet, date)
 
 
+
   stepForward : () ->
 
     @time.start = new Date().getTime()
 
+    date = new Date()
+    date.setDate date.getDate() + @advance_date 
+
     if @stack.length == 0
-      @addStates(@chosen_planet, new Date() )
+      @addStates @chosen_planet, date
       @stack_idx = 0
     else
       if @stack_idx + 1 < @stack.length

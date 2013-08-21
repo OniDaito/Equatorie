@@ -3,7 +3,7 @@
 
 # http://www.html5rocks.com/en/tutorials/workers/basics/
 
-importScripts '/js/ammo.fast.js'
+importScripts '/js/ammo.small.js'
 
 # Given some bullet physics represent the string
 
@@ -132,10 +132,10 @@ interval = null
   @dynamicsWorld.addRigidBody(baseRigidBody)
 
   # Create the white string
-  @white_string = new PhysicsString 8.0, 0.1, 20, {x: 2, y:0.2, z:2}, {x: -2, y:0.2, z:-2}, @dynamicsWorld
+  @white_string = new PhysicsString 10.0, 0.01, 20, {x: 2, y:0.2, z:2}, {x: -2, y:0.2, z:-2}, @dynamicsWorld
 
   # ... and the black one
-  @black_string = new PhysicsString 8.0, 0.1, 20, {x: -2, y:0.2, z:2}, {x: -4, y:0.2, z:2}, @dynamicsWorld
+  @black_string = new PhysicsString 10.0, 0.01, 20, {x: -2, y:0.2, z:2}, {x: -4, y:0.2, z:2}, @dynamicsWorld
 
   last = Date.now()
   

@@ -92,7 +92,6 @@
       }
       this.stack = [];
       this.stack_idx = 0;
-      this._initGUI();
       this.time = {
         start: 0,
         dt: 0
@@ -150,6 +149,7 @@
       var current_state;
       current_state = this.stack[this.stack_idx];
       current_state.pos = this._setPOI(this.epicycle);
+      this.move_poi.dispatch(current_state.pos);
       return this;
     };
 
@@ -207,10 +207,12 @@
         cmd: "white_start_move",
         data: this.white_start.matrix.getPos()
       });
-      return this.physics.postMessage({
+      this.physics.postMessage({
         cmd: "white_end_move",
         data: this.white_end.matrix.getPos()
       });
+      current_state.pos = this._setPOI(this.white_end);
+      return this.move_poi.dispatch(current_state.pos);
     };
 
     EquatorieInteract.prototype._stateMoveWhiteThreadMoonInit = function() {
@@ -241,6 +243,8 @@
         cmd: "white_end_move",
         data: this.white_end.matrix.getPos()
       });
+      current_state.pos = this._setPOI(this.white_end);
+      this.move_poi.dispatch(current_state.pos);
       return this;
     };
 
@@ -319,10 +323,12 @@
       this.epicycle.matrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(current_state.rot_interp.set(dt)));
       this.marker.matrix.identity();
       if (this.chosen_planet === "mercury") {
-        this.marker.matrix.translate(new CoffeeGL.Vec3(this.system.state.mercuryDeferentPosition.x, 0.0, this.system.state.mercuryDeferentPosition.y));
+        this.marker.matrix.translate(new CoffeeGL.Vec3(this.system.state.mercuryDeferentPosition.x, 0.4, this.system.state.mercuryDeferentPosition.y));
       } else if ((_ref = this.chosen_planet) === "mars" || _ref === "venus" || _ref === "jupiter" || _ref === "saturn" || _ref === "moon") {
-        this.marker.matrix.translate(new CoffeeGL.Vec3(this.system.state.deferentPosition.x, 0.0, this.system.state.deferentPosition.y));
+        this.marker.matrix.translate(new CoffeeGL.Vec3(this.system.state.deferentPosition.x, 0.4, this.system.state.deferentPosition.y));
       }
+      current_state.pos = this._setPOI(this.marker);
+      this.move_poi.dispatch(current_state.pos);
       return this;
     };
 
@@ -337,6 +343,9 @@
       var cp, current_state, deferentAngle, fmatrix, tmatrix, v1, v2;
       current_state = this.stack[this.stack_idx];
       v1 = this.system.state.deferentPosition;
+      if (this.chosen_planet === "mercury") {
+        v1 = this.system.state.mercuryDeferentPosition;
+      }
       v2 = CoffeeGL.Vec2.sub(this.system.state.epicyclePrePosition, v1);
       tmatrix = new CoffeeGL.Matrix4();
       fmatrix = new CoffeeGL.Matrix4();
@@ -352,6 +361,8 @@
       cp = this.system.state.epicyclePosition;
       this.marker.matrix.identity();
       this.marker.matrix.translate(new CoffeeGL.Vec3(cp.x, 0.0, cp.y));
+      current_state.pos = this._setPOI(this.epicycle);
+      this.move_poi.dispatch(current_state.pos);
       return this;
     };
 
@@ -367,6 +378,8 @@
       current_state = this.stack[this.stack_idx];
       this.pointer.matrix.identity();
       this.pointer.matrix.rotate(new CoffeeGL.Vec3(0, 1, 0), CoffeeGL.degToRad(current_state.rot_interp.set(dt)));
+      current_state.pos = this._setPOI(this.epicycle);
+      this.move_poi.dispatch(current_state.pos);
       return this;
     };
 
@@ -385,6 +398,8 @@
       cp = this.system.state.pointerPoint;
       this.marker.matrix.identity();
       this.marker.matrix.translate(new CoffeeGL.Vec3(cp.x, 0.6, cp.y));
+      current_state.pos = this._setPOI(this.marker);
+      this.move_poi.dispatch(current_state.pos);
       return this;
     };
 
@@ -407,6 +422,8 @@
         cmd: "black_end_move",
         data: this.black_end.matrix.getPos()
       });
+      current_state.pos = this._setPOI(this.black_end);
+      this.move_poi.dispatch(current_state.pos);
       return this;
     };
 
@@ -482,7 +499,11 @@
       this.system.reset();
       this.marker.matrix.identity();
       this.epicycle.matrix.identity();
-      return this.pointer.matrix.identity();
+      this.pointer.matrix.identity();
+      this.camera.pos = new CoffeeGL.Vec3(0, 0, 10);
+      this.camera.look = new CoffeeGL.Vec3(0, 0, 0);
+      this.camera.up = new CoffeeGL.Vec3(0, 1, 0);
+      return this.camera.rotateFocal(new CoffeeGL.Vec3(1, 0, 0), CoffeeGL.degToRad(-25));
     };
 
     EquatorieInteract.prototype.solveForPlanet = function(planet, date) {
@@ -618,10 +639,12 @@
     };
 
     EquatorieInteract.prototype.stepForward = function() {
-      var rval;
+      var date, rval;
       this.time.start = new Date().getTime();
+      date = new Date();
+      date.setDate(date.getDate() + this.advance_date);
       if (this.stack.length === 0) {
-        this.addStates(this.chosen_planet, new Date());
+        this.addStates(this.chosen_planet, date);
         this.stack_idx = 0;
       } else {
         if (this.stack_idx + 1 < this.stack.length) {

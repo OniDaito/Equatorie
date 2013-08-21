@@ -83,6 +83,11 @@ class Equatorie
       @top_node.add @basic_nodes
       @basic_nodes.shader = @shader_basic   
       @marker.shader = @shader_basic
+
+      # Backing Node
+
+      @backing = new CoffeeGL.Node new CoffeeGL.Quad()
+      @backing.shader = @shader_background
   
       @top_node.add(@equatorie_model)
 
@@ -192,8 +197,7 @@ class Equatorie
 
       @ready = true
 
-    
-
+  
     # Fire off the loader with the signal
     @loaded.addOnce f, @
     loadAssets @, @loaded, @load_progress
@@ -202,14 +206,25 @@ class Equatorie
 
     date = new Date()
     
-    # Our basic marker - this is part of our interaction
+    # Our basic marker / pin - this is part of our interaction
     cube = new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.2,0.2,0.2
-    cube2 = new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.01,0.5,0.01
-    @marker = new CoffeeGL.Node cube2
+    sphere = new CoffeeGL.Node new CoffeeGL.Shapes.Sphere 0.1, 12
+    cube_thin = new CoffeeGL.Node new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.01,0.5,0.01
+
+    cube_thin.matrix.translate new CoffeeGL.Vec3 0,-0.2,0
+    sphere.matrix.translate new CoffeeGL.Vec3 0,0.1,0
+
+    @pin = new CoffeeGL.Node()
+    @pin.add sphere
+    @pin.add cube_thin
+
+    @marker = @pin.copy()
     @marker.uColour = new CoffeeGL.Colour.RGBA(0.0,1.0,1.0,1.0)
     @top_node.add @marker
 
-    @c = new CoffeeGL.Camera.TouchPerspCamera(new CoffeeGL.Vec3(0,0,25))
+    @c = new CoffeeGL.Camera.TouchPerspCamera new CoffeeGL.Vec3(0,0,10)
+    @c.rotateFocal new CoffeeGL.Vec3(1,0,0), CoffeeGL.degToRad -25
+   
     @top_node.add(@c)
     @pickable.add(@c)
 
@@ -231,22 +246,22 @@ class Equatorie
     @black_string = new EquatorieString 10.0, 0.01, 20
     
 
-    @white_start = new CoffeeGL.Node cube
+    @white_start = @pin.copy()
     @pickable.add @white_start
     @white_start.matrix.translate new CoffeeGL.Vec3 2,@string_height,2
     @white_start.uPickingColour = new CoffeeGL.Colour.RGBA(1.0,0.0,0.0,1.0)
 
-    @white_end = new CoffeeGL.Node cube
+    @white_end = @pin.copy()
     @pickable.add @white_end
     @white_end.matrix.translate new CoffeeGL.Vec3 -2,@string_height,-2
     @white_end.uPickingColour = new CoffeeGL.Colour.RGBA(0.0,1.0,0.0,1.0)
 
-    @black_start = new CoffeeGL.Node cube
+    @black_start = @pin.copy()
     @pickable.add @black_start
     @black_start.matrix.translate new CoffeeGL.Vec3 -2,@string_height,2
     @black_start.uPickingColour = new CoffeeGL.Colour.RGBA(0.0,0.0,1.0,1.0)
 
-    @black_end = new CoffeeGL.Node cube
+    @black_end = @pin.copy()
     @pickable.add @black_end
     @black_end.matrix.translate new CoffeeGL.Vec3 -4,@string_height,2
     @black_end.uPickingColour = new CoffeeGL.Colour.RGBA(1.0,1.0,1.0,1.0)
@@ -259,6 +274,10 @@ class Equatorie
     @black_string.uColour = new CoffeeGL.Colour.RGBA(0.1,0.1,0.1,1.0)
     @white_start.uColour = new CoffeeGL.Colour.RGBA(0.9,0.2,0.2,0.8)
     @white_end.uColour = new CoffeeGL.Colour.RGBA(0.9,0.2,0.2,0.8)
+
+   
+
+
 
    
   update : (dt) =>
@@ -302,6 +321,10 @@ class Equatorie
 
     if not @ready
       return
+
+    GL.disable GL.DEPTH_TEST
+    @backing.draw() if @backing?
+    GL.enable GL.DEPTH_TEST
 
     @top_node.draw() if @top_node?
     

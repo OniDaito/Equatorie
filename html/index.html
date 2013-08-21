@@ -40,7 +40,6 @@ equatorie.html
 
 <script type="text/javascript" src="/js/coffeegl.js"></script>
 <script type="text/javascript" src="/js/dat.gui.min.js"></script>
-<script type="text/javascript" src="/js/ammo.fast.js"></script>
 
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/js/bootstrap.min.js"></script>
@@ -145,6 +144,11 @@ loading = function (loaded) {
 }
 
 moving = function (pos) {
+
+  // Alter the pos a little so its aligned nicely
+  pos.x += 10;
+  pos.y -= $(".popover").height() / 2;
+
   $container.css({
     position: 'absolute',
     left: pos.x,
@@ -217,7 +221,7 @@ var $container = $('#popupContainer');
 
 var options = {
     trigger: 'manual',
-    placement: 'bottom'
+    placement: 'right'
 };
 
 $('#button_next').click( function() {
@@ -247,6 +251,11 @@ $('#button_next').click( function() {
       $container.popover('destroy');
    
     }
+
+    if (window.Equatorie.stack_idx == window.Equatorie.stack.length - 1){
+      $('#button_next').hide(); 
+    }
+
   }
 });
 

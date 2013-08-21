@@ -65,6 +65,12 @@ _loadBaseNormal = (obj, c) =>
     c.test()
   )
 
+_loadBackingShader = (obj,c) =>
+  r = new CoffeeGL.Request('../shaders/background.glsl')
+  r.get (data) =>
+    obj.shader_background = new CoffeeGL.Shader(data)
+    c.test()
+
 # Load all the things we need, firing off a final signal when we do
 loadAssets = (obj, signal, signal_progress) ->
 
@@ -73,7 +79,7 @@ loadAssets = (obj, signal, signal_progress) ->
 
   counter.test = () ->
     @count--
-    @signal_progress.dispatch( (10 - @count) / 10 )
+    @signal_progress.dispatch( (11 - @count) / 11 )
     if @count <= 0
       @signal.dispatch()
 
@@ -88,8 +94,9 @@ loadAssets = (obj, signal, signal_progress) ->
   _loadRimNormal obj, counter
   _loadPointerNormal obj, counter
   _loadBaseNormal obj, counter
+  _loadBackingShader obj, counter
   
-  counter.count = 10
+  counter.count = 11
   counter.signal = signal
   counter.signal_progress = signal_progress
 
