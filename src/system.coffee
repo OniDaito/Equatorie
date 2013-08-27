@@ -266,6 +266,7 @@ class EquatorieSystem
       @state.basePosition = new CoffeeGL.Vec2(@base_radius * cr, @base_radius * sr)
 
       return @state.deferentPosition
+
     else if @state.planet == "mercury"
       # We need to makre sure we have the mean Motus at this point - it moves clockwise by the amount of the mean motus
       # We also only have 180 holes in this model so we need to restrain to 2 degrees of accuracy
@@ -274,7 +275,6 @@ class EquatorieSystem
       y = @inch_to_base * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @state.deferentAngle)
       @state.deferentPosition = new CoffeeGL.Vec2 x,y
       
-  
       meanCentre = @state.deferentAngle + (@state.meanMotus * -1)
 
       l = @state.deferentPosition.length()
@@ -441,8 +441,6 @@ class EquatorieSystem
       l = l - 180
 
     @state.moonLatitudeDegree = l
-
-    console.log l,p
 
     x = Math.cos CoffeeGL.degToRad -@state.moonLatitudeDegree
     y = Math.sin CoffeeGL.degToRad -@state.moonLatitudeDegree

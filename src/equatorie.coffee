@@ -53,32 +53,31 @@ class Equatorie
     @system._calculateDate(new Date ("January 1, 1393 00:00:00") )
     @system._setPlanet("mars")   
     @system._calculateDeferentAngle()
-    console.log @system._calculateDeferentPosition()
+    #console.log @system._calculateDeferentPosition()
 
     @system._setPlanet("venus")   
     @system._calculateDeferentAngle()
-    console.log @system._calculateDeferentPosition()
+    #console.log @system._calculateDeferentPosition()
 
     @system._setPlanet("jupiter")   
     @system._calculateDeferentAngle()
-    console.log @system._calculateDeferentPosition()
+    #console.log @system._calculateDeferentPosition()
 
     @system._setPlanet("saturn")   
     @system._calculateDeferentAngle()
-    console.log @system._calculateDeferentPosition()
+    #console.log @system._calculateDeferentPosition()
 
     @system._setPlanet("mercury")   
     @system._calculateDeferentAngle()
     @system._calculateDeferentPosition()
-    console.log @system.state.deferentPosition
-
+    #console.log @system.state.deferentPosition
 
     @system.reset()
 
     # Function called when everything is loaded
     f = () =>
 
-      console.log "Loaded Assets"
+      #console.log "Loaded Assets"
 
       @top_node.add @basic_nodes
       @basic_nodes.shader = @shader_basic   
@@ -276,10 +275,6 @@ class Equatorie
     @white_end.uColour = new CoffeeGL.Colour.RGBA(0.9,0.2,0.2,0.8)
 
    
-
-
-
-   
   update : (dt) =>
   
     #date = new Date("May 31, 1585 00:00:00")
@@ -301,8 +296,8 @@ class Equatorie
 
   # update the physics - each body in the string needs to have its position and orientation updated
   updatePhysics : (data) ->
-    @white_string.update data.white
-    @black_string.update data.black
+    #@white_string.update data.white
+    #@black_string.update data.black
 
   
   onPhysicsEvent : (event) =>

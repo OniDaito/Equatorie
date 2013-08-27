@@ -56,24 +56,18 @@
       this.system._calculateDate(new Date("January 1, 1393 00:00:00"));
       this.system._setPlanet("mars");
       this.system._calculateDeferentAngle();
-      console.log(this.system._calculateDeferentPosition());
       this.system._setPlanet("venus");
       this.system._calculateDeferentAngle();
-      console.log(this.system._calculateDeferentPosition());
       this.system._setPlanet("jupiter");
       this.system._calculateDeferentAngle();
-      console.log(this.system._calculateDeferentPosition());
       this.system._setPlanet("saturn");
       this.system._calculateDeferentAngle();
-      console.log(this.system._calculateDeferentPosition());
       this.system._setPlanet("mercury");
       this.system._calculateDeferentAngle();
       this.system._calculateDeferentPosition();
-      console.log(this.system.state.deferentPosition);
       this.system.reset();
       f = function() {
         var q;
-        console.log("Loaded Assets");
         _this.top_node.add(_this.basic_nodes);
         _this.basic_nodes.shader = _this.shader_basic;
         _this.marker.shader = _this.shader_basic;
@@ -222,10 +216,7 @@
       return this;
     };
 
-    Equatorie.prototype.updatePhysics = function(data) {
-      this.white_string.update(data.white);
-      return this.black_string.update(data.black);
-    };
+    Equatorie.prototype.updatePhysics = function(data) {};
 
     Equatorie.prototype.onPhysicsEvent = function(event) {
       switch (event.data.cmd) {

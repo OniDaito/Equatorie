@@ -368,7 +368,6 @@
         l = l - 180;
       }
       this.state.moonLatitudeDegree = l;
-      console.log(l, p);
       x = Math.cos(CoffeeGL.degToRad(-this.state.moonLatitudeDegree));
       y = Math.sin(CoffeeGL.degToRad(-this.state.moonLatitudeDegree));
       s = new CoffeeGL.Vec2(x, y);

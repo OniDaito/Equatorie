@@ -2,12 +2,11 @@
 {{ShaderLibrary.Basic}}
 {{ShaderLibrary.BasicCamera}}
 {{ShaderLibrary.VertexNormal}}
-{{ShaderLibrary.BasicTexture}}
+{{ShaderLibrary.VertexTexCoord}}
 
 varying vec4 vTransformedNormal;
 varying vec4 vPosition;
 varying vec4 vEyePosition;
-uniform int uNumLights;
 
 void main(void) {
   vPosition =   uModelMatrix * vec4(aVertexPosition, 1.0);
@@ -22,9 +21,9 @@ void main(void) {
 ##>FRAGMENT
 precision mediump float;
 
-{{ShaderLibrary.Basic}}
 {{ShaderLibrary.VertexNormal}}
-{{ShaderLibrary.BasicTexture}}
+{{ShaderLibrary.VertexTexCoord}}
+{{ShaderLibrary.BasicMaterial}}
 
 varying vec4 vTransformedNormal;
 varying vec4 vPosition;
@@ -34,16 +33,12 @@ uniform vec3 uPointLightPos[10];
 
 uniform vec3 uAmbientLightingColor;
 
-uniform vec3 uMaterialAmbientColor;
-uniform vec3 uMaterialDiffuseColor;
-uniform vec3 uMaterialSpecularColor;
-uniform float uMaterialShininess;
-uniform vec3 uMaterialEmissiveColor;
-
 uniform vec3 uPointLightDiffuse[10];
 uniform vec3 uPointLightSpecular[10];
 uniform vec3 uPointLightAttenuation[10];
 uniform int uNumLights;
+
+uniform sampler2D uSampler;
 
 void main(void) {
   vec3 ambientLightWeighting = uAmbientLightingColor;

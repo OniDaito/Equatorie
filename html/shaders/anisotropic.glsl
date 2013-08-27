@@ -3,12 +3,11 @@
 {{ShaderLibrary.BasicCamera}}
 {{ShaderLibrary.VertexNormal}}
 {{ShaderLibrary.VertexTangent}}
-{{ShaderLibrary.BasicTexture}}
+{{ShaderLibrary.VertexTexCoord}}
 
 varying vec4 vTransformedNormal;
 varying vec4 vPosition;
 varying vec4 vEyePosition;
-uniform int uNumLights;
 
 void main(void) {
   vPosition =   uModelMatrix * vec4(aVertexPosition, 1.0);
@@ -22,9 +21,8 @@ void main(void) {
 ##>FRAGMENT
 precision mediump float;
 
-{{ShaderLibrary.Basic}}
 {{ShaderLibrary.VertexNormal}}
-{{ShaderLibrary.BasicTexture}}
+{{ShaderLibrary.VertexTexCoord}}
 {{ShaderLibrary.VertexTangent}}
 
 varying vec4 vTransformedNormal;
@@ -49,6 +47,7 @@ uniform vec3 uSpecColour;
 uniform float uAlphaX;
 uniform float uAlphaY;
 
+uniform sampler2D uSampler;
 uniform sampler2D uSamplerNormal;
 
 vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord ) {

@@ -7,7 +7,6 @@
 varying vec4 vTransformedNormal;
 varying vec4 vPosition;
 varying vec4 vEyePosition;
-uniform int uNumLights;
 
 void main(void) {
   vPosition =   uModelMatrix * vec4(aVertexPosition, 1.0);

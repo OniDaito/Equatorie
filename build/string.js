@@ -8,15 +8,83 @@
     __extends(EquatorieString, _super);
 
     function EquatorieString(length, thickness, segments) {
-      var i, seglength, segment_geom, segment_node, _i, _ref;
+      var seglength;
       EquatorieString.__super__.constructor.call(this);
       seglength = length / segments;
-      segment_geom = new CoffeeGL.Shapes.Cylinder(thickness, 12, seglength);
-      for (i = _i = 0, _ref = segments - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-        segment_node = new CoffeeGL.Node(segment_geom);
-        this.add(segment_node);
-      }
+      this.add(this._makeSegments(thickness, 12, seglength, segments));
     }
+
+    EquatorieString.prototype._makeSegments = function(radius, resolution, height, segments) {
+      var e, geom, i, j, s, tangent, x, z, _i, _j, _k, _l, _m, _n, _o, _p, _ref, _ref1, _ref2;
+      geom = new CoffeeGL.Geometry();
+      geom.indices = [];
+      height = height / 2.0;
+      geom.v.push(new CoffeeGL.Vertex(new CoffeeGL.Vec3(0, height, 0), new CoffeeGL.Colour.RGBA.WHITE(), new CoffeeGL.Vec3(0, 0, 1.0), new CoffeeGL.Vec2(0.5, 1.0)));
+      for (i = _i = 1; 1 <= resolution ? _i <= resolution : _i >= resolution; i = 1 <= resolution ? ++_i : --_i) {
+        x = radius * Math.sin(CoffeeGL.degToRad(360.0 / resolution * i));
+        z = radius * Math.cos(CoffeeGL.degToRad(360.0 / resolution * i));
+        tangent = new CoffeeGL.Vec3(x, 0, z);
+        tangent.normalize();
+        tangent.cross(new CoffeeGL.Vec3(0, 1, 0));
+        geom.v.push(new CoffeeGL.Vertex(new CoffeeGL.Vec3(x, height, z), new CoffeeGL.Colour.RGBA.WHITE(), CoffeeGL.Vec3.normalize(new CoffeeGL.Vec3(x, 1.0, z)), new CoffeeGL.Vec2(i / resolution, 0.0), tangent));
+      }
+      for (i = _j = 1; 1 <= resolution ? _j <= resolution : _j >= resolution; i = 1 <= resolution ? ++_j : --_j) {
+        geom.indices.push(0);
+        geom.indices.push(i);
+        if (i === resolution) {
+          geom.indices.push(1);
+        } else {
+          geom.indices.push(i + 1);
+        }
+      }
+      for (i = _k = 1; 1 <= segments ? _k <= segments : _k >= segments; i = 1 <= segments ? ++_k : --_k) {
+        for (j = _l = 1; 1 <= resolution ? _l <= resolution : _l >= resolution; j = 1 <= resolution ? ++_l : --_l) {
+          x = radius * Math.sin(CoffeeGL.degToRad(360.0 / resolution * j));
+          z = radius * Math.cos(CoffeeGL.degToRad(360.0 / resolution * j));
+          tangent = new CoffeeGL.Vec3(x, 0, z);
+          tangent.normalize();
+          tangent.cross(new CoffeeGL.Vec3(0, -1, 0));
+          geom.v.push(new CoffeeGL.Vertex(new CoffeeGL.Vec3(x, -height * i, z), new CoffeeGL.Colour.RGBA.WHITE(), CoffeeGL.Vec3.normalize(new CoffeeGL.Vec3(x, -1.0, z)), new CoffeeGL.Vec2(j / resolution, i / segments), tangent));
+        }
+        s = (i - 1) * resolution + 1;
+        e = s + resolution;
+        for (j = _m = 0, _ref = resolution - 1; 0 <= _ref ? _m <= _ref : _m >= _ref; j = 0 <= _ref ? ++_m : --_m) {
+          geom.indices.push(s + j);
+          geom.indices.push(e + j);
+          if (j === (resolution - 1)) {
+            geom.indices.push(e);
+          } else {
+            geom.indices.push(e + j + 1);
+          }
+        }
+        for (j = _n = 0, _ref1 = resolution - 1; 0 <= _ref1 ? _n <= _ref1 : _n >= _ref1; j = 0 <= _ref1 ? ++_n : --_n) {
+          geom.indices.push(s + j);
+          if (j === (resolution - 1)) {
+            geom.indices.push(e);
+            geom.indices.push(s);
+          } else {
+            geom.indices.push(e + j + 1);
+            geom.indices.push(s + j + 1);
+          }
+        }
+      }
+      geom.v.push(new CoffeeGL.Vertex(new CoffeeGL.Vec3(0, -height * segments, 0), new CoffeeGL.Colour.RGBA.WHITE(), new CoffeeGL.Vec3(0, 0, -1.0), new CoffeeGL.Vec2(0.5, 1.0)));
+      s = (segments * resolution) + 2;
+      e = s + resolution - 1;
+      for (i = _o = s; s <= e ? _o <= e : _o >= e; i = s <= e ? ++_o : --_o) {
+        geom.indices.push(s - 1);
+        if (i === e) {
+          geom.indices.push(s);
+        } else {
+          geom.indices.push(i + 1);
+        }
+        geom.indices.push(i);
+      }
+      for (i = _p = 0, _ref2 = geom.indices.length - 1; _p <= _ref2; i = _p += 3) {
+        geom.faces.push(new CoffeeGL.Triangle(geom.v[geom.indices[i]], geom.v[geom.indices[i + 1]], geom.v[geom.indices[i + 2]]));
+      }
+      return geom;
+    };
 
     EquatorieString.prototype.update = function(data) {
       var idx, phys, segment, tmatrix, tq, tv, _i, _len, _ref, _results;

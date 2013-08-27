@@ -1,18 +1,50 @@
 
-# Load the Resources we need for the simulation
+class LoadItem
+  constructor : (@func, @userOnLoaded) ->
 
-# We should properly add this as a coffeegl class for loading things in a queue
+  loaded : () -> 
+    @loader.itemCompleted(@)
+    @userOnLoaded() if @userOnLoaded?
 
-_loadLighting = (obj, c) =>
+
+class LoadQueue
+
+  constructor : (@obj, @onLoaded, @onFinish) ->
+    @items = []
+    @completed_items = []
+    @complete = new CoffeeGL.Signal()
+
+    @complete.add onFinish, @ if @onFinish?
+
+  itemCompleted: (item) ->
+    @completed_items.push item
+    @onLoaded() if @onLoaded?
+    if @completed_items.length == @items.length
+      @complete.dispatch()
+
+  add : (item) ->
+    item.obj = @obj
+    item.loader = @
+    @items.push item
+ 
+
+  start : () ->
+    for item in @items
+      item.func()
+
+
+_loadLighting = new LoadItem () ->
   r = new CoffeeGL.Request ('../shaders/basic_lighting.glsl')
   r.get (data) =>
-    obj.shader = new CoffeeGL.Shader(data, {"uAmbientLightingColor" : "uAmbientLightingColor"})
-    c.test()
+    @obj.shader = new CoffeeGL.Shader(data, {"uAmbientLightingColor" : "uAmbientLightingColor"})
+    @loaded()
+  @  
 
-_loadAniso = (obj, c) =>
+
+_loadAniso = new LoadItem () ->
   r = new CoffeeGL.Request ('../shaders/anisotropic.glsl')
   r.get (data) =>
-    obj.shader_aniso = new CoffeeGL.Shader(data, {
+    @obj.shader_aniso = new CoffeeGL.Shader(data, {
       "uAmbientLightingColor" : "uAmbientLightingColor",
       "uSpecColour" : "uSpecColour",
       "uSamplerNormal" : "uSamplerNormal",
@@ -20,87 +52,98 @@ _loadAniso = (obj, c) =>
       "uAlphaY" : "uAlphaY"
     })
   
-    c.test()
+    @loaded()
+  @ 
 
-_loadModel = (obj, c) =>
+_loadModel = new LoadItem () ->
   r = new CoffeeGL.Request('../models/equatorie.js')
   r.get (data) =>
-    obj.equatorie_model = new CoffeeGL.JSONModel(data)
-    c.test()
-   
-_loadBasic = (obj, c) =>
+    @obj.equatorie_model = new CoffeeGL.JSONModel(data,{ onLoad : ()=>  
+         @loaded()
+      })
+    @
+  @ 
+
+_loadBasic = new LoadItem () ->
   r = new CoffeeGL.Request ('../shaders/basic.glsl')
   r.get (data) =>
-    obj.shader_basic = new CoffeeGL.Shader(data, {"uColour" : "uColour"})
-    c.test()
+    @obj.shader_basic = new CoffeeGL.Shader(data, {"uColour" : "uColour"})
+    @loaded()
+    
+  @
 
-_loadPicking = (obj, c) =>
+
+_loadPicking = new LoadItem () ->
   r = new CoffeeGL.Request('../shaders/picking.glsl')
   r.get (data) =>
-    obj.shader_picker = new CoffeeGL.Shader(data, {"uPickingColour" : "uPickingColour"})
-    c.test()
+    @obj.shader_picker = new CoffeeGL.Shader(data, {"uPickingColour" : "uPickingColour"})
+    @loaded()
+  @
 
-_loadEpicycleNormal = (obj, c) =>
-  obj.epicycle_normal = new CoffeeGL.Texture("../models/epicycle_NRM.jpg",{unit : 1}, () => 
-    c.test()
+_loadEpicycleNormal = new LoadItem () ->
+  @obj.epicycle_normal = new CoffeeGL.Texture("../models/epicycle_NRM.jpg",{unit : 1}, () => 
+    @loaded()
   )
+  @
 
-_loadPlateNormal = (obj, c) =>
-  obj.plate_normal = new CoffeeGL.Texture("../models/plate_NRM.jpg",{unit : 1}, () => 
-    c.test()
+
+_loadPlateNormal = new LoadItem () ->
+  @obj.plate_normal = new CoffeeGL.Texture("../models/plate_NRM.jpg",{unit : 1}, () => 
+    @loaded()
   )
+  @
 
-_loadRimNormal = (obj, c) =>
-  obj.rim_normal = new CoffeeGL.Texture("../models/ring_NRM.jpg",{unit : 1}, () => 
-    c.test()
+_loadRimNormal= new LoadItem () ->
+  @obj.rim_normal = new CoffeeGL.Texture("../models/ring_NRM.jpg",{unit : 1}, () => 
+    @loaded()
   )
+  @
 
-_loadPointerNormal = (obj, c) =>
-  obj.pointer_normal = new CoffeeGL.Texture("../models/label_NRM.jpg",{unit : 1}, () => 
-    c.test()
+_loadPointerNormal = new LoadItem () ->
+  @obj.pointer_normal = new CoffeeGL.Texture("../models/label_NRM.jpg",{unit : 1}, () => 
+    @loaded()
   )
+  @
 
-_loadBaseNormal = (obj, c) =>
-  obj.base_normal = new CoffeeGL.Texture("../models/base_texture_NRM.jpg",{unit : 1}, () => 
-    c.test()
+_loadBaseNormal = new LoadItem () ->
+  @obj.base_normal = new CoffeeGL.Texture("../models/base_texture_NRM.jpg",{unit : 1}, () => 
+    @loaded()
   )
+  @
 
-_loadBackingShader = (obj,c) =>
+_loadBackingShader = new LoadItem () ->
   r = new CoffeeGL.Request('../shaders/background.glsl')
   r.get (data) =>
-    obj.shader_background = new CoffeeGL.Shader(data)
-    c.test()
-
-# Load all the things we need, firing off a final signal when we do
-loadAssets = (obj, signal, signal_progress) ->
-
-  counter = {}
-
-
-  counter.test = () ->
-    @count--
-    @signal_progress.dispatch( (11 - @count) / 11 )
-    if @count <= 0
-      @signal.dispatch()
-
-
-  _loadLighting obj, counter
-  _loadModel obj, counter
-  _loadBasic obj, counter
-  _loadPicking obj, counter
-  _loadAniso obj, counter
-  _loadEpicycleNormal obj, counter
-  _loadPlateNormal obj, counter
-  _loadRimNormal obj, counter
-  _loadPointerNormal obj, counter
-  _loadBaseNormal obj, counter
-  _loadBackingShader obj, counter
-  
-  counter.count = 11
-  counter.signal = signal
-  counter.signal_progress = signal_progress
-
+    @obj.shader_background = new CoffeeGL.Shader(data)
+    @loaded()
   @
+
+
+loadAssets = (obj, signal, signal_progress) ->
+  
+  a = () -> 
+    signal_progress.dispatch(@completed_items.length / @items.length)
+
+  b = () ->
+    signal.dispatch()
+
+  lq = new LoadQueue obj, a, b
+
+  lq.add _loadLighting
+  lq.add _loadModel
+  lq.add _loadBasic
+  lq.add _loadPicking
+  lq.add _loadAniso
+  lq.add _loadEpicycleNormal
+  lq.add _loadPlateNormal
+  lq.add _loadRimNormal
+  lq.add _loadPointerNormal
+  lq.add _loadBaseNormal
+  lq.add _loadBackingShader
+
+  lq.start()
+  @
+
 
 module.exports = 
   loadAssets : loadAssets

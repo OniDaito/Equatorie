@@ -1,7 +1,7 @@
 ##>VERTEX
 {{ShaderLibrary.Basic}}
 {{ShaderLibrary.BasicCamera}}
-{{ShaderLibrary.BasicTexture}}
+{{ShaderLibrary.VertexTexCoord}}
 
 void main(void) {
   vTexCoord = aVertexTexCoord;
@@ -14,8 +14,10 @@ void main(void) {
 precision mediump float;
 
 {{ShaderLibrary.Basic}}
-{{ShaderLibrary.BasicTexture}}
+{{ShaderLibrary.VertexTexCoord}}
   
+uniform sampler2D uSampler;
+
 void main(void) {
   gl_FragColor = texture2D(uSampler, vTexCoord);
 }

@@ -227,7 +227,8 @@ var options = {
 $('#button_next').click( function() {
 
   if(window.Equatorie !== undefined) {
-    $("#actionSelect").hide();
+    $("#actionSelect button:first-child").prop('disabled', true);
+
     nd = window.Equatorie.stepForward();
 
     if (nd.pos !== undefined){
@@ -270,7 +271,7 @@ $('#button_reset').click( function() {
     });
 
     $("#button_next").hide();
-    $("#actionSelect").show();
+    $("#actionSelect button:first-child").prop('disabled', false);
   }
 });
 
