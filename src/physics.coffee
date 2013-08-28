@@ -154,18 +154,14 @@ interval = null
 
   trans = new Ammo.btTransform()
   ms = new Ammo.btDefaultMotionState()
-  body.getMotionState(ms)
-  ms.getWorldTransform(trans)
-  trans.setOrigin new Ammo.btVector3(pos.x,pos.y,pos.z)
+  body.getMotionState ms
+  ms.getWorldTransform trans
+  trans.setOrigin new Ammo.btVector3 pos.x,pos.y,pos.z
   
+  body.setActivationState 4
 
-  body.setActivationState(4);
-
-
-  ms.setWorldTransform(trans)
-  body.setMotionState(ms)
-
-
+  ms.setWorldTransform trans
+  body.setMotionState ms
 
   # Damping seems to kill things :S
 
@@ -184,7 +180,7 @@ interval = null
 @simulate = (dt) ->
   dt = dt || 1
 
-  @dynamicsWorld.stepSimulation(dt, 2) 
+  @dynamicsWorld.stepSimulation dt, 2
 
   data =
     black :

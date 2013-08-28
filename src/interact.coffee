@@ -351,7 +351,6 @@ class EquatorieInteract
   
     @
 
-    
   _stateRotateMeanAuxInit : () =>
     current_state = @stack[@stack_idx]
     current_state.text = "Rotate the label till it is aligned with the white string."
