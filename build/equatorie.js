@@ -41,6 +41,7 @@
       this.pickable = new CoffeeGL.Node();
       this.fbo_picking = new CoffeeGL.Fbo();
       this.ray = new CoffeeGL.Vec3(0, 0, 0);
+      this.fbo_fxaa = new CoffeeGL.Fbo();
       this.advance_date = 0;
       this.basic_nodes = new CoffeeGL.Node();
       this.mp = new CoffeeGL.Vec2(-1, -1);
@@ -148,6 +149,9 @@
         CoffeeGL.Context.mouseMove.add(_this.onMouseMove, _this);
         CoffeeGL.Context.mouseMove.del(_this.c.onMouseMove, _this.c);
         CoffeeGL.Context.mouseDown.del(_this.c.onMouseDown, _this.c);
+        _this.screen_quad = new CoffeeGL.Node(new CoffeeGL.Quad());
+        _this.screen_quad.viewportSize = new CoffeeGL.Vec2(CoffeeGL.Context.width, CoffeeGL.Context.height);
+        _this.screen_quad.add(_this.shader_fxaa);
         return _this.ready = true;
       };
       this.loaded.addOnce(f, this);
@@ -245,14 +249,13 @@
       if (!this.ready) {
         return;
       }
+      this.fbo_fxaa.bind();
+      this.fbo_fxaa.clear();
       GL.disable(GL.DEPTH_TEST);
-      if (this.backing != null) {
-        this.backing.draw();
-      }
+      this.backing.draw();
       GL.enable(GL.DEPTH_TEST);
-      if (this.top_node != null) {
-        this.top_node.draw();
-      }
+      this.top_node.draw();
+      this.fbo_fxaa.unbind();
       if (this.shader_picker != null) {
         this.fbo_picking.bind();
         this.fbo_picking.clear();
@@ -264,8 +267,13 @@
           this.interact.checkPicked(pixel);
         }
         this.shader_picker.unbind();
-        return this.fbo_picking.unbind();
+        this.fbo_picking.unbind();
       }
+      GL.disable(GL.DEPTH_TEST);
+      this.fbo_fxaa.texture.bind();
+      this.screen_quad.draw();
+      this.fbo_fxaa.texture.unbind();
+      return GL.enable(GL.DEPTH_TEST);
     };
 
     Equatorie.prototype.onMouseMove = function(event) {
@@ -284,7 +292,12 @@
     };
 
     Equatorie.prototype.resize = function(w, h) {
-      return this.fbo_picking.resize(w, h);
+      this.fbo_picking.resize(w, h);
+      this.fbo_fxaa.resize(w, h);
+      if (this.screen_quad != null) {
+        this.screen_quad.viewportSize.x = w;
+        return this.screen_quad.viewportSize.y = h;
+      }
     };
 
     Equatorie.prototype._setTangents = function(geom) {

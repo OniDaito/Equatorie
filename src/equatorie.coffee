@@ -33,6 +33,8 @@ class Equatorie
     @fbo_picking = new CoffeeGL.Fbo()
     @ray = new CoffeeGL.Vec3(0,0,0)
 
+    @fbo_fxaa = new CoffeeGL.Fbo()
+  
     @advance_date = 0
 
     # Nodes being drawn with the basic shader
@@ -202,6 +204,11 @@ class Equatorie
       CoffeeGL.Context.mouseMove.del @c.onMouseMove, @c
       CoffeeGL.Context.mouseDown.del @c.onMouseDown, @c
 
+      # FXAA Shader
+      @screen_quad = new CoffeeGL.Node new CoffeeGL.Quad()
+      @screen_quad.viewportSize = new CoffeeGL.Vec2 CoffeeGL.Context.width, CoffeeGL.Context.height 
+      @screen_quad.add @shader_fxaa
+
       @ready = true
 
   
@@ -283,7 +290,7 @@ class Equatorie
     @black_start.uColour = new CoffeeGL.Colour.RGBA(0.9,0.2,0.2,0.8)
     @black_end.uColour = new CoffeeGL.Colour.RGBA(0.2,0.2,0.9,0.8)
 
-   
+
   update : (dt) =>
   
     #date = new Date("May 31, 1585 00:00:00")
@@ -326,12 +333,15 @@ class Equatorie
     if not @ready
       return
 
+ 
+    @fbo_fxaa.bind()
+    @fbo_fxaa.clear()
     GL.disable GL.DEPTH_TEST
-    @backing.draw() if @backing?
+    @backing.draw()
     GL.enable GL.DEPTH_TEST
+    @top_node.draw()
+    @fbo_fxaa.unbind()
 
-    @top_node.draw() if @top_node?
-    
     # Draw everything pickable to the pickable FBO
     if @shader_picker?
       @fbo_picking.bind()
@@ -349,6 +359,12 @@ class Equatorie
       @shader_picker.unbind()
       @fbo_picking.unbind()
 
+    GL.disable GL.DEPTH_TEST
+    @fbo_fxaa.texture.bind()
+    @screen_quad.draw()
+    @fbo_fxaa.texture.unbind()
+    GL.enable GL.DEPTH_TEST
+
 
   onMouseMove : (event) ->
     @mp.x = event.mouseX
@@ -364,9 +380,12 @@ class Equatorie
     @mp.y = -1
 
 
-
   resize : (w,h) ->
-    @fbo_picking.resize(w,h)
+    @fbo_picking.resize w,h
+    @fbo_fxaa.resize w,h
+    if @screen_quad?
+      @screen_quad.viewportSize.x = w
+      @screen_quad.viewportSize.y = h
 
   _setTangents : (geom) ->
     for face in geom.faces

@@ -125,6 +125,13 @@ _loadBackingShader = new LoadItem () ->
     @loaded()
   @
 
+_loadFXAAShader = new LoadItem () ->
+  r = new CoffeeGL.Request('../shaders/fxaa.glsl')
+  r.get (data) =>
+    @obj.shader_fxaa = new CoffeeGL.Shader(data, {"uViewportSize" : "viewportSize"})
+    @loaded()
+  @
+
 
 loadAssets = (obj, signal, signal_progress) ->
   
@@ -148,6 +155,7 @@ loadAssets = (obj, signal, signal_progress) ->
   lq.add _loadBaseNormal
   lq.add _loadBackingShader
   lq.add _loadStringShader
+  lq.add _loadFXAAShader
 
   lq.start()
   @
