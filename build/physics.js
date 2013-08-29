@@ -8,14 +8,18 @@
 
   this.string_height = 0.4;
 
+  this.bodies = [];
+
+  this.constraints = [];
+
   PhysicsString = (function() {
-    function PhysicsString(length, thickness, segments, start, end, world) {
+    function PhysicsString(length, thickness, segments, start, end, world, bodies, constraints) {
       var base, body, c, colShape, endMotionState, endRigidBodyCI, endTransform, fixShape, i, localInertia, mass, motionState, pp, pq, rbInfo, seglength, startMotionState, startRigidBodyCI, startTransform, _i, _j, _ref, _ref1;
       seglength = length / segments;
       this.children = [];
       this.length = length;
       for (i = _i = 0, _ref = segments - 2; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-        colShape = new Ammo.btSphereShape(seglength / 2);
+        colShape = new Ammo.btSphereShape(seglength / 4);
         mass = 1.0;
         localInertia = new Ammo.btVector3(0, 0, 0);
         colShape.calculateLocalInertia(mass, localInertia);
@@ -23,8 +27,9 @@
         motionState = new Ammo.btDefaultMotionState(new Ammo.btTransform(new Ammo.btQuaternion(0, 0, 0, 1), new Ammo.btVector3(0, base + seglength * i, 0)));
         rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, colShape, localInertia);
         body = new Ammo.btRigidBody(rbInfo);
-        body.setDamping(0.99, 0.99);
+        body.setDamping(0.98, 0.98);
         this.children.push(body);
+        bodies.push(body);
         body.setActivationState(4);
         world.addRigidBody(body);
       }
@@ -33,6 +38,7 @@
         pq = new Ammo.btVector3(0, -seglength / 2, 0);
         c = new Ammo.btPoint2PointConstraint(this.children[i], this.children[i + 1], pp, pq);
         world.addConstraint(c, true);
+        constraints.push(c);
       }
       fixShape = new Ammo.btBoxShape(new Ammo.btVector3(0.1, 0.1, 0.1));
       startTransform = new Ammo.btTransform();
@@ -48,6 +54,8 @@
       c = new Ammo.btPoint2PointConstraint(this.children[0], this.start, pp, pq);
       world.addConstraint(c, true);
       world.addRigidBody(this.start);
+      bodies.push(this.start);
+      constraints.push(c);
       endTransform = new Ammo.btTransform();
       endTransform.setIdentity();
       endTransform.setOrigin(new Ammo.btVector3(end.x, end.y, end.z));
@@ -65,6 +73,8 @@
       c = new Ammo.btPoint2PointConstraint(this.children[this.children.length - 1], this.end, pp, pq);
       world.addConstraint(c, true);
       world.addRigidBody(this.end);
+      bodies.push(this.end);
+      constraints.push(c);
     }
 
     PhysicsString.prototype.update = function() {
@@ -117,7 +127,7 @@
     baseRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0, baseMotionState, baseShape, new Ammo.btVector3(0, 0, 0));
     baseRigidBody = new Ammo.btRigidBody(baseRigidBodyCI);
     this.dynamicsWorld.addRigidBody(baseRigidBody);
-    this.white_string = new PhysicsString(8.0, 0.01, 20, {
+    this.white_string = new PhysicsString(10.2, 0.015, 20, {
       x: 2,
       y: 0.2,
       z: 2
@@ -125,8 +135,8 @@
       x: -2,
       y: 0.2,
       z: -2
-    }, this.dynamicsWorld);
-    this.black_string = new PhysicsString(8.0, 0.01, 20, {
+    }, this.dynamicsWorld, this.bodies, this.constraints);
+    this.black_string = new PhysicsString(10.2, 0.015, 20, {
       x: -2,
       y: 0.2,
       z: 2
@@ -134,7 +144,7 @@
       x: -4,
       y: 0.2,
       z: 2
-    }, this.dynamicsWorld);
+    }, this.dynamicsWorld, this.bodies, this.constraints);
     last = Date.now();
     mainLoop = function() {
       var now;
@@ -194,7 +204,20 @@
     });
   };
 
-  this.reset = function() {};
+  this.reset = function() {
+    var c, _i, _j, _len, _len1, _ref, _ref1;
+    _ref = this.bodies;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      c = _ref[_i];
+      this.dynamicsWorld.removeRigidBody(c);
+    }
+    _ref1 = this.constraints;
+    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+      c = _ref1[_j];
+      this.dynamicsWorld.removeConstraint(c);
+    }
+    return startUp();
+  };
 
   this.onmessage = function(event) {
     switch (event.data.cmd) {

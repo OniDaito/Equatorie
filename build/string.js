@@ -13,7 +13,7 @@
       this.thickness = thickness;
       this.segments = segments;
       EquatorieString.__super__.constructor.call(this);
-      geom = new CoffeeGL.Shapes.Cylinder(this.thickness, 12, this.segments, this.length);
+      geom = new CoffeeGL.Shapes.Cylinder(this.thickness, 24, this.segments, this.length);
       _ref = geom.v;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         vert = _ref[_i];

@@ -11,9 +11,11 @@ importScripts '/js/ammo.small.js'
 # TODO - Limits on how far the string can be stretched
 @ping = 0
 @string_height = 0.4
+@bodies = [] # A Record on all bodies in the system
+@constraints = [] # A Record of all constraints in the system
 
 class PhysicsString
-  constructor : (length, thickness, segments, start, end, world) ->
+  constructor : (length, thickness, segments, start, end, world, bodies, constraints) ->
 
     seglength = length / segments
 
@@ -21,7 +23,7 @@ class PhysicsString
     @length  = length
 
     for i in [0..segments-2]
-      colShape = new Ammo.btSphereShape seglength/2
+      colShape = new Ammo.btSphereShape seglength/4
       mass = 1.0
       localInertia = new Ammo.btVector3(0, 0, 0)
       colShape.calculateLocalInertia(mass, localInertia)
@@ -30,8 +32,9 @@ class PhysicsString
       motionState = new Ammo.btDefaultMotionState(new Ammo.btTransform( new Ammo.btQuaternion(0,0,0,1), new Ammo.btVector3(0, base + seglength * i,0)))
       rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, colShape, localInertia)
       body = new Ammo.btRigidBody(rbInfo)
-      body.setDamping(0.99,0.99)
+      body.setDamping(0.98,0.98)
       @children.push body
+      bodies.push body
 
       body.setActivationState(4) # BUG - DISABLE_DEACTIVATION isnt defined in Ammo.js but 4 is the number to use
 
@@ -46,6 +49,7 @@ class PhysicsString
       pq = new Ammo.btVector3 0, -seglength/2, 0
       c = new Ammo.btPoint2PointConstraint @children[i], @children[i+1], pp, pq
       world.addConstraint(c,true)
+      constraints.push c
     
 
     # Add the fixed bodies for start and end
@@ -66,6 +70,8 @@ class PhysicsString
 
     world.addConstraint(c,true)
     world.addRigidBody(@start)
+    bodies.push @start
+    constraints.push c
 
     endTransform = new Ammo.btTransform()
     endTransform.setIdentity()
@@ -85,6 +91,9 @@ class PhysicsString
 
     world.addConstraint(c,true)
     world.addRigidBody(@end)
+
+    bodies.push @end
+    constraints.push c
   
   update : () ->
     
@@ -139,10 +148,10 @@ interval = null
   @dynamicsWorld.addRigidBody(baseRigidBody)
 
   # Create the white string
-  @white_string = new PhysicsString 8.0, 0.01, 20, {x: 2, y:0.2, z:2}, {x: -2, y:0.2, z:-2}, @dynamicsWorld
+  @white_string = new PhysicsString 10.2, 0.015, 20, {x: 2, y:0.2, z:2}, {x: -2, y:0.2, z:-2}, @dynamicsWorld, @bodies, @constraints
 
   # ... and the black one
-  @black_string = new PhysicsString 8.0, 0.01, 20, {x: -2, y:0.2, z:2}, {x: -4, y:0.2, z:2}, @dynamicsWorld
+  @black_string = new PhysicsString 10.2, 0.015, 20, {x: -2, y:0.2, z:2}, {x: -4, y:0.2, z:2}, @dynamicsWorld, @bodies, @constraints
 
   last = Date.now()
   
@@ -202,7 +211,14 @@ interval = null
 
 
 @reset = () ->
-
+ 
+  for c in @bodies
+    @dynamicsWorld.removeRigidBody c
+    
+  for c in @constraints
+    @dynamicsWorld.removeConstraint c
+   
+  startUp()
 
 # Message format {cmd: <cmd> , data: <data obj> }
 

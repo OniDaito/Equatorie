@@ -249,8 +249,8 @@ class Equatorie
     GL.enable(GL.DEPTH_TEST)
 
     # Add Strings
-    @white_string = new EquatorieString 8.0, 0.01, 20
-    @black_string = new EquatorieString 8.0, 0.01, 20
+    @white_string = new EquatorieString 10, 0.015, 20
+    @black_string = new EquatorieString 10, 0.015, 20
     
     @white_start = @pin.copy()
     @pickable.add @white_start

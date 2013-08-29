@@ -22,8 +22,9 @@ precision mediump float;
 {{ShaderLibrary.Basic}}
 {{ShaderLibrary.VertexTexCoord}}
 
+uniform vec4 uColour;
 // There appears to be an error here. If we leave out uNumSegments it disappears! ><
 
 void main() {
-  gl_FragColor = vec4(1.0,0.0,0.0,1.0);
+  gl_FragColor = uColour;
 }

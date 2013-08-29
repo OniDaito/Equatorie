@@ -5,7 +5,7 @@ class EquatorieString extends CoffeeGL.Node
   constructor : (@length, @thickness, @segments) ->
     super()
 
-    geom = new CoffeeGL.Shapes.Cylinder @thickness,12,@segments,@length
+    geom = new CoffeeGL.Shapes.Cylinder @thickness,24,@segments,@length
     
     # Flatten the y values to 0 (might need to be 1)
     for vert in geom.v

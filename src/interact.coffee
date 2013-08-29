@@ -497,12 +497,20 @@ class EquatorieInteract
     @epicycle.matrix.identity()
     @pointer.matrix.identity()
 
+    # Move the strings back
+    @white_start.matrix.identity().translate new CoffeeGL.Vec3 2,@string_height,2
+    @white_end.matrix.identity().translate new CoffeeGL.Vec3 -2,@string_height,-2
+    @black_start.matrix.identity().translate new CoffeeGL.Vec3 -2,@string_height,2
+    @black_end.matrix.identity().translate new CoffeeGL.Vec3 -4,@string_height,2
+
     # Move the camera back
 
     @camera.pos = new CoffeeGL.Vec3 0,0,10
     @camera.look = new CoffeeGL.Vec3 0,0,0
     @camera.up = new CoffeeGL.Vec3 0,1,0
     @camera.rotateFocal new CoffeeGL.Vec3(1,0,0), CoffeeGL.degToRad -25
+
+    @physics.postMessage { cmd: "reset" }
 
   # Called when the button is pressed in dat.gui. Solve for the chosen planet
   solveForPlanet : (planet, date) ->

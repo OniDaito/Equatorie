@@ -176,8 +176,8 @@
       GL.enable(GL.CULL_FACE);
       GL.cullFace(GL.BACK);
       GL.enable(GL.DEPTH_TEST);
-      this.white_string = new EquatorieString(8.0, 0.01, 20);
-      this.black_string = new EquatorieString(8.0, 0.01, 20);
+      this.white_string = new EquatorieString(10, 0.015, 20);
+      this.black_string = new EquatorieString(10, 0.015, 20);
       this.white_start = this.pin.copy();
       this.pickable.add(this.white_start);
       this.white_start.matrix.translate(new CoffeeGL.Vec3(2, this.string_height, 2));
@@ -343,7 +343,7 @@
       this.thickness = thickness;
       this.segments = segments;
       EquatorieString.__super__.constructor.call(this);
-      geom = new CoffeeGL.Shapes.Cylinder(this.thickness, 12, this.segments, this.length);
+      geom = new CoffeeGL.Shapes.Cylinder(this.thickness, 24, this.segments, this.length);
       _ref = geom.v;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         vert = _ref[_i];
@@ -1640,10 +1640,17 @@
       this.marker.matrix.identity();
       this.epicycle.matrix.identity();
       this.pointer.matrix.identity();
+      this.white_start.matrix.identity().translate(new CoffeeGL.Vec3(2, this.string_height, 2));
+      this.white_end.matrix.identity().translate(new CoffeeGL.Vec3(-2, this.string_height, -2));
+      this.black_start.matrix.identity().translate(new CoffeeGL.Vec3(-2, this.string_height, 2));
+      this.black_end.matrix.identity().translate(new CoffeeGL.Vec3(-4, this.string_height, 2));
       this.camera.pos = new CoffeeGL.Vec3(0, 0, 10);
       this.camera.look = new CoffeeGL.Vec3(0, 0, 0);
       this.camera.up = new CoffeeGL.Vec3(0, 1, 0);
-      return this.camera.rotateFocal(new CoffeeGL.Vec3(1, 0, 0), CoffeeGL.degToRad(-25));
+      this.camera.rotateFocal(new CoffeeGL.Vec3(1, 0, 0), CoffeeGL.degToRad(-25));
+      return this.physics.postMessage({
+        cmd: "reset"
+      });
     };
 
     EquatorieInteract.prototype.solveForPlanet = function(planet, date) {
