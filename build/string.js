@@ -8,26 +8,36 @@
     __extends(EquatorieString, _super);
 
     function EquatorieString(length, thickness, segments) {
+      var geom, i, vert, _i, _j, _len, _ref, _ref1;
+      this.length = length;
+      this.thickness = thickness;
+      this.segments = segments;
       EquatorieString.__super__.constructor.call(this);
-      this.add(new CoffeeGL.Shapes.Cylinder(thickness, 12, segments, length));
+      geom = new CoffeeGL.Shapes.Cylinder(this.thickness, 12, this.segments, this.length);
+      _ref = geom.v;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        vert = _ref[_i];
+        vert.p.y = 0.0;
+      }
+      this.add(geom);
+      this.matrices = [];
+      for (i = _j = 0, _ref1 = this.segments; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
+        this.matrices.push(new CoffeeGL.Matrix4());
+      }
     }
 
     EquatorieString.prototype.update = function(data) {
-      var idx, phys, segment, tmatrix, tq, tv, _i, _len, _ref, _results;
-      idx = 0;
-      _ref = this.children;
+      var i, phys, tmatrix, tq, tv, _i, _ref, _results;
       _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        segment = _ref[_i];
-        phys = data.segments[idx];
-        segment.matrix.identity();
+      for (i = _i = 0, _ref = this.segments; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
+        phys = data.segments[i];
+        this.matrices[i].identity();
         tq = new CoffeeGL.Quaternion();
         tv = new CoffeeGL.Vec3(phys.rax, phys.ray, phys.raz);
         tq.fromAxisAngle(tv, phys.ra);
         tmatrix = tq.getMatrix4();
         tmatrix.setPos(new CoffeeGL.Vec3(phys.x, phys.y, phys.z));
-        segment.matrix.copyFrom(tmatrix);
-        _results.push(idx++);
+        _results.push(this.matrices[i].copyFrom(tmatrix));
       }
       return _results;
     };

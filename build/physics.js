@@ -14,12 +14,12 @@
       seglength = length / segments;
       this.children = [];
       this.length = length;
-      for (i = _i = 0, _ref = segments - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-        colShape = new Ammo.btCylinderShape(new Ammo.btVector3(thickness / 2, seglength, thickness / 2));
+      for (i = _i = 0, _ref = segments - 2; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
+        colShape = new Ammo.btSphereShape(seglength / 2);
         mass = 1.0;
         localInertia = new Ammo.btVector3(0, 0, 0);
         colShape.calculateLocalInertia(mass, localInertia);
-        base = 5.0;
+        base = 2.0;
         motionState = new Ammo.btDefaultMotionState(new Ammo.btTransform(new Ammo.btQuaternion(0, 0, 0, 1), new Ammo.btVector3(0, base + seglength * i, 0)));
         rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, colShape, localInertia);
         body = new Ammo.btRigidBody(rbInfo);
@@ -28,9 +28,9 @@
         body.setActivationState(4);
         world.addRigidBody(body);
       }
-      for (i = _j = 0, _ref1 = segments - 2; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
-        pp = new Ammo.btVector3(0, 0, 0);
-        pq = new Ammo.btVector3(0, -seglength, 0);
+      for (i = _j = 0, _ref1 = this.children.length - 2; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
+        pp = new Ammo.btVector3(0, seglength / 2, 0);
+        pq = new Ammo.btVector3(0, -seglength / 2, 0);
         c = new Ammo.btPoint2PointConstraint(this.children[i], this.children[i + 1], pp, pq);
         world.addConstraint(c, true);
       }
@@ -43,9 +43,9 @@
       this.start = new Ammo.btRigidBody(startRigidBodyCI);
       this.start.setCollisionFlags(this.start.getCollisionFlags() | 2);
       this.start.setActivationState(Ammo.DISABLE_DEACTIVATION);
-      pp = new Ammo.btVector3(0, seglength / 2, 0);
-      pq = new Ammo.btVector3(0, -0.1, 0);
-      c = new Ammo.btPoint2PointConstraint(this.children[segments - 1], this.start, pp, pq);
+      pp = new Ammo.btVector3(0, 0, 0);
+      pq = new Ammo.btVector3(0, 0, 0);
+      c = new Ammo.btPoint2PointConstraint(this.children[0], this.start, pp, pq);
       world.addConstraint(c, true);
       world.addRigidBody(this.start);
       endTransform = new Ammo.btTransform();
@@ -60,22 +60,22 @@
         cmd: "ping",
         data: this.end.isKinematicObject()
       });
-      pp = new Ammo.btVector3(0, seglength / 2, 0);
-      pq = new Ammo.btVector3(0, -0.1, 0);
-      c = new Ammo.btPoint2PointConstraint(this.children[0], this.end, pp, pq);
+      pp = new Ammo.btVector3(0, 0, 0);
+      pq = new Ammo.btVector3(0, 0, 0);
+      c = new Ammo.btPoint2PointConstraint(this.children[this.children.length - 1], this.end, pp, pq);
       world.addConstraint(c, true);
       world.addRigidBody(this.end);
     }
 
     PhysicsString.prototype.update = function() {
-      var list, obj, segment, trans, _i, _len, _ref;
-      trans = new Ammo.btTransform();
+      var list, segment, _getTrans, _i, _len, _ref,
+        _this = this;
       list = [];
-      _ref = this.children;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        segment = _ref[_i];
+      _getTrans = function(b) {
+        var obj, trans;
         obj = {};
-        segment.getMotionState().getWorldTransform(trans);
+        trans = new Ammo.btTransform();
+        b.getMotionState().getWorldTransform(trans);
         obj.rax = trans.getRotation().getAxis().x();
         obj.ray = trans.getRotation().getAxis().y();
         obj.raz = trans.getRotation().getAxis().z();
@@ -83,8 +83,15 @@
         obj.x = trans.getOrigin().getX();
         obj.y = trans.getOrigin().getY();
         obj.z = trans.getOrigin().getZ();
-        list.push(obj);
+        return obj;
+      };
+      list.push(_getTrans(this.start));
+      _ref = this.children;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        segment = _ref[_i];
+        list.push(_getTrans(segment));
       }
+      list.push(_getTrans(this.end));
       return list;
     };
 
@@ -110,7 +117,7 @@
     baseRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0, baseMotionState, baseShape, new Ammo.btVector3(0, 0, 0));
     baseRigidBody = new Ammo.btRigidBody(baseRigidBodyCI);
     this.dynamicsWorld.addRigidBody(baseRigidBody);
-    this.white_string = new PhysicsString(10.0, 0.01, 20, {
+    this.white_string = new PhysicsString(8.0, 0.01, 20, {
       x: 2,
       y: 0.2,
       z: 2
@@ -119,7 +126,7 @@
       y: 0.2,
       z: -2
     }, this.dynamicsWorld);
-    this.black_string = new PhysicsString(10.0, 0.01, 20, {
+    this.black_string = new PhysicsString(8.0, 0.01, 20, {
       x: -2,
       y: 0.2,
       z: 2
@@ -187,10 +194,14 @@
     });
   };
 
+  this.reset = function() {};
+
   this.onmessage = function(event) {
     switch (event.data.cmd) {
       case "startup":
         return startUp();
+      case "reset":
+        return reset();
       case "white_start_move":
         return moveBody(white_string.start, event.data.data);
       case "white_end_move":

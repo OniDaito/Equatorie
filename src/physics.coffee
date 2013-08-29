@@ -20,13 +20,13 @@ class PhysicsString
     @children = []
     @length  = length
 
-    for i in [0..segments-1]
-      colShape = new Ammo.btCylinderShape new Ammo.btVector3 thickness/2, seglength, thickness/2
+    for i in [0..segments-2]
+      colShape = new Ammo.btSphereShape seglength/2
       mass = 1.0
       localInertia = new Ammo.btVector3(0, 0, 0)
       colShape.calculateLocalInertia(mass, localInertia)
   
-      base = 5.0 # raise up from 0
+      base = 2.0 # raise up from 0
       motionState = new Ammo.btDefaultMotionState(new Ammo.btTransform( new Ammo.btQuaternion(0,0,0,1), new Ammo.btVector3(0, base + seglength * i,0)))
       rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, colShape, localInertia)
       body = new Ammo.btRigidBody(rbInfo)
@@ -41,10 +41,10 @@ class PhysicsString
 
     # add Constraints to make this look like string
     
-    for i in [0..segments-2]
-      pp = new Ammo.btVector3(0, 0,0)
-      pq = new Ammo.btVector3(0, - seglength,0)
-      c = new Ammo.btPoint2PointConstraint(@children[i], @children[i+1], pp, pq )
+    for i in [0..@children.length-2]
+      pp = new Ammo.btVector3 0, seglength/2, 0
+      pq = new Ammo.btVector3 0, -seglength/2, 0
+      c = new Ammo.btPoint2PointConstraint @children[i], @children[i+1], pp, pq
       world.addConstraint(c,true)
     
 
@@ -60,9 +60,9 @@ class PhysicsString
     @start.setCollisionFlags ( @start.getCollisionFlags() | 2 )
     @start.setActivationState( Ammo.DISABLE_DEACTIVATION )
 
-    pp = new Ammo.btVector3(0, seglength / 2,0)
-    pq = new Ammo.btVector3(0, -0.1,0)
-    c = new Ammo.btPoint2PointConstraint(@children[segments-1], @start, pp, pq )
+    pp = new Ammo.btVector3(0, 0,0)
+    pq = new Ammo.btVector3(0, 0,0)
+    c = new Ammo.btPoint2PointConstraint(@children[0], @start, pp, pq )
 
     world.addConstraint(c,true)
     world.addRigidBody(@start)
@@ -79,22 +79,22 @@ class PhysicsString
 
     postMessage {cmd: "ping", data: @end.isKinematicObject() }
 
-    pp = new Ammo.btVector3(0, seglength / 2,0)
-    pq = new Ammo.btVector3(0, -0.1,0)
-    c = new Ammo.btPoint2PointConstraint(@children[0], @end, pp, pq )
+    pp = new Ammo.btVector3(0,0,0)
+    pq = new Ammo.btVector3(0, 0,0)
+    c = new Ammo.btPoint2PointConstraint(@children[@children.length-1], @end, pp, pq )
 
     world.addConstraint(c,true)
     world.addRigidBody(@end)
-
   
   update : () ->
-    trans = new Ammo.btTransform()
+    
     list = []
-    for segment in @children
-      
-      obj = {}
 
-      segment.getMotionState().getWorldTransform(trans)
+    _getTrans = (b) =>
+
+      obj = {}
+      trans = new Ammo.btTransform()
+      b.getMotionState().getWorldTransform trans
 
       obj.rax = trans.getRotation().getAxis().x()
       obj.ray = trans.getRotation().getAxis().y() 
@@ -104,8 +104,15 @@ class PhysicsString
       obj.x = trans.getOrigin().getX()
       obj.y = trans.getOrigin().getY()
       obj.z = trans.getOrigin().getZ()
-      
-      list.push obj
+
+      obj
+
+    list.push _getTrans @start
+
+    for segment in @children
+      list.push _getTrans segment
+
+    list.push _getTrans @end
 
     list
 
@@ -132,10 +139,10 @@ interval = null
   @dynamicsWorld.addRigidBody(baseRigidBody)
 
   # Create the white string
-  @white_string = new PhysicsString 10.0, 0.01, 20, {x: 2, y:0.2, z:2}, {x: -2, y:0.2, z:-2}, @dynamicsWorld
+  @white_string = new PhysicsString 8.0, 0.01, 20, {x: 2, y:0.2, z:2}, {x: -2, y:0.2, z:-2}, @dynamicsWorld
 
   # ... and the black one
-  @black_string = new PhysicsString 10.0, 0.01, 20, {x: -2, y:0.2, z:2}, {x: -4, y:0.2, z:2}, @dynamicsWorld
+  @black_string = new PhysicsString 8.0, 0.01, 20, {x: -2, y:0.2, z:2}, {x: -4, y:0.2, z:2}, @dynamicsWorld
 
   last = Date.now()
   
@@ -194,6 +201,8 @@ interval = null
   postMessage { cmd: 'physics', data: data}
 
 
+@reset = () ->
+
 
 # Message format {cmd: <cmd> , data: <data obj> }
 
@@ -201,6 +210,7 @@ interval = null
 
   switch event.data.cmd
     when "startup" then startUp()
+    when "reset" then reset()
     when "white_start_move" then moveBody white_string.start, event.data.data 
     when "white_end_move" then moveBody white_string.end, event.data.data    
     when "black_start_move" then moveBody black_string.start, event.data.data    

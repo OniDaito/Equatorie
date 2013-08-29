@@ -80,6 +80,13 @@ _loadPicking = new LoadItem () ->
     @loaded()
   @
 
+_loadStringShader = new LoadItem () ->
+  r = new CoffeeGL.Request('../shaders/string.glsl')
+  r.get (data) =>
+    @obj.shader_string = new CoffeeGL.Shader(data, {"uMatrices" : "matrices", "uNumSegments" : "segments"})
+    @loaded()
+  @
+
 _loadEpicycleNormal = new LoadItem () ->
   @obj.epicycle_normal = new CoffeeGL.Texture("../models/epicycle_NRM.jpg",{unit : 1}, () => 
     @loaded()
@@ -140,6 +147,7 @@ loadAssets = (obj, signal, signal_progress) ->
   lq.add _loadPointerNormal
   lq.add _loadBaseNormal
   lq.add _loadBackingShader
+  lq.add _loadStringShader
 
   lq.start()
   @

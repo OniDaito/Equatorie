@@ -37,6 +37,7 @@
         _this = this;
       this.top_node = new CoffeeGL.Node();
       this.string_height = 0.4;
+      this.string_nodes = new CoffeeGL.Node();
       this.pickable = new CoffeeGL.Node();
       this.fbo_picking = new CoffeeGL.Fbo();
       this.ray = new CoffeeGL.Vec3(0, 0, 0);
@@ -74,6 +75,8 @@
         _this.backing = new CoffeeGL.Node(new CoffeeGL.Quad());
         _this.backing.shader = _this.shader_background;
         _this.top_node.add(_this.equatorie_model);
+        _this.string_nodes.shader = _this.shader_string;
+        _this.top_node.add(_this.string_nodes);
         _this.base = _this.equatorie_model.children[4];
         _this.epicycle = _this.equatorie_model.children[1];
         _this.pointer = _this.equatorie_model.children[0];
@@ -190,13 +193,15 @@
       this.pickable.add(this.black_end);
       this.black_end.matrix.translate(new CoffeeGL.Vec3(-4, this.string_height, 2));
       this.black_end.uPickingColour = new CoffeeGL.Colour.RGBA(1.0, 1.0, 1.0, 1.0);
-      this.basic_nodes.add(this.white_string).add(this.black_string);
+      this.string_nodes.add(this.white_string).add(this.black_string);
       this.basic_nodes.add(this.white_start).add(this.white_end);
       this.basic_nodes.add(this.black_start).add(this.black_end);
       this.white_string.uColour = new CoffeeGL.Colour.RGBA(0.9, 0.9, 0.9, 1.0);
       this.black_string.uColour = new CoffeeGL.Colour.RGBA(0.1, 0.1, 0.1, 1.0);
       this.white_start.uColour = new CoffeeGL.Colour.RGBA(0.9, 0.2, 0.2, 0.8);
-      return this.white_end.uColour = new CoffeeGL.Colour.RGBA(0.9, 0.2, 0.2, 0.8);
+      this.white_end.uColour = new CoffeeGL.Colour.RGBA(0.2, 0.2, 0.9, 0.8);
+      this.black_start.uColour = new CoffeeGL.Colour.RGBA(0.9, 0.2, 0.2, 0.8);
+      return this.black_end.uColour = new CoffeeGL.Colour.RGBA(0.2, 0.2, 0.9, 0.8);
     };
 
     Equatorie.prototype.update = function(dt) {
@@ -216,7 +221,10 @@
       return this;
     };
 
-    Equatorie.prototype.updatePhysics = function(data) {};
+    Equatorie.prototype.updatePhysics = function(data) {
+      this.white_string.update(data.white);
+      return this.black_string.update(data.black);
+    };
 
     Equatorie.prototype.onPhysicsEvent = function(event) {
       switch (event.data.cmd) {

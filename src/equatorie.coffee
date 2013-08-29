@@ -25,6 +25,9 @@ class Equatorie
     @top_node = new CoffeeGL.Node()
 
     @string_height = 0.4
+    @string_nodes = new CoffeeGL.Node()
+
+
     # Nodes for the picking
     @pickable = new CoffeeGL.Node()
     @fbo_picking = new CoffeeGL.Fbo()
@@ -74,6 +77,7 @@ class Equatorie
 
     @system.reset()
 
+
     # Function called when everything is loaded
     f = () =>
 
@@ -89,6 +93,10 @@ class Equatorie
       @backing.shader = @shader_background
   
       @top_node.add(@equatorie_model)
+
+      @string_nodes.shader = @shader_string
+
+      @top_node.add @string_nodes
 
       # Should be five children nodes with this model. Attach the shaders
       
@@ -264,14 +272,16 @@ class Equatorie
     @black_end.matrix.translate new CoffeeGL.Vec3 -4,@string_height,2
     @black_end.uPickingColour = new CoffeeGL.Colour.RGBA(1.0,1.0,1.0,1.0)
 
-    @basic_nodes.add(@white_string).add(@black_string)
+    @string_nodes.add(@white_string).add(@black_string)
     @basic_nodes.add(@white_start).add(@white_end)
     @basic_nodes.add(@black_start).add(@black_end)
 
     @white_string.uColour = new CoffeeGL.Colour.RGBA(0.9,0.9,0.9,1.0)
     @black_string.uColour = new CoffeeGL.Colour.RGBA(0.1,0.1,0.1,1.0)
     @white_start.uColour = new CoffeeGL.Colour.RGBA(0.9,0.2,0.2,0.8)
-    @white_end.uColour = new CoffeeGL.Colour.RGBA(0.9,0.2,0.2,0.8)
+    @white_end.uColour = new CoffeeGL.Colour.RGBA(0.2,0.2,0.9,0.8)
+    @black_start.uColour = new CoffeeGL.Colour.RGBA(0.9,0.2,0.2,0.8)
+    @black_end.uColour = new CoffeeGL.Colour.RGBA(0.2,0.2,0.9,0.8)
 
    
   update : (dt) =>
@@ -295,8 +305,8 @@ class Equatorie
 
   # update the physics - each body in the string needs to have its position and orientation updated
   updatePhysics : (data) ->
-    #@white_string.update data.white
-    #@black_string.update data.black
+    @white_string.update data.white
+    @black_string.update data.black
 
   
   onPhysicsEvent : (event) =>
