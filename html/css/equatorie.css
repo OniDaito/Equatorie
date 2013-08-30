@@ -40,3 +40,7 @@
 #button_reset {
   display: none;
 }
+
+#dp1 {
+  display: inline-block;
+}

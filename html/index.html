@@ -25,6 +25,7 @@ equatorie.html
 <link rel="shortcut icon" href="/favicon.ico">
 
 <link href="/css/bootstrap.min.css" media="all" rel="stylesheet" type="text/css" />
+<link href="/css/datepicker.css" media="all" rel="stylesheet" type="text/css" />
 <link href="/css/equatorie.css" media="all" rel="stylesheet" type="text/css" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -43,6 +44,7 @@ equatorie.html
 
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="/js/bootstrap-datepicker.js"></script>
 <script type="text/javascript" src="/js/equatorie.js"></script>
 
 <!-- <script src="http://192.168.2.14:8080/target/target-script-min.js"></script> -->
@@ -52,6 +54,10 @@ equatorie.html
 <div id ="equatorie_text">
 <a data-toggle="modal" id="buttonAbout" href="#aboutModal" class="btn btn-info">About</a>
 <a data-toggle="modal" href="#instructionsModal" class="btn btn-info">Instructions</a>
+
+<!-- Date Picker -->
+
+<input type="text" class="date span1 input-append" value="31-12-1392" format="dd-mm-yyyy" id="dp1">
 
 <!-- Buttons for the Actions we can perform -->
 <div class="btn-group dropup" id="actionSelect">
@@ -71,6 +77,8 @@ equatorie.html
     <li><a href="#" id="selectMoonLat">Moon Latitude</a></li>
   </ul>
 </div>
+
+
 
 <button id="button_next" type="button" class="btn btn-primary">Next Step</button>
 <button id="button_reset" type="button" class="btn btn-danger">Reset</button>
@@ -164,6 +172,12 @@ moving = function (pos) {
 window.EquatorieLoadProgress.add (loading, this);
 window.EquatorieLoaded.addOnce(loaded, this);
 
+// Date Picker
+
+$('.date').datepicker()
+  .on('changeDate', function(ev){
+    alert(ev.date.valueOf());
+  });
 
 // Functions for selectors for the planets
 
@@ -242,7 +256,6 @@ $('#button_next').click( function() {
     if (nd.text !== undefined){
       $container.popover('destroy');
     
-      
       $container.popover($.extend({}, {
           content: nd.text
       }, options)).popover('show');
