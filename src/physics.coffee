@@ -83,7 +83,7 @@ class PhysicsString
     @end.setCollisionFlags ( @end.getCollisionFlags() | 2 )
     @end.setActivationState( Ammo.DISABLE_DEACTIVATION )
 
-    postMessage {cmd: "ping", data: @end.isKinematicObject() }
+    #postMessage {cmd: "ping", data: @end.isKinematicObject() }
 
     pp = new Ammo.btVector3(0,0,0)
     pq = new Ammo.btVector3(0, 0,0)

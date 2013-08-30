@@ -64,10 +64,6 @@
       this.end = new Ammo.btRigidBody(endRigidBodyCI);
       this.end.setCollisionFlags(this.end.getCollisionFlags() | 2);
       this.end.setActivationState(Ammo.DISABLE_DEACTIVATION);
-      postMessage({
-        cmd: "ping",
-        data: this.end.isKinematicObject()
-      });
       pp = new Ammo.btVector3(0, 0, 0);
       pq = new Ammo.btVector3(0, 0, 0);
       c = new Ammo.btPoint2PointConstraint(this.children[this.children.length - 1], this.end, pp, pq);
