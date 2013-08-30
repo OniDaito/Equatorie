@@ -27,14 +27,12 @@
     }
 
     EquatorieString.prototype.update = function(data) {
-      var i, phys, tmatrix, tq, tv, _i, _ref, _results;
+      var i, phys, tmatrix, tq, _i, _ref, _results;
       _results = [];
       for (i = _i = 0, _ref = this.segments; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
         phys = data.segments[i];
         this.matrices[i].identity();
-        tq = new CoffeeGL.Quaternion();
-        tv = new CoffeeGL.Vec3(phys.rax, phys.ray, phys.raz);
-        tq.fromAxisAngle(tv, phys.ra);
+        tq = new CoffeeGL.Quaternion(new CoffeeGL.Vec3(phys.q[0], phys.q[1], phys.q[2]), phys.q[3]);
         tmatrix = tq.getMatrix4();
         tmatrix.setPos(new CoffeeGL.Vec3(phys.x, phys.y, phys.z));
         _results.push(this.matrices[i].copyFrom(tmatrix));

@@ -2,7 +2,7 @@
 (function() {
   var PhysicsString, interval;
 
-  importScripts('/js/ammo.small.js');
+  importScripts('/js/cannon.js');
 
   this.ping = 0;
 
@@ -14,61 +14,40 @@
 
   PhysicsString = (function() {
     function PhysicsString(length, thickness, segments, start, end, world, bodies, constraints) {
-      var base, body, c, colShape, endMotionState, endRigidBodyCI, endTransform, fixShape, i, localInertia, mass, motionState, pp, pq, rbInfo, seglength, startMotionState, startRigidBodyCI, startTransform, _i, _j, _ref, _ref1;
+      var c, i, mass, radius, seglength, sphereBody, sphereShape, _i, _j, _ref, _ref1;
       seglength = length / segments;
       this.children = [];
       this.length = length;
+      mass = 1;
+      radius = seglength / 4;
       for (i = _i = 0, _ref = segments - 2; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
-        colShape = new Ammo.btSphereShape(seglength / 4);
-        mass = 1.0;
-        localInertia = new Ammo.btVector3(0, 0, 0);
-        colShape.calculateLocalInertia(mass, localInertia);
-        base = 2.0;
-        motionState = new Ammo.btDefaultMotionState(new Ammo.btTransform(new Ammo.btQuaternion(0, 0, 0, 1), new Ammo.btVector3(0, base + seglength * i, 0)));
-        rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, colShape, localInertia);
-        body = new Ammo.btRigidBody(rbInfo);
-        body.setDamping(0.98, 0.98);
-        this.children.push(body);
-        bodies.push(body);
-        body.setActivationState(4);
-        world.addRigidBody(body);
+        sphereShape = new CANNON.Sphere(radius);
+        sphereBody = new CANNON.RigidBody(mass, sphereShape);
+        sphereBody.angularDamping = 0.99;
+        sphereBody.linearDamping = 0.99;
+        sphereBody.position.set(0, 0, 15.0 + (i * seglength));
+        this.children.push(sphereBody);
+        bodies.push(sphereBody);
+        world.add(sphereBody);
       }
       for (i = _j = 0, _ref1 = this.children.length - 2; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 0 <= _ref1 ? ++_j : --_j) {
-        pp = new Ammo.btVector3(0, seglength / 2, 0);
-        pq = new Ammo.btVector3(0, -seglength / 2, 0);
-        c = new Ammo.btPoint2PointConstraint(this.children[i], this.children[i + 1], pp, pq);
-        world.addConstraint(c, true);
+        c = new CANNON.DistanceConstraint(this.children[i], this.children[i + 1], seglength / 1.5);
+        world.addConstraint(c);
         constraints.push(c);
       }
-      fixShape = new Ammo.btBoxShape(new Ammo.btVector3(0.1, 0.1, 0.1));
-      startTransform = new Ammo.btTransform();
-      startTransform.setIdentity();
-      startTransform.setOrigin(new Ammo.btVector3(start.x, start.y, start.z));
-      startMotionState = new Ammo.btDefaultMotionState(startTransform);
-      startRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0, startMotionState, fixShape, new Ammo.btVector3(0, 0, 0));
-      this.start = new Ammo.btRigidBody(startRigidBodyCI);
-      this.start.setCollisionFlags(this.start.getCollisionFlags() | 2);
-      this.start.setActivationState(Ammo.DISABLE_DEACTIVATION);
-      pp = new Ammo.btVector3(0, 0, 0);
-      pq = new Ammo.btVector3(0, 0, 0);
-      c = new Ammo.btPoint2PointConstraint(this.children[0], this.start, pp, pq);
+      sphereShape = new CANNON.Sphere(radius);
+      this.start = new CANNON.RigidBody(0, sphereShape);
+      this.start.position.set(start.x, start.z, start.y);
+      c = new CANNON.DistanceConstraint(this.children[0], this.start, seglength / 1.5);
       world.addConstraint(c, true);
-      world.addRigidBody(this.start);
+      world.add(this.start);
       bodies.push(this.start);
       constraints.push(c);
-      endTransform = new Ammo.btTransform();
-      endTransform.setIdentity();
-      endTransform.setOrigin(new Ammo.btVector3(end.x, end.y, end.z));
-      endMotionState = new Ammo.btDefaultMotionState(endTransform);
-      endRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0, endMotionState, fixShape, new Ammo.btVector3(0, 0, 0));
-      this.end = new Ammo.btRigidBody(endRigidBodyCI);
-      this.end.setCollisionFlags(this.end.getCollisionFlags() | 2);
-      this.end.setActivationState(Ammo.DISABLE_DEACTIVATION);
-      pp = new Ammo.btVector3(0, 0, 0);
-      pq = new Ammo.btVector3(0, 0, 0);
-      c = new Ammo.btPoint2PointConstraint(this.children[this.children.length - 1], this.end, pp, pq);
+      this.end = new CANNON.RigidBody(0, sphereShape);
+      this.end.position.set(end.x, end.z, end.y);
+      c = new CANNON.DistanceConstraint(this.children[this.children.length - 1], this.end, 0.05);
       world.addConstraint(c, true);
-      world.addRigidBody(this.end);
+      world.add(this.end);
       bodies.push(this.end);
       constraints.push(c);
     }
@@ -78,17 +57,12 @@
         _this = this;
       list = [];
       _getTrans = function(b) {
-        var obj, trans;
+        var obj;
         obj = {};
-        trans = new Ammo.btTransform();
-        b.getMotionState().getWorldTransform(trans);
-        obj.rax = trans.getRotation().getAxis().x();
-        obj.ray = trans.getRotation().getAxis().y();
-        obj.raz = trans.getRotation().getAxis().z();
-        obj.ra = trans.getRotation().getAngle();
-        obj.x = trans.getOrigin().getX();
-        obj.y = trans.getOrigin().getY();
-        obj.z = trans.getOrigin().getZ();
+        obj.q = [b.quaternion.x, b.quaternion.z, b.quaternion.y, b.quaternion.w];
+        obj.x = b.position.x;
+        obj.y = b.position.z;
+        obj.z = b.position.y;
         return obj;
       };
       list.push(_getTrans(this.start));
@@ -108,21 +82,16 @@
   interval = null;
 
   this.startUp = function() {
-    var baseMotionState, baseRigidBody, baseRigidBodyCI, baseShape, baseTransform, collisionConfiguration, dispatcher, last, mainLoop, overlappingPairCache, solver;
-    collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
-    dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
-    overlappingPairCache = new Ammo.btDbvtBroadphase();
-    solver = new Ammo.btSequentialImpulseConstraintSolver();
-    this.dynamicsWorld = new Ammo.btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
-    this.dynamicsWorld.setGravity(new Ammo.btVector3(0, -10, 0));
-    baseShape = new Ammo.btCylinderShape(new Ammo.btVector3(6.0, 0.1, 6.0));
-    baseTransform = new Ammo.btTransform();
-    baseTransform.setIdentity();
-    baseTransform.setOrigin(new Ammo.btVector3(0, 0, 0));
-    baseMotionState = new Ammo.btDefaultMotionState(baseTransform);
-    baseRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0, baseMotionState, baseShape, new Ammo.btVector3(0, 0, 0));
-    baseRigidBody = new Ammo.btRigidBody(baseRigidBodyCI);
-    this.dynamicsWorld.addRigidBody(baseRigidBody);
+    var baseBody, baseShape, groundBody, groundShape, last, mainLoop;
+    this.dynamicsWorld = new CANNON.World();
+    this.dynamicsWorld.gravity.set(0, 0, -9.82);
+    this.dynamicsWorld.broadphase = new CANNON.NaiveBroadphase();
+    baseShape = new CANNON.Cylinder(6.0, 6.0, 0.1, 12);
+    baseBody = new CANNON.RigidBody(0, baseShape);
+    this.dynamicsWorld.add(baseBody);
+    groundShape = new CANNON.Plane();
+    groundBody = new CANNON.RigidBody(0, groundShape);
+    this.dynamicsWorld.add(groundBody);
     this.white_string = new PhysicsString(10.2, 0.015, 20, {
       x: 2,
       y: 0.2,
@@ -155,15 +124,10 @@
   };
 
   this.moveBody = function(body, pos) {
-    var data, ms, trans;
-    trans = new Ammo.btTransform();
-    ms = new Ammo.btDefaultMotionState();
-    body.getMotionState(ms);
-    ms.getWorldTransform(trans);
-    trans.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
-    body.setActivationState(4);
-    ms.setWorldTransform(trans);
-    body.setMotionState(ms);
+    var data;
+    body.position.x = pos.x;
+    body.position.y = pos.z;
+    body.position.z = pos.y;
     data = {
       black: {
         segments: []
@@ -183,7 +147,7 @@
   this.simulate = function(dt) {
     var data;
     dt = dt || 1;
-    this.dynamicsWorld.stepSimulation(dt, 2);
+    this.dynamicsWorld.step(1.0 / 60.0);
     data = {
       black: {
         segments: []
@@ -205,7 +169,7 @@
     _ref = this.bodies;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       c = _ref[_i];
-      this.dynamicsWorld.removeRigidBody(c);
+      this.dynamicsWorld.remove(c);
     }
     _ref1 = this.constraints;
     for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {

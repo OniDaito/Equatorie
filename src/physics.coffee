@@ -3,7 +3,7 @@
 
 # http://www.html5rocks.com/en/tutorials/workers/basics/
 
-importScripts '/js/ammo.small.js'
+importScripts '/js/cannon.js'
 
 # Given some bullet physics represent the string
 
@@ -22,78 +22,54 @@ class PhysicsString
     @children = []
     @length  = length
 
+
+    mass = 1
+    radius = seglength /4
+
     for i in [0..segments-2]
-      colShape = new Ammo.btSphereShape seglength/4
-      mass = 1.0
-      localInertia = new Ammo.btVector3(0, 0, 0)
-      colShape.calculateLocalInertia(mass, localInertia)
-  
-      base = 2.0 # raise up from 0
-      motionState = new Ammo.btDefaultMotionState(new Ammo.btTransform( new Ammo.btQuaternion(0,0,0,1), new Ammo.btVector3(0, base + seglength * i,0)))
-      rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, colShape, localInertia)
-      body = new Ammo.btRigidBody(rbInfo)
-      body.setDamping(0.98,0.98)
-      @children.push body
-      bodies.push body
+      # Shape and damping
 
-      body.setActivationState(4) # BUG - DISABLE_DEACTIVATION isnt defined in Ammo.js but 4 is the number to use
+      sphereShape = new CANNON.Sphere(radius)
+      sphereBody = new CANNON.RigidBody(mass,sphereShape)
+      sphereBody.angularDamping = 0.99
+      sphereBody.linearDamping = 0.99
+      sphereBody.position.set(0, 0, 15.0 + (i * seglength))
 
-      #body.setActivationState( Ammo.DISABLE_DEACTIVATION )
-
-      world.addRigidBody(body)
+      @children.push sphereBody
+      bodies.push sphereBody
+      world.add(sphereBody)
 
     # add Constraints to make this look like string
-    
+  
     for i in [0..@children.length-2]
-      pp = new Ammo.btVector3 0, seglength/2, 0
-      pq = new Ammo.btVector3 0, -seglength/2, 0
-      c = new Ammo.btPoint2PointConstraint @children[i], @children[i+1], pp, pq
-      world.addConstraint(c,true)
+
+      c = new CANNON.DistanceConstraint( @children[i], @children[i+1], seglength / 1.5)
+      world.addConstraint(c)
       constraints.push c
+  
     
+    # Start position
+    sphereShape = new CANNON.Sphere(radius)
+    @start = new CANNON.RigidBody(0,sphereShape)
+    @start.position.set(start.x, start.z, start.y)
 
-    # Add the fixed bodies for start and end
-    fixShape = new Ammo.btBoxShape new Ammo.btVector3 0.1, 0.1, 0.1
-    startTransform = new Ammo.btTransform()
-    startTransform.setIdentity()
-    startTransform.setOrigin new Ammo.btVector3 start.x, start.y, start.z
-
-    startMotionState = new Ammo.btDefaultMotionState(startTransform)
-    startRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0,startMotionState,fixShape, new Ammo.btVector3(0,0,0))
-    @start = new Ammo.btRigidBody(startRigidBodyCI)
-    @start.setCollisionFlags ( @start.getCollisionFlags() | 2 )
-    @start.setActivationState( Ammo.DISABLE_DEACTIVATION )
-
-    pp = new Ammo.btVector3(0, 0,0)
-    pq = new Ammo.btVector3(0, 0,0)
-    c = new Ammo.btPoint2PointConstraint(@children[0], @start, pp, pq )
+    c = new CANNON.DistanceConstraint(@children[0], @start, seglength / 1.5)
 
     world.addConstraint(c,true)
-    world.addRigidBody(@start)
+    world.add(@start)
     bodies.push @start
     constraints.push c
-
-    endTransform = new Ammo.btTransform()
-    endTransform.setIdentity()
-    endTransform.setOrigin new Ammo.btVector3 end.x, end.y, end.z
-
-    endMotionState = new Ammo.btDefaultMotionState(endTransform)
-    endRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0,endMotionState,fixShape, new Ammo.btVector3(0,0,0))
-    @end = new Ammo.btRigidBody(endRigidBodyCI)
-    @end.setCollisionFlags ( @end.getCollisionFlags() | 2 )
-    @end.setActivationState( Ammo.DISABLE_DEACTIVATION )
-
-    #postMessage {cmd: "ping", data: @end.isKinematicObject() }
-
-    pp = new Ammo.btVector3(0,0,0)
-    pq = new Ammo.btVector3(0, 0,0)
-    c = new Ammo.btPoint2PointConstraint(@children[@children.length-1], @end, pp, pq )
+    
+    @end = new CANNON.RigidBody(0,sphereShape)
+    @end.position.set(end.x, end.z, end.y)
+    
+    c = new CANNON.DistanceConstraint(@children[@children.length-1], @end, 0.05 )
 
     world.addConstraint(c,true)
-    world.addRigidBody(@end)
-
+    world.add(@end)
     bodies.push @end
     constraints.push c
+    
   
   update : () ->
     
@@ -102,17 +78,13 @@ class PhysicsString
     _getTrans = (b) =>
 
       obj = {}
-      trans = new Ammo.btTransform()
-      b.getMotionState().getWorldTransform trans
-
-      obj.rax = trans.getRotation().getAxis().x()
-      obj.ray = trans.getRotation().getAxis().y() 
-      obj.raz = trans.getRotation().getAxis().z()
-      obj.ra = trans.getRotation().getAngle()
-
-      obj.x = trans.getOrigin().getX()
-      obj.y = trans.getOrigin().getY()
-      obj.z = trans.getOrigin().getZ()
+    
+      obj.q = [b.quaternion.x, b.quaternion.z, b.quaternion.y, b.quaternion.w]
+    
+      obj.x = b.position.x
+      obj.y = b.position.z
+      obj.z = b.position.y
+      
 
       obj
 
@@ -129,23 +101,21 @@ class PhysicsString
 interval = null
 
 @startUp = () ->
-  collisionConfiguration = new Ammo.btDefaultCollisionConfiguration()
-  dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration)
-  overlappingPairCache = new Ammo.btDbvtBroadphase()
-  solver = new Ammo.btSequentialImpulseConstraintSolver()
+  
+  @dynamicsWorld = new CANNON.World()
+  @dynamicsWorld.gravity.set 0,0,-9.82
+  @dynamicsWorld.broadphase = new CANNON.NaiveBroadphase()
+  #@dynamicsWorld.allowSleep = true
 
-  @dynamicsWorld = new Ammo.btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration)
-  @dynamicsWorld.setGravity(new Ammo.btVector3(0, -10, 0))
 
-  baseShape = new Ammo.btCylinderShape new Ammo.btVector3 6.0, 0.1, 6.0
-  baseTransform = new Ammo.btTransform()
-  baseTransform.setIdentity()
-  baseTransform.setOrigin new Ammo.btVector3 0, 0, 0
+  #Create a cylinder
+  baseShape = new CANNON.Cylinder 6.0,6.0,0.1,12
+  baseBody = new CANNON.RigidBody(0,baseShape)
+  @dynamicsWorld.add(baseBody)
 
-  baseMotionState = new Ammo.btDefaultMotionState(baseTransform)
-  baseRigidBodyCI = new Ammo.btRigidBodyConstructionInfo(0,baseMotionState,baseShape, new Ammo.btVector3(0,0,0))
-  baseRigidBody = new Ammo.btRigidBody(baseRigidBodyCI)
-  @dynamicsWorld.addRigidBody(baseRigidBody)
+  groundShape = new CANNON.Plane()
+  groundBody = new CANNON.RigidBody(0,groundShape)
+  @dynamicsWorld.add(groundBody)
 
   # Create the white string
   @white_string = new PhysicsString 10.2, 0.015, 20, {x: 2, y:0.2, z:2}, {x: -2, y:0.2, z:-2}, @dynamicsWorld, @bodies, @constraints
@@ -162,24 +132,18 @@ interval = null
 
   if (interval)
     clearInterval(interval)
+
   
   interval = setInterval(mainLoop, 1000/60)
 
 
 @moveBody = (body, pos) ->
 
-  trans = new Ammo.btTransform()
-  ms = new Ammo.btDefaultMotionState()
-  body.getMotionState ms
-  ms.getWorldTransform trans
-  trans.setOrigin new Ammo.btVector3 pos.x,pos.y,pos.z
-  
-  body.setActivationState 4
-
-  ms.setWorldTransform trans
-  body.setMotionState ms
-
   # Damping seems to kill things :S
+
+  body.position.x = pos.x
+  body.position.y = pos.z
+  body.position.z = pos.y
 
   data =
     black :
@@ -196,7 +160,7 @@ interval = null
 @simulate = (dt) ->
   dt = dt || 1
 
-  @dynamicsWorld.stepSimulation dt, 2
+  @dynamicsWorld.step 1.0/60.0
 
   data =
     black :
@@ -213,7 +177,7 @@ interval = null
 @reset = () ->
  
   for c in @bodies
-    @dynamicsWorld.removeRigidBody c
+    @dynamicsWorld.remove c
     
   for c in @constraints
     @dynamicsWorld.removeConstraint c

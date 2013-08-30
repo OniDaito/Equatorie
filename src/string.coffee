@@ -28,9 +28,11 @@ class EquatorieString extends CoffeeGL.Node
       phys = data.segments[i]
 
       @matrices[i].identity()
-      tq = new CoffeeGL.Quaternion()
-      tv = new CoffeeGL.Vec3 phys.rax, phys.ray, phys.raz
-      tq.fromAxisAngle tv,phys.ra
+      tq = new CoffeeGL.Quaternion( new CoffeeGL.Vec3(phys.q[0],phys.q[1],phys.q[2]) , phys.q[3])
+      
+      #tv = new CoffeeGL.Vec3 phys.rax, phys.ray, phys.raz
+      #tq.fromAxisAngle tv,phys.ra
+      
       tmatrix = tq.getMatrix4()
       tmatrix.setPos new CoffeeGL.Vec3 phys.x, phys.y, phys.z
       @matrices[i].copyFrom tmatrix
