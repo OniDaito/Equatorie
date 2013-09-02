@@ -531,9 +531,22 @@ class EquatorieSystem
       b = deferent_position.dist @state.epicyclePosition
       c = @state.equantPosition.dist deferent_position
 
-      @state.meanAux = 90 - CoffeeGL.radToDeg Math.acos( (a*a + b*b - c*c) /  (2*a*b) )
+      va = CoffeeGL.Vec2.sub @state.epicyclePosition, @state.equantPosition
+      vb = CoffeeGL.Vec2.sub @state.epicyclePosition, deferent_position
+      va.normalize()
+      vb.normalize()
+     
+      determinate = va.x * vb.y - va.y * vb.x
+
+      sa = CoffeeGL.radToDeg Math.acos( (a*a + b*b - c*c) /  (2*a*b) )
+      @state.meanAux = 90 - sa
+     
+      if determinate > 0
+        @state.meanAux = 90 + sa
 
       @state.pointerAngle = -angle
+
+
     
     else if @state.planet in ["moon","moon_latitude"]
       deferent_position = @state.deferentPosition
@@ -541,7 +554,19 @@ class EquatorieSystem
       b = deferent_position.dist @state.epicyclePosition
       c = deferent_position.length()
 
-      @state.meanAux = 90 - CoffeeGL.radToDeg Math.acos( (a*a + b*b - c*c) /  (2*a*b) )
+      sa = CoffeeGL.radToDeg Math.acos( (a*a + b*b - c*c) /  (2*a*b) )
+      @state.meanAux = 90 + sa
+
+      va = @state.epicyclePosition.copy()
+      va.multScalar -1
+      vb = CoffeeGL.Vec2.sub @state.epicyclePosition, deferent_position
+      va.normalize()
+      vb.normalize()
+     
+      determinate = va.x * vb.y - va.y * vb.x
+
+      if determinate > 0
+        @state.meanAux = 90 - sa
 
       @state.pointerAngle = angle
 

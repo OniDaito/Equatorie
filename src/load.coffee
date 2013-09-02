@@ -133,6 +133,22 @@ _loadFXAAShader = new LoadItem () ->
   @
 
 
+_loadNeedleModel = new LoadItem () ->
+  r = new CoffeeGL.Request('../models/needle.js')
+  r.get (data) =>
+    @obj.needle_model = new CoffeeGL.JSONModel(data,{ onLoad : ()=>  
+         @loaded()
+      })
+    @
+  @ 
+
+_loadNeedleNormal = new LoadItem () ->
+  @obj.needle_normal = new CoffeeGL.Texture("../models/steel_NRM.jpg",{unit : 1}, () => 
+    @loaded()
+  )
+  @
+
+
 loadAssets = (obj, signal, signal_progress) ->
   
   a = () -> 
@@ -156,6 +172,8 @@ loadAssets = (obj, signal, signal_progress) ->
   lq.add _loadBackingShader
   lq.add _loadStringShader
   lq.add _loadFXAAShader
+  lq.add _loadNeedleModel
+  lq.add _loadNeedleNormal
 
   lq.start()
   @

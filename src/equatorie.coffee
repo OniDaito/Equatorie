@@ -45,6 +45,10 @@ class Equatorie
   
     @system = new EquatorieSystem()
 
+    # Marker - passed to interact. A general use thing represented by a needle
+
+    @marker = new CoffeeGL.Node()
+
     @ready = false
 
     # Loaded signal - export to JQuery / Bootstrap Also
@@ -87,8 +91,7 @@ class Equatorie
 
       @top_node.add @basic_nodes
       @basic_nodes.shader = @shader_basic   
-      @marker.shader = @shader_basic
-
+   
       # Backing Node
 
       @backing = new CoffeeGL.Node new CoffeeGL.Quad()
@@ -124,6 +127,22 @@ class Equatorie
       @_setTangents @plate.geometry
       @_setTangents @base.geometry
 
+      # Setup our needle model
+      for child in @needle_model.children
+        @_setTangents child.geometry
+
+      @marker.add @needle_model
+   
+      @marker.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.01.0.01,0.01,1.0)
+      @marker.uSpecColour = new CoffeeGL.Colour.RGBA(0.5,0.5,0.5,1.0)
+      @marker.uAlphaX = 0.02
+      @marker.uAlphaY = 0.1
+      @marker.add @needle_normal
+      @marker.uSamplerNormal = 1
+      @marker.add @shader_aniso
+      
+      @top_node.add @marker
+
       @shiny.shader = @shader_aniso
       @shiny.add @epicycle
       @shiny.add @rim
@@ -138,9 +157,6 @@ class Equatorie
       @base.add @base_normal
 
       @shiny.uSamplerNormal = 1 # set for the first texture unit
-
-      # Add normal textures
-
     
       @base.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(1.0,1.0,0.8,1.0)
       @base.uSpecColour = new CoffeeGL.Colour.RGBA(0.5,0.5,0.5,1.0)
@@ -176,7 +192,8 @@ class Equatorie
             
       @top_node.add @basic_nodes
       @basic_nodes.shader = @shader_basic
-      @marker.shader = @shader_basic
+      
+
 
       # Launch physics web worker
       @physics = new Worker '/js/physics.js'
@@ -232,9 +249,7 @@ class Equatorie
     @pin.add sphere
     @pin.add cube_thin
 
-    @marker = @pin.copy()
-    @marker.uColour = new CoffeeGL.Colour.RGBA(0.0,1.0,1.0,1.0)
-    @top_node.add @marker
+  
 
     @c = new CoffeeGL.Camera.TouchPerspCamera new CoffeeGL.Vec3(0,0,10)
     @c.rotateFocal new CoffeeGL.Vec3(1,0,0), CoffeeGL.degToRad -25

@@ -57,7 +57,7 @@ equatorie.html
 
 <!-- Date Picker -->
 
-<input type="text" class="date input-append" value="31-12-1392" format="dd-mm-yyyy" id="dp1">
+<input type="text" class="date input-append" value="31/12/1392" format="dd-mm-yyyy" id="dp1">
 
 <!-- Buttons for the Actions we can perform -->
 <div class="btn-group dropup" id="actionSelect">
@@ -88,7 +88,7 @@ equatorie.html
 
 <!-- Loading bar -->
 <div id ="equatorie_loading">
-  <div class="progress">
+  <div class="progress progress-striped active">
   <div class="progress-bar" id ="loadingProgressBar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
     <span class="sr-only"></span>
   </div>
@@ -102,14 +102,23 @@ equatorie.html
       <div class="modal-content">
         <div class="modal-header">
           <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-          <h4 class="modal-title">Modal title</h4>
+          <h4 class="modal-title">About</h4>
+          <p>Equatorie reconstruction by Seb Falk (University of Cambridge) and Benjamin Blundell (<a href="http://www.section9.co.uk">section9.co.uk</a>).</p>
+
         </div>
         <div class="modal-body">
-          ...
+          <p>Credits
+            <ul>
+              <li>Built with <a href="http://www.coffeegl.com">CoffeeGL</a></li>
+              <li>Physics provided by <a href="http://schteppe.github.io/cannon.js/">Cannon.js</a></li>
+              <li>Normal maps by <a href="http://www.crazybump.com">CrazyBump</a></li>
+              <li>Modelled in <a href="http://www.blender.org">Blender</a></li>
+              <li>CSS, courtesy of <a href="http://getbootstrap.com">Twitter Bootstrap</a></li>
+            </ul>
+          </p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary">Save changes</button>
         </div>
       </div><!-- /.modal-content -->
     </div><!-- /.modal-dialog -->
@@ -123,14 +132,24 @@ equatorie.html
       <div class="modal-content">
         <div class="modal-header">
           <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-          <h4 class="modal-title">Modal title</h4>
+          <h4 class="modal-title">Instructions</h4>
         </div>
         <div class="modal-body">
-          ...
+          <p>
+            To operate the Equatorie model, follow the steps:
+            <ol>
+              <li>Select a date using the the date picker widget at the bottom left of the screen.</li>
+              <li>Choose an action, such as the longitude of Mars. The Next button will appear.</li>
+              <li>Press the next button to step through the different stages of finding the longitude of mars.</li>
+              <li>When you are finished (or at any time) you may press the reset button.</li>
+            </ol>
+          </p>
+          <p>You can rotate the equatorie by holding down the left mouse button and moving the mouse. You may also use a finger on your touch-screen device. To zoom in and out, use the mouse wheel or the 'zoom' (or 'pinch') gesture on your touch screen device.</p>
+
+          <p>You may move the strings by clicking and holding the mouse button over the pin attached to the string. To move the epicycle, click and hold the mouse over the epicycle, then move the mouse.</p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary">Save changes</button>
         </div>
       </div><!-- /.modal-content -->
     </div><!-- /.modal-dialog -->
@@ -144,6 +163,7 @@ equatorie.html
 
 <div id = "popupContainer">&nbsp;</div>
 
+
 <script type="text/javascript">
 
 loaded = function() {
@@ -151,7 +171,7 @@ loaded = function() {
   $('#equatorie_text_right').css({display: "block"});
   $('#equatorie_loading').css({display: "none"});
 
-  window.Equatorie.setDate("31-12-1392");
+  window.Equatorie.setDate(new Date(1392,11,31));
   window.EquatorieMovePOI.add(moving, this);
 }
 
@@ -187,6 +207,22 @@ $('#dp1').datepicker()
     window.Equatorie.setDate(ev.date);
   });
 
+
+$('#dp1').on('change', function() {  
+  var datetxt = $('#dp1').val();
+  parts = datetxt.split("/");
+  if (parts.length === 3){
+    d = new Date(parseInt(parts[2]),parseInt(parts[1])-1, parseInt(parts[0]));
+    if( isNaN( d.getTime())){
+      $('#dp1').val("31/12/1392");
+    } else {
+      window.Equatorie.setDate(d);
+    }
+    
+  } else {
+     $('#dp1').val("31/12/1392");
+  }
+})
 
 // Functions for selectors for the planets
 

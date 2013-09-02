@@ -24,6 +24,7 @@ precision mediump float;
 {{ShaderLibrary.VertexNormal}}
 {{ShaderLibrary.VertexTexCoord}}
 {{ShaderLibrary.VertexTangent}}
+{{ShaderLibrary.BasicMaterial}}
 
 varying vec4 vTransformedNormal;
 varying vec4 vPosition;
@@ -31,12 +32,6 @@ varying vec4 vEyePosition;
 
 uniform vec3 uPointLightPos[10];
 uniform vec3 uAmbientLightingColor;
-
-uniform vec3 uMaterialAmbientColor;
-uniform vec3 uMaterialDiffuseColor;
-uniform vec3 uMaterialSpecularColor;
-uniform float uMaterialShininess;
-uniform vec3 uMaterialEmissiveColor;
 
 uniform vec3 uPointLightDiffuse[10];
 uniform vec3 uPointLightSpecular[10];

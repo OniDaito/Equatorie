@@ -294,9 +294,9 @@ class EquatorieInteract
     @marker.matrix.identity()
 
     if @chosen_planet == "mercury"
-      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.mercuryDeferentPosition.x,0.4,@system.state.mercuryDeferentPosition.y))
+      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.mercuryDeferentPosition.x,0.0,@system.state.mercuryDeferentPosition.y))
     else if @chosen_planet in ["mars","venus","jupiter","saturn","moon"]
-      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.deferentPosition.x,0.4,@system.state.deferentPosition.y))
+      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.deferentPosition.x,0.0,@system.state.deferentPosition.y))
     
     current_state.pos = @_setPOI @marker
     @move_poi.dispatch current_state.pos
@@ -342,10 +342,6 @@ class EquatorieInteract
 
     @epicycle.matrix.copyFrom fmatrix.mult tmatrix 
 
-    cp = @system.state.epicyclePosition
-    @marker.matrix.identity()
-    @marker.matrix.translate(new CoffeeGL.Vec3(cp.x,0.0,cp.y))
-
     current_state.pos = @_setPOI @epicycle
     @move_poi.dispatch current_state.pos
   
@@ -383,10 +379,6 @@ class EquatorieInteract
 
     @pointer.matrix.identity()
     @pointer.matrix.rotate new CoffeeGL.Vec3(0,1,0), CoffeeGL.degToRad @system.state.meanAux + current_state.rot_interp.set dt
-
-    cp = @system.state.pointerPoint
-    @marker.matrix.identity()
-    @marker.matrix.translate(new CoffeeGL.Vec3(cp.x,0.6,cp.y))
 
     current_state.pos = @_setPOI @marker
     @move_poi.dispatch current_state.pos
@@ -683,16 +675,14 @@ class EquatorieInteract
     rval.pos = @stack[@stack_idx].pos if @stack[@stack_idx].pos?
     rval
 
-  # Date string is dd-mm-yyyy or a date object
+  # Date is a date object
   setDate : (date) ->
     if not date?
       @date = new Date()
       @date.setDate @date.getDate() + @advance_date
     else if date instanceof Date
       @date = date
-    else
-      from = date.split("-");
-      @date = new Date(from[2], from[1] - 1, from[0]);
+
 
   onMouseOver : (event) ->    
     @mp.x = event.mouseX
