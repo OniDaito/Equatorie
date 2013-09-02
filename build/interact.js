@@ -665,17 +665,15 @@
     EquatorieInteract.prototype.solveForCurrentDatePlanet = function() {
       var date;
       date = new Date();
-      date.setDate(date.getDate() + this.advance_date);
+      date.setDate(this.date.getDate() + this.advance_date);
       return this.solveForPlanet(this.chosen_planet, date);
     };
 
     EquatorieInteract.prototype.stepForward = function() {
-      var date, rval;
+      var rval;
       this.time.start = new Date().getTime();
-      date = new Date();
-      date.setDate(date.getDate() + this.advance_date);
       if (this.stack.length === 0) {
-        this.addStates(this.chosen_planet, date);
+        this.addStates(this.chosen_planet, this.date);
         this.stack_idx = 0;
       } else {
         if (this.stack_idx + 1 < this.stack.length) {
@@ -693,6 +691,19 @@
         rval.pos = this.stack[this.stack_idx].pos;
       }
       return rval;
+    };
+
+    EquatorieInteract.prototype.setDate = function(date) {
+      var from;
+      if (date == null) {
+        this.date = new Date();
+        return this.date.setDate(this.date.getDate() + this.advance_date);
+      } else if (date instanceof Date) {
+        return this.date = date;
+      } else {
+        from = date.split("-");
+        return this.date = new Date(from[2], from[1] - 1, from[0]);
+      }
     };
 
     EquatorieInteract.prototype.onMouseOver = function(event) {

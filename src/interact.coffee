@@ -655,7 +655,7 @@ class EquatorieInteract
 
   solveForCurrentDatePlanet : () ->
     date = new Date()
-    date.setDate date.getDate() + @advance_date 
+    date.setDate @date.getDate() + @advance_date 
     @solveForPlanet(@chosen_planet, date)
 
 
@@ -664,11 +664,8 @@ class EquatorieInteract
 
     @time.start = new Date().getTime()
 
-    date = new Date()
-    date.setDate date.getDate() + @advance_date 
-
     if @stack.length == 0
-      @addStates @chosen_planet, date
+      @addStates @chosen_planet, @date
       @stack_idx = 0
     else
       if @stack_idx + 1 < @stack.length
@@ -685,6 +682,17 @@ class EquatorieInteract
     rval.text = @stack[@stack_idx].text if @stack[@stack_idx].text?
     rval.pos = @stack[@stack_idx].pos if @stack[@stack_idx].pos?
     rval
+
+  # Date string is dd-mm-yyyy or a date object
+  setDate : (date) ->
+    if not date?
+      @date = new Date()
+      @date.setDate @date.getDate() + @advance_date
+    else if date instanceof Date
+      @date = date
+    else
+      from = date.split("-");
+      @date = new Date(from[2], from[1] - 1, from[0]);
 
   onMouseOver : (event) ->    
     @mp.x = event.mouseX

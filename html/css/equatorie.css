@@ -4,12 +4,22 @@
   overflow: hidden;
 }
 
-#equatorie_text {
+#equatorie_text_left {
   position: absolute;
   display: none;
   bottom: 10px;
-  width: 100%;
-  height:80px;
+  height: 50px;
+  z-index: 1002;
+  width: 480px;
+}
+
+#equatorie_text_right {
+  position: absolute;
+  display: none;
+  bottom: 10px;
+  width: 100px;
+  height:50px;
+  right:10px;
   z-index: 1002;
 }
 
@@ -43,4 +53,5 @@
 
 #dp1 {
   display: inline-block;
+  width: 95px;
 }

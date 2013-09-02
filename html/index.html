@@ -51,13 +51,13 @@ equatorie.html
 
 <!-- Main Controls -->
 
-<div id ="equatorie_text">
-<a data-toggle="modal" id="buttonAbout" href="#aboutModal" class="btn btn-info">About</a>
+<div id ="equatorie_text_left">
 <a data-toggle="modal" href="#instructionsModal" class="btn btn-info">Instructions</a>
+
 
 <!-- Date Picker -->
 
-<input type="text" class="date span1 input-append" value="31-12-1392" format="dd-mm-yyyy" id="dp1">
+<input type="text" class="date input-append" value="31-12-1392" format="dd-mm-yyyy" id="dp1">
 
 <!-- Buttons for the Actions we can perform -->
 <div class="btn-group dropup" id="actionSelect">
@@ -136,14 +136,22 @@ equatorie.html
     </div><!-- /.modal-dialog -->
   </div><!-- /.modal -->
 
+</div>
+
+<div id ="equatorie_text_right">
+<a data-toggle="modal" id="buttonAbout" href="#aboutModal" class="btn btn-info">About</a>
+</div>
+
 <div id = "popupContainer">&nbsp;</div>
 
 <script type="text/javascript">
 
 loaded = function() {
-  $('#equatorie_text').css({display: "block"});
+  $('#equatorie_text_left').css({display: "block"});
+  $('#equatorie_text_right').css({display: "block"});
   $('#equatorie_loading').css({display: "none"});
 
+  window.Equatorie.setDate("31-12-1392");
   window.EquatorieMovePOI.add(moving, this);
 }
 
@@ -174,10 +182,11 @@ window.EquatorieLoaded.addOnce(loaded, this);
 
 // Date Picker
 
-$('.date').datepicker()
+$('#dp1').datepicker()
   .on('changeDate', function(ev){
-    alert(ev.date.valueOf());
+    window.Equatorie.setDate(ev.date);
   });
+
 
 // Functions for selectors for the planets
 
@@ -242,6 +251,8 @@ $('#button_next').click( function() {
 
   if(window.Equatorie !== undefined) {
     $("#actionSelect button:first-child").prop('disabled', true);
+    $("#dp1").prop('disabled', true);
+
 
     nd = window.Equatorie.stepForward();
 
@@ -267,7 +278,10 @@ $('#button_next').click( function() {
     }
 
     if (window.Equatorie.stack_idx == window.Equatorie.stack.length - 1){
-      $('#button_next').hide(); 
+      $('#button_next').prop('disabled', true);
+    }
+    else {
+      $('#button_next').prop('disabled', false);
     }
 
   }
@@ -284,7 +298,10 @@ $('#button_reset').click( function() {
     });
 
     $("#button_next").hide();
+    $("#button_reset").hide();
     $("#actionSelect button:first-child").prop('disabled', false);
+    $('#button_next').prop('disabled', false);
+    $("#dp1").prop('disabled', false);
   }
 });
 

@@ -23,7 +23,7 @@
 	
 	var Datepicker = function(element, options){
 		this.element = $(element);
-		this.format = DPGlobal.parseFormat(options.format||this.element.data('date-format')||'mm/dd/yyyy');
+		this.format = DPGlobal.parseFormat(options.format||this.element.data('date-format')||'dd/mm/yyyy');
 		this.picker = $(DPGlobal.template)
 							.appendTo('body')
 							.on({
@@ -151,12 +151,13 @@
 		
 		place: function(){
 			//var offset = this.component ? this.component.offset() : this.element.offset();
+	
 			this.picker.css({
-				//top: offset.top + this.height,
-				//left: offset.left
-				bottom: this.height,
-				left:0
+				left: $("#dp1").offset().left,
+				top:  $("#dp1").offset().top - 280
 			});
+
+		
 		},
 		
 		update: function(newDate){
