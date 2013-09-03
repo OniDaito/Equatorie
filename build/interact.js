@@ -96,6 +96,10 @@
         start: 0,
         dt: 0
       };
+      Date.prototype.addHours = function(h) {
+        this.setHours(this.getHours() + h);
+        return this;
+      };
     }
 
     EquatorieInteract.prototype.update = function(dt) {
@@ -421,7 +425,7 @@
     EquatorieInteract.prototype._stateMoveBlackStringFinalInit = function() {
       var current_state, mv;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Move the black string till it meets the point on the label. Read off the true place where the string crosses the limb. It should be: " + this.system.state.truePlace;
+      current_state.text = "Move the black string till it meets the point on the label. Read off the true place where the string crosses the limb. It should be: " + this.system.state.truePlace.toFixed(2);
       mv = new CoffeeGL.Vec3(this.system.state.pointerPoint.x, 0, this.system.state.pointerPoint.y);
       mv.normalize();
       mv.multScalar(10.0);
@@ -690,9 +694,12 @@
     EquatorieInteract.prototype.setDate = function(date) {
       if (date == null) {
         this.date = new Date();
-        return this.date.setDate(this.date.getDate() + this.advance_date);
+        this.date.setDate(this.date.getDate() + this.advance_date);
       } else if (date instanceof Date) {
-        return this.date = date;
+        this.date = date;
+      }
+      if (this.date.getHours !== 12) {
+        return this.date.setHours(12);
       }
     };
 

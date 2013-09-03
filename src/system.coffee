@@ -130,8 +130,9 @@ class EquatorieSystem
       speed : 0.05295426  # degrees per day
 
 
-    @epoch = new Date ("January 1, 1393 00:00:00")
-    @epoch_julian = 2229851.5
+    @epoch = new Date(1392,11,31)
+    @epoch.setHours(12)
+    @epoch_julian = 2229851
    
     # consistent pieces of information at each step
     # The system records its state as we progress through
@@ -221,16 +222,44 @@ class EquatorieSystem
 
   _calculateDate : (date) ->
     # Worked out from the date (current) and the tables above
-    # 1900, January 1st 00:00 evening (so midnight on the Dec 31)
     # return the number of days - use Julian dates
 
-    a = (14 - (date.getMonth()+1)) / 12
-    y = date.getFullYear() + 4800 - a
-    m = (date.getMonth()+1) + (12 * a )-3
-    j = date.getDate() + (153 * m  + 2)/ 5 + (365 * y) + (y/4) - (y/100) + (y/400) - 32045
+    #h ttp://www.cs.utsa.edu/~cs1063/projects/Spring2011/Project1/jdn-explanation.html
+
+    # Javascript cant cope with pre epoch dates as it is lame! :O
+
+    # We are dealing here with the calendar change over as mentioned by Pope Gregory XIII in 1582
+    # We need to redo leap year calculations and subtract for missing days
+
+    # http://aa.usno.navy.mil/data/docs/JulianDate.php
+
+    preg = false
+
+    if date.getFullYear() < 1582 
+      preg = true
+    else if date.getFullYear() == 1582
+      if (date.getMonth()+1) < 10
+        preg = true
+      else if (date.getMonth()+1) == 10 and date.getDate() < 15
+        preg = true
+
+
+    a = if date.getMonth() == 0 or date.getMonth() == 1 then 1 else 0
+  
+    y = date.getFullYear() + 4800 - a 
+    m = (date.getMonth()+1) + (12*a) - 3
+
+    d = date.getDate()
+    if preg == true
+      j = d + Math.floor((153 * m + 2)/5) + (365 * y) + Math.floor(y/4) - 32045 - 38
+    else
+      j = d + Math.floor((153 * m + 2)/5) + (365 * y) + Math.floor(y/4) - Math.floor(y/100) + Math.floor(y/400) - 32045
+
+    console.log j
 
     #Math.abs(date - @epoch) / 86400000
     p = j - @epoch_julian
+
 
     @state.passed = p
     p
@@ -270,18 +299,20 @@ class EquatorieSystem
     else if @state.planet == "mercury"
       # We need to makre sure we have the mean Motus at this point - it moves clockwise by the amount of the mean motus
       # We also only have 180 holes in this model so we need to restrain to 2 degrees of accuracy
-      # Not sure where the angle is counted from. Going for the furthest away point
       x = @inch_to_base * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad @state.deferentAngle)
       y = @inch_to_base * 34 * @planet_data[@state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad @state.deferentAngle)
       @state.deferentPosition = new CoffeeGL.Vec2 x,y
-      
-      meanCentre = @state.deferentAngle + (@state.meanMotus * -1)
+
+      # Mean centre is the angle / different between the mean Motus and Apsides line
+      meanCentre = Math.abs(@state.deferentAngle - @state.meanMotus)
+
 
       l = @state.deferentPosition.length()
-      x = Math.cos CoffeeGL.degToRad meanCentre
-      y = Math.sin CoffeeGL.degToRad meanCentre
+      x = Math.cos CoffeeGL.degToRad -@state.meanMotus
+      y = Math.sin CoffeeGL.degToRad -@state.meanMotus
 
       offset = new CoffeeGL.Vec2 x,y
+      offset.normalize()
       offset.multScalar(l)
 
       @state.mercuryDeferentPosition =  @state.deferentPosition.copy()
@@ -609,6 +640,9 @@ class EquatorieSystem
       dir = CoffeeGL.Vec2.normalize pp
       xaxis = new CoffeeGL.Vec2(1,0)
       angle = CoffeeGL.radToDeg Math.acos xaxis.dot dir
+      if pp.y > 0
+        angle = 360 - angle
+
       @state.truePlace = angle
       angle
 

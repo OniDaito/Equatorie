@@ -120,8 +120,9 @@
         start_motus: 15.35,
         speed: 0.05295426
       };
-      this.epoch = new Date("January 1, 1393 00:00:00");
-      this.epoch_julian = 2229851.5;
+      this.epoch = new Date(1392, 11, 31);
+      this.epoch.setHours(12);
+      this.epoch_julian = 2229851;
       this.reset();
     }
 
@@ -196,11 +197,27 @@
     };
 
     EquatorieSystem.prototype._calculateDate = function(date) {
-      var a, j, m, p, y;
-      a = (14 - (date.getMonth() + 1)) / 12;
+      var a, d, j, m, p, preg, y;
+      preg = false;
+      if (date.getFullYear() < 1582) {
+        preg = true;
+      } else if (date.getFullYear() === 1582) {
+        if ((date.getMonth() + 1) < 10) {
+          preg = true;
+        } else if ((date.getMonth() + 1) === 10 && date.getDate() < 15) {
+          preg = true;
+        }
+      }
+      a = date.getMonth() === 0 || date.getMonth() === 1 ? 1 : 0;
       y = date.getFullYear() + 4800 - a;
       m = (date.getMonth() + 1) + (12 * a) - 3;
-      j = date.getDate() + (153 * m + 2) / 5 + (365 * y) + (y / 4) - (y / 100) + (y / 400) - 32045;
+      d = date.getDate();
+      if (preg === true) {
+        j = d + Math.floor((153 * m + 2) / 5) + (365 * y) + Math.floor(y / 4) - 32045 - 38;
+      } else {
+        j = d + Math.floor((153 * m + 2) / 5) + (365 * y) + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+      }
+      console.log(j);
       p = j - this.epoch_julian;
       this.state.passed = p;
       return p;
@@ -233,11 +250,12 @@
         x = this.inch_to_base * 34 * this.planet_data[this.state.planet].deferent_eccentricity * Math.cos(CoffeeGL.degToRad(this.state.deferentAngle));
         y = this.inch_to_base * 34 * this.planet_data[this.state.planet].deferent_eccentricity * Math.sin(CoffeeGL.degToRad(this.state.deferentAngle));
         this.state.deferentPosition = new CoffeeGL.Vec2(x, y);
-        meanCentre = this.state.deferentAngle + (this.state.meanMotus * -1);
+        meanCentre = Math.abs(this.state.deferentAngle - this.state.meanMotus);
         l = this.state.deferentPosition.length();
-        x = Math.cos(CoffeeGL.degToRad(meanCentre));
-        y = Math.sin(CoffeeGL.degToRad(meanCentre));
+        x = Math.cos(CoffeeGL.degToRad(-this.state.meanMotus));
+        y = Math.sin(CoffeeGL.degToRad(-this.state.meanMotus));
         offset = new CoffeeGL.Vec2(x, y);
+        offset.normalize();
         offset.multScalar(l);
         this.state.mercuryDeferentPosition = this.state.deferentPosition.copy();
         this.state.mercuryDeferentPosition.multScalar(2);
@@ -489,6 +507,9 @@
         dir = CoffeeGL.Vec2.normalize(pp);
         xaxis = new CoffeeGL.Vec2(1, 0);
         angle = CoffeeGL.radToDeg(Math.acos(xaxis.dot(dir)));
+        if (pp.y > 0) {
+          angle = 360 - angle;
+        }
         this.state.truePlace = angle;
         return angle;
       }

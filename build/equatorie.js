@@ -56,7 +56,7 @@
       if (typeof window !== "undefined" && window !== null) {
         window.EquatorieLoadProgress = this.load_progress;
       }
-      this.system._calculateDate(new Date("January 1, 1393 00:00:00"));
+      this.system._calculateDate(new Date("December 31, 1392 12:00:00"));
       this.system._setPlanet("mars");
       this.system._calculateDeferentAngle();
       this.system._setPlanet("venus");
@@ -70,7 +70,7 @@
       this.system._calculateDeferentPosition();
       this.system.reset();
       cube = new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.2, 0.2, 0.2));
-      sphere = new CoffeeGL.Node(new CoffeeGL.Shapes.Sphere(0.3, 12));
+      sphere = new CoffeeGL.Node(new CoffeeGL.Shapes.Sphere(0.15, 12));
       cube_thin = new CoffeeGL.Node(new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.01, 0.5, 0.01)));
       cube_thin.matrix.translate(new CoffeeGL.Vec3(0, -0.2, 0));
       sphere.matrix.translate(new CoffeeGL.Vec3(0, 0.1, 0));
@@ -205,6 +205,7 @@
           cmd: "startup"
         });
         _this.interact = new EquatorieInteract(_this.system, _this.physics, _this.c, _this.white_start, _this.white_end, _this.black_start, _this.black_end, _this.epicycle, _this.pointer, _this.marker, _this.string_height);
+        _this.interact.setDate(new Date("December 31, 1392 12:00:00"));
         if (typeof window !== "undefined" && window !== null) {
           window.Equatorie = eq.interact;
         }

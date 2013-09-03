@@ -53,6 +53,10 @@ class EquatorieInteract
       start : 0
       dt : 0
 
+    Date.prototype.addHours = (h) ->
+      @setHours(@getHours()+h)
+      return @
+
   # Takes the current system dt in milliseconds. Can run backwards too!
   # At present the user cant move the items around but we should make that
   # much more explicit. 
@@ -388,7 +392,7 @@ class EquatorieInteract
 
   _stateMoveBlackStringFinalInit : () =>
     current_state = @stack[@stack_idx]
-    current_state.text = "Move the black string till it meets the point on the label. Read off the true place where the string crosses the limb. It should be: " + @system.state.truePlace
+    current_state.text = "Move the black string till it meets the point on the label. Read off the true place where the string crosses the limb. It should be: " + @system.state.truePlace.toFixed(2)
     mv = new CoffeeGL.Vec3 @system.state.pointerPoint.x,0, @system.state.pointerPoint.y
     mv.normalize()
     mv.multScalar(10.0)
@@ -682,6 +686,10 @@ class EquatorieInteract
       @date.setDate @date.getDate() + @advance_date
     else if date instanceof Date
       @date = date
+
+    # Check that its always midday
+    if @date.getHours != 12
+      @date.setHours(12)
 
 
   onMouseOver : (event) ->    

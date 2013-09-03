@@ -171,7 +171,6 @@ loaded = function() {
   $('#equatorie_text_right').css({display: "block"});
   $('#equatorie_loading').css({display: "none"});
 
-  window.Equatorie.setDate(new Date(1392,11,31));
   window.EquatorieMovePOI.add(moving, this);
 }
 
@@ -204,7 +203,9 @@ window.EquatorieLoaded.addOnce(loaded, this);
 
 $('#dp1').datepicker()
   .on('changeDate', function(ev){
-    window.Equatorie.setDate(ev.date);
+    d = ev.date;
+    d.setHours(d.getHours() + 12); // Go to midday on each day
+    window.Equatorie.setDate(d);
   });
 
 

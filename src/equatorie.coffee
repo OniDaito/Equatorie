@@ -59,7 +59,7 @@ class Equatorie
 
     # test test
     
-    @system._calculateDate(new Date ("January 1, 1393 00:00:00") )
+    @system._calculateDate(new Date ("December 31, 1392 12:00:00") )
     @system._setPlanet("mars")   
     @system._calculateDeferentAngle()
     #console.log @system._calculateDeferentPosition()
@@ -83,9 +83,10 @@ class Equatorie
 
     @system.reset()
 
+
     # Our basic marker / pin - this is part of our interaction
     cube = new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.2,0.2,0.2
-    sphere = new CoffeeGL.Node new CoffeeGL.Shapes.Sphere 0.3, 12
+    sphere = new CoffeeGL.Node new CoffeeGL.Shapes.Sphere 0.15, 12
     cube_thin = new CoffeeGL.Node new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.01,0.5,0.01
 
     cube_thin.matrix.translate new CoffeeGL.Vec3 0,-0.2,0
@@ -278,6 +279,7 @@ class Equatorie
       # Fire up the interaction class that takes over behaviour from here
       # This class takes quite a lot of objects so its not ideal
       @interact = new EquatorieInteract(@system, @physics, @c, @white_start, @white_end, @black_start, @black_end, @epicycle, @pointer, @marker, @string_height )
+      @interact.setDate new Date "December 31, 1392 12:00:00"
 
       window.Equatorie = eq.interact if window? # Export the interaction part for JQuery / Bootstrap interaction
 
