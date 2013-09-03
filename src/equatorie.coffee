@@ -24,7 +24,7 @@ class Equatorie
     # All nodes to be drawn
     @top_node = new CoffeeGL.Node()
 
-    @string_height = 0.4
+    @string_height = 0.2
     @string_nodes = new CoffeeGL.Node()
 
 
@@ -83,6 +83,68 @@ class Equatorie
 
     @system.reset()
 
+    # Our basic marker / pin - this is part of our interaction
+    cube = new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.2,0.2,0.2
+    sphere = new CoffeeGL.Node new CoffeeGL.Shapes.Sphere 0.3, 12
+    cube_thin = new CoffeeGL.Node new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.01,0.5,0.01
+
+    cube_thin.matrix.translate new CoffeeGL.Vec3 0,-0.2,0
+    sphere.matrix.translate new CoffeeGL.Vec3 0,0.1,0
+  
+
+    # Add Strings
+    @white_string = new EquatorieString 10, 0.015, 20
+    @black_string = new EquatorieString 10, 0.015, 20
+
+    @pin = new CoffeeGL.Node()
+    @pin.add sphere
+
+    # Each start has a pin for pickable and a model for drawing.
+    # The matrix is set in the top-most node and replaces the two below, thus is shared
+
+    @white_start = new CoffeeGL.Node
+    tp = @pin.copy()
+    tp.matrix = @white_start.matrix
+    @white_start.add tp
+    @pickable.add tp
+
+    @white_start.matrix.translate new CoffeeGL.Vec3 2,@string_height,2
+    tp.uPickingColour = new CoffeeGL.Colour.RGBA(1.0,0.0,0.0,1.0)
+
+    @white_end = new CoffeeGL.Node
+    tp = @pin.copy()
+    tp.matrix = @white_end.matrix
+    @white_end.add tp
+    @pickable.add tp
+    @white_end.matrix.translate new CoffeeGL.Vec3 -2,@string_height,-2
+    tp.uPickingColour = new CoffeeGL.Colour.RGBA(0.0,1.0,0.0,1.0)
+
+    @black_start = new CoffeeGL.Node
+    tp = @pin.copy()
+    tp.matrix = @black_start.matrix
+    @black_start.add tp
+    @pickable.add tp
+    @black_start.matrix.translate new CoffeeGL.Vec3 -2,@string_height,2
+    tp.uPickingColour = new CoffeeGL.Colour.RGBA(0.0,0.0,1.0,1.0)
+
+    @black_end = new CoffeeGL.Node
+    tp = @pin.copy()
+    tp.matrix = @black_end.matrix
+    @black_end.add tp
+    @pickable.add tp
+    @black_end.matrix.translate new CoffeeGL.Vec3 -4,@string_height,2
+    tp.uPickingColour = new CoffeeGL.Colour.RGBA(1.0,1.0,1.0,1.0)
+
+    @string_nodes.add(@white_string).add(@black_string)
+
+  
+    @white_string.uColour = new CoffeeGL.Colour.RGBA(0.9,0.9,0.9,1.0)
+    @black_string.uColour = new CoffeeGL.Colour.RGBA(0.1,0.1,0.1,1.0)
+    @white_start.uColour = new CoffeeGL.Colour.RGBA(0.9,0.2,0.2,0.8)
+    @white_end.uColour = new CoffeeGL.Colour.RGBA(0.2,0.2,0.9,0.8)
+    @black_start.uColour = new CoffeeGL.Colour.RGBA(0.9,0.2,0.2,0.8)
+    @black_end.uColour = new CoffeeGL.Colour.RGBA(0.2,0.2,0.9,0.8)
+
 
     # Function called when everything is loaded
     f = () =>
@@ -132,16 +194,32 @@ class Equatorie
         @_setTangents child.geometry
 
       @marker.add @needle_model
+
+      @needle_model.matrix.translate(new CoffeeGL.Vec3(0,-@string_height,0))
+
+      @shiny_needles = new CoffeeGL.Node()
+
+      @shiny_needles.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.01,0.01,0.01,1.0)
+      @shiny_needles.uSpecColour = new CoffeeGL.Colour.RGBA(0.8,0.8,0.8,1.0)
+      @shiny_needles.uAlphaX = 0.1
+      @shiny_needles.uAlphaY = 0.5
+      @shiny_needles.add @needle_normal
+      @shiny_needles.uSamplerNormal = 1
+      @shiny_needles.add @shader_aniso
+
+      @shiny_needles.add @marker
+
+      # Add the needle to our strings
+
+      for x in [@white_start,@white_end,@black_start,@black_end]
+        tn = new CoffeeGL.Node()
+        tn.add @needle_model
+        tn.matrix = x.matrix
+        x.add tn
+        @shiny_needles.add tn
    
-      @marker.uAmbientLightingColor = new CoffeeGL.Colour.RGBA(0.01.0.01,0.01,1.0)
-      @marker.uSpecColour = new CoffeeGL.Colour.RGBA(0.5,0.5,0.5,1.0)
-      @marker.uAlphaX = 0.02
-      @marker.uAlphaY = 0.1
-      @marker.add @needle_normal
-      @marker.uSamplerNormal = 1
-      @marker.add @shader_aniso
-      
-      @top_node.add @marker
+
+      @top_node.add @shiny_needles
 
       @shiny.shader = @shader_aniso
       @shiny.add @epicycle
@@ -189,11 +267,8 @@ class Equatorie
         
       # Set the pickable shader for the pickables
       @pickable.shader = @shader_picker
-            
       @top_node.add @basic_nodes
       @basic_nodes.shader = @shader_basic
-      
-
 
       # Launch physics web worker
       @physics = new Worker '/js/physics.js'
@@ -237,20 +312,7 @@ class Equatorie
 
     date = new Date()
     
-    # Our basic marker / pin - this is part of our interaction
-    cube = new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.2,0.2,0.2
-    sphere = new CoffeeGL.Node new CoffeeGL.Shapes.Sphere 0.1, 12
-    cube_thin = new CoffeeGL.Node new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.01,0.5,0.01
-
-    cube_thin.matrix.translate new CoffeeGL.Vec3 0,-0.2,0
-    sphere.matrix.translate new CoffeeGL.Vec3 0,0.1,0
-
-    @pin = new CoffeeGL.Node()
-    @pin.add sphere
-    @pin.add cube_thin
-
-  
-
+    
     @c = new CoffeeGL.Camera.TouchPerspCamera new CoffeeGL.Vec3(0,0,10)
     @c.rotateFocal new CoffeeGL.Vec3(1,0,0), CoffeeGL.degToRad -25
    
@@ -270,40 +332,7 @@ class Equatorie
     GL.cullFace(GL.BACK)
     GL.enable(GL.DEPTH_TEST)
 
-    # Add Strings
-    @white_string = new EquatorieString 10, 0.015, 20
-    @black_string = new EquatorieString 10, 0.015, 20
-    
-    @white_start = @pin.copy()
-    @pickable.add @white_start
-    @white_start.matrix.translate new CoffeeGL.Vec3 2,@string_height,2
-    @white_start.uPickingColour = new CoffeeGL.Colour.RGBA(1.0,0.0,0.0,1.0)
 
-    @white_end = @pin.copy()
-    @pickable.add @white_end
-    @white_end.matrix.translate new CoffeeGL.Vec3 -2,@string_height,-2
-    @white_end.uPickingColour = new CoffeeGL.Colour.RGBA(0.0,1.0,0.0,1.0)
-
-    @black_start = @pin.copy()
-    @pickable.add @black_start
-    @black_start.matrix.translate new CoffeeGL.Vec3 -2,@string_height,2
-    @black_start.uPickingColour = new CoffeeGL.Colour.RGBA(0.0,0.0,1.0,1.0)
-
-    @black_end = @pin.copy()
-    @pickable.add @black_end
-    @black_end.matrix.translate new CoffeeGL.Vec3 -4,@string_height,2
-    @black_end.uPickingColour = new CoffeeGL.Colour.RGBA(1.0,1.0,1.0,1.0)
-
-    @string_nodes.add(@white_string).add(@black_string)
-    @basic_nodes.add(@white_start).add(@white_end)
-    @basic_nodes.add(@black_start).add(@black_end)
-
-    @white_string.uColour = new CoffeeGL.Colour.RGBA(0.9,0.9,0.9,1.0)
-    @black_string.uColour = new CoffeeGL.Colour.RGBA(0.1,0.1,0.1,1.0)
-    @white_start.uColour = new CoffeeGL.Colour.RGBA(0.9,0.2,0.2,0.8)
-    @white_end.uColour = new CoffeeGL.Colour.RGBA(0.2,0.2,0.9,0.8)
-    @black_start.uColour = new CoffeeGL.Colour.RGBA(0.9,0.2,0.2,0.8)
-    @black_end.uColour = new CoffeeGL.Colour.RGBA(0.2,0.2,0.9,0.8)
 
 
   update : (dt) =>

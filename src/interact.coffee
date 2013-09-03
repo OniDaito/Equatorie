@@ -294,9 +294,9 @@ class EquatorieInteract
     @marker.matrix.identity()
 
     if @chosen_planet == "mercury"
-      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.mercuryDeferentPosition.x,0.0,@system.state.mercuryDeferentPosition.y))
+      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.mercuryDeferentPosition.x,@string_height,@system.state.mercuryDeferentPosition.y))
     else if @chosen_planet in ["mars","venus","jupiter","saturn","moon"]
-      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.deferentPosition.x,0.0,@system.state.deferentPosition.y))
+      @marker.matrix.translate(new CoffeeGL.Vec3(@system.state.deferentPosition.x,@string_height,@system.state.deferentPosition.y))
     
     current_state.pos = @_setPOI @marker
     @move_poi.dispatch current_state.pos
@@ -388,7 +388,7 @@ class EquatorieInteract
 
   _stateMoveBlackStringFinalInit : () =>
     current_state = @stack[@stack_idx]
-    current_state.text = "Move the black string till it meets the point on the label. Read off the true place where the string crosses the limb"
+    current_state.text = "Move the black string till it meets the point on the label. Read off the true place where the string crosses the limb. It should be: " + @system.state.truePlace
     mv = new CoffeeGL.Vec3 @system.state.pointerPoint.x,0, @system.state.pointerPoint.y
     mv.normalize()
     mv.multScalar(10.0)
