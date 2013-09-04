@@ -5,13 +5,13 @@
   \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
  /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
       \/     \/     \/                    \/         
-                                              CoffeeGL
+                                              Equatorie
                                               Benjamin Blundell - ben@section9.co.uk
                                               http://www.section9.co.uk
 
 ###
 
-
+{CoffeeGL} = require '../lib/coffeegl/coffeegl'
 {EquatorieSystem} = require './system'
 {EquatorieString} = require './string'
 {loadAssets} = require './load'
@@ -278,7 +278,7 @@ class Equatorie
 
       # Fire up the interaction class that takes over behaviour from here
       # This class takes quite a lot of objects so its not ideal
-      @interact = new EquatorieInteract(@system, @physics, @c, @white_start, @white_end, @black_start, @black_end, @epicycle, @pointer, @marker, @string_height )
+      @interact = new EquatorieInteract(@system, @physics, @c, @white_start, @white_end, @black_start, @black_end, @epicycle, @pointer, @marker, @plate, @string_height )
       @interact.setDate new Date "December 31, 1392 12:00:00"
 
       window.Equatorie = eq.interact if window? # Export the interaction part for JQuery / Bootstrap interaction

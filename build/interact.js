@@ -6,15 +6,17 @@
   \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
  /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
       \/     \/     \/                    \/         
-                                              CoffeeGL
+                                              Equatorie
                                               Benjamin Blundell - ben@section9.co.uk
                                               http://www.section9.co.uk
 */
 
 
 (function() {
-  var EquatorieInteract, EquatorieState,
+  var CoffeeGL, EquatorieInteract, EquatorieState,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+
+  CoffeeGL = require('../lib/coffeegl/coffeegl').CoffeeGL;
 
   EquatorieState = (function() {
     function EquatorieState(_activate, func, duration) {
@@ -41,7 +43,7 @@
   })();
 
   EquatorieInteract = (function() {
-    function EquatorieInteract(system, physics, camera, white_start, white_end, black_start, black_end, epicycle, pointer, marker, string_height) {
+    function EquatorieInteract(system, physics, camera, white_start, white_end, black_start, black_end, epicycle, pointer, marker, plate, string_height) {
       this.system = system;
       this.physics = physics;
       this.camera = camera;
@@ -52,6 +54,7 @@
       this.epicycle = epicycle;
       this.pointer = pointer;
       this.marker = marker;
+      this.plate = plate;
       this.string_height = string_height;
       this._stateMoveBlackStringLatitude = __bind(this._stateMoveBlackStringLatitude, this);
       this._stateMoveBlackStringLatitudeInit = __bind(this._stateMoveBlackStringLatitudeInit, this);
@@ -77,6 +80,8 @@
       this._stateMoveBlackThreadInit = __bind(this._stateMoveBlackThreadInit, this);
       this._stateCalculateMeanMotus = __bind(this._stateCalculateMeanMotus, this);
       this._stateCalculateMeanMotusInit = __bind(this._stateCalculateMeanMotusInit, this);
+      this._stateRotatePlate = __bind(this._stateRotatePlate, this);
+      this._stateRotatePlateInit = __bind(this._stateRotatePlateInit, this);
       this._stateSetPlanetDate = __bind(this._stateSetPlanetDate, this);
       this._stateSetPlanetDateInit = __bind(this._stateSetPlanetDateInit, this);
       this.mp = new CoffeeGL.Vec2(-1, -1);
@@ -134,7 +139,7 @@
     EquatorieInteract.prototype._stateSetPlanetDateInit = function() {
       var current_state;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Set the planet you are looking for and work out the number of days passed since 1392";
+      current_state.text = "Set the planet you are looking for and work out the number of days passed since the epoch 31/12/1392";
       current_state.pos = this._setPOI(this.epicycle);
       return this;
     };
@@ -142,6 +147,24 @@
     EquatorieInteract.prototype._stateSetPlanetDate = function(planet, date) {
       this.system.solveForPlanetDate(planet, date);
       return this;
+    };
+
+    EquatorieInteract.prototype._stateRotatePlateInit = function() {
+      var current_state;
+      current_state = this.stack[this.stack_idx];
+      current_state.text = "Rotate the plate to account for Precession since the epoch 31/12/1392";
+      current_state.pos = this._setPOI(this.plate);
+      this.plate.matrix.identity();
+      return current_state.plate_interp = new CoffeeGL.Interpolation(0, CoffeeGL.degToRad(this.system.precession * this.system.state.passed));
+    };
+
+    EquatorieInteract.prototype._stateRotatePlate = function(dt) {
+      var current_state;
+      current_state = this.stack[this.stack_idx];
+      current_state.pos = this._setPOI(this.plate);
+      this.move_poi.dispatch(current_state.pos);
+      this.plate.matrix.identity();
+      return this.plate.matrix.rotate(new CoffeeGL.Vec3(0, 1, 0), current_state.plate_interp.set(dt));
     };
 
     EquatorieInteract.prototype._stateCalculateMeanMotusInit = function() {
@@ -228,8 +251,8 @@
     EquatorieInteract.prototype._stateMoveWhiteThreadMoonInit = function() {
       var current_state, eq, pv;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Move the white thread so one end is over the equant and the other runs across the label. The equant is 180 degrees from the deferent.";
-      pv = this.system.state.pointerPoint.copy();
+      current_state.text = "Move the white thread so one end is over the equant and the other runs across the centre of the epicyle. The equant is 180 degrees from the deferent.";
+      pv = this.system.state.epicyclePosition.copy();
       pv.sub(this.system.state.equantPosition);
       pv.normalize();
       pv.multScalar(10.0);
@@ -389,9 +412,6 @@
       var current_state;
       current_state = this.stack[this.stack_idx];
       current_state.text = "Rotate the label till it is aligned with the white string.";
-      if (this.chosen_planet === "moon") {
-        current_state.text = "Rotate the label till it is aligned with the black string.";
-      }
       return current_state.rot_interp = new CoffeeGL.Interpolation(0, this.system.state.meanAux);
     };
 
@@ -488,6 +508,7 @@
         })(planet, date);
       }));
       if (planet === 'mars' || planet === 'venus' || planet === 'jupiter' || planet === 'saturn' || planet === 'mercury') {
+        this.stack.push(new EquatorieState(this._stateRotatePlateInit, this._stateRotatePlate));
         this.stack.push(new EquatorieState(this._stateCalculateMeanMotusInit, this._stateCalculateMeanMotus));
         this.stack.push(new EquatorieState(this._stateMoveBlackThreadInit, this._stateMoveBlackThread));
         this.stack.push(new EquatorieState(this._stateMoveWhiteThreadInit, this._stateMoveWhiteThread));
@@ -497,17 +518,21 @@
         this.stack.push(new EquatorieState(this._stateRotateLabelInit, this._stateRotateLabel));
         return this.stack.push(new EquatorieState(this._stateMoveBlackStringFinalInit, this._stateMoveBlackStringFinal));
       } else if (planet === 'moon') {
+        this.stack.push(new EquatorieState(this._stateRotatePlateInit, this._stateRotatePlate));
+        this.stack.push(new EquatorieState(this._stateRotatePlateInit, this._stateRotatePlate));
         this.stack.push(new EquatorieState(this._stateCalculateMeanMotusInit, this._stateCalculateMeanMotus));
         this.stack.push(new EquatorieState(this._stateMoveBlackThreadInit, this._stateMoveBlackThread));
         this.stack.push(new EquatorieState(this._stateMoveEpicycleInit, this._stateMoveEpicycle));
         this.stack.push(new EquatorieState(this._stateRotateEpicycleInit, this._stateRotateEpicycle));
+        this.stack.push(new EquatorieState(this._stateMoveWhiteThreadMoonInit, this._stateMoveWhiteThreadMoon));
         this.stack.push(new EquatorieState(this._stateRotateMeanAuxInit, this._stateRotateMeanAux));
         this.stack.push(new EquatorieState(this._stateRotateLabelInit, this._stateRotateLabel));
-        return this.stack.push(new EquatorieState(this._stateMoveWhiteThreadMoonInit, this._stateMoveWhiteThreadMoon));
+        return this.stack.push(new EquatorieState(this._stateMoveBlackStringFinalInit, this._stateMoveBlackStringFinal));
       } else if (planet === "moon_latitude") {
         this.stack.push(new EquatorieState(this._stateCalculateMeanMotusInit, this._stateCalculateMeanMotus));
         return this.stack.push(new EquatorieState(this._stateMoveBlackStringLatitudeInit, this._stateMoveBlackStringLatitude));
       } else if (planet === "sun") {
+        this.stack.push(new EquatorieState(this._stateRotatePlateInit, this._stateRotatePlate));
         this.stack.push(new EquatorieState(this._stateCalculateMeanMotusInit, this._stateCalculateMeanMotus));
         this.stack.push(new EquatorieState(this._stateMoveBlackThreadInit, this._stateMoveBlackThread));
         this.stack.push(new EquatorieState(this._stateMoveWhiteThreadSunInit, this._stateMoveWhiteThreadSun));

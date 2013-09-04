@@ -5,10 +5,12 @@
   \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
  /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
       \/     \/     \/                    \/         
-                                              CoffeeGL
+                                              Equatorie
                                               Benjamin Blundell - ben@section9.co.uk
                                               http://www.section9.co.uk
 ###
+
+{CoffeeGL} = require '../lib/coffeegl/coffeegl'
 
 # The state of the Equatorie at present and the next stage for it to go to
 class EquatorieState
@@ -27,7 +29,7 @@ class EquatorieState
 
 
 class EquatorieInteract
-  constructor : (@system, @physics, @camera, @white_start, @white_end, @black_start, @black_end, @epicycle, @pointer, @marker, @string_height ) ->
+  constructor : (@system, @physics, @camera, @white_start, @white_end, @black_start, @black_end, @epicycle, @pointer, @marker, @plate, @string_height ) ->
 
     # Mouse positions
     @mp = new CoffeeGL.Vec2(-1,-1)
@@ -96,8 +98,9 @@ class EquatorieInteract
   
   _stateSetPlanetDateInit : () =>
     current_state = @stack[@stack_idx]
-    current_state.text = "Set the planet you are looking for and work out the number of days passed since 1392"
+    current_state.text = "Set the planet you are looking for and work out the number of days passed since the epoch 31/12/1392"
     current_state.pos = @_setPOI @epicycle
+
     @
 
 
@@ -105,11 +108,30 @@ class EquatorieInteract
     @system.solveForPlanetDate(planet,date)
     @
 
+  _stateRotatePlateInit : () =>
+    # Rotate the centre plate by the precession 
+    current_state = @stack[@stack_idx]
+    current_state.text = "Rotate the plate to account for Precession since the epoch 31/12/1392"
+    current_state.pos = @_setPOI @plate
+    @plate.matrix.identity()
+    current_state.plate_interp = new CoffeeGL.Interpolation 0, CoffeeGL.degToRad(@system.precession * @system.state.passed)
+
+    
+  _stateRotatePlate : (dt) =>
+    current_state = @stack[@stack_idx]
+    current_state.pos = @_setPOI @plate
+    @move_poi.dispatch current_state.pos
+
+    @plate.matrix.identity()
+    @plate.matrix.rotate new CoffeeGL.Vec3(0,1,0), current_state.plate_interp.set dt
+
+
   _stateCalculateMeanMotusInit : () =>
     current_state = @stack[@stack_idx]
     current_state.text = "Find the mean motus for the body in question."
     if @chosen_planet == "moon_latitude"
       current_state.text = "Subract the true motus of Caput Draconis from the Moon's true motus."
+
 
     current_state.pos = @_setPOI @epicycle
     @
@@ -183,10 +205,9 @@ class EquatorieInteract
   _stateMoveWhiteThreadMoonInit : () =>
 
     current_state = @stack[@stack_idx]
-    current_state.text = "Move the white thread so one end is over the equant and the other runs across the label. The equant is 180 degrees from the deferent."
+    current_state.text = "Move the white thread so one end is over the equant and the other runs across the centre of the epicyle. The equant is 180 degrees from the deferent."
 
-
-    pv = @system.state.pointerPoint.copy()
+    pv = @system.state.epicyclePosition.copy()
     pv.sub @system.state.equantPosition
     pv.normalize()
     pv.multScalar(10.0)
@@ -354,11 +375,6 @@ class EquatorieInteract
   _stateRotateMeanAuxInit : () =>
     current_state = @stack[@stack_idx]
     current_state.text = "Rotate the label till it is aligned with the white string."
-
-    if @chosen_planet == "moon"
-      current_state.text =  "Rotate the label till it is aligned with the black string."
-
-
     current_state.rot_interp = new CoffeeGL.Interpolation 0, @system.state.meanAux
 
   _stateRotateMeanAux : (dt) =>
@@ -454,6 +470,7 @@ class EquatorieInteract
 
     if planet in ['mars','venus','jupiter','saturn','mercury']
       
+      @stack.push new EquatorieState @_stateRotatePlateInit, @_stateRotatePlate
       @stack.push new EquatorieState @_stateCalculateMeanMotusInit, @_stateCalculateMeanMotus
       @stack.push new EquatorieState @_stateMoveBlackThreadInit, @_stateMoveBlackThread 
       @stack.push new EquatorieState @_stateMoveWhiteThreadInit, @_stateMoveWhiteThread 
@@ -464,19 +481,23 @@ class EquatorieInteract
       @stack.push new EquatorieState @_stateMoveBlackStringFinalInit, @_stateMoveBlackStringFinal
 
     else if planet == 'moon'
+      @stack.push new EquatorieState @_stateRotatePlateInit, @_stateRotatePlate
+      @stack.push new EquatorieState @_stateRotatePlateInit, @_stateRotatePlate
       @stack.push new EquatorieState @_stateCalculateMeanMotusInit, @_stateCalculateMeanMotus
       @stack.push new EquatorieState @_stateMoveBlackThreadInit, @_stateMoveBlackThread
       @stack.push new EquatorieState @_stateMoveEpicycleInit, @_stateMoveEpicycle
       @stack.push new EquatorieState @_stateRotateEpicycleInit, @_stateRotateEpicycle
+      @stack.push new EquatorieState @_stateMoveWhiteThreadMoonInit, @_stateMoveWhiteThreadMoon
       @stack.push new EquatorieState @_stateRotateMeanAuxInit, @_stateRotateMeanAux
       @stack.push new EquatorieState @_stateRotateLabelInit, @_stateRotateLabel
-      @stack.push new EquatorieState @_stateMoveWhiteThreadMoonInit, @_stateMoveWhiteThreadMoon
+      @stack.push new EquatorieState @_stateMoveBlackStringFinalInit, @_stateMoveBlackStringFinal
 
     else if planet == "moon_latitude"
       @stack.push new EquatorieState @_stateCalculateMeanMotusInit, @_stateCalculateMeanMotus
       @stack.push new EquatorieState @_stateMoveBlackStringLatitudeInit, @_stateMoveBlackStringLatitude
 
     else if planet == "sun"
+      @stack.push new EquatorieState @_stateRotatePlateInit, @_stateRotatePlate
       @stack.push new EquatorieState @_stateCalculateMeanMotusInit, @_stateCalculateMeanMotus
       @stack.push new EquatorieState @_stateMoveBlackThreadInit, @_stateMoveBlackThread
       @stack.push new EquatorieState @_stateMoveWhiteThreadSunInit, @_stateMoveWhiteThreadSun

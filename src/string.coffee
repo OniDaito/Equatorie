@@ -1,4 +1,6 @@
 
+{CoffeeGL} = require '../lib/coffeegl/coffeegl'
+
 # Given some bullet physics represent the string
 
 class EquatorieString extends CoffeeGL.Node

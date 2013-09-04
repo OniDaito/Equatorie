@@ -1,3 +1,4 @@
+{CoffeeGL} = require '../lib/coffeegl/coffeegl'
 
 class LoadItem
   constructor : (@func, @userOnLoaded) ->

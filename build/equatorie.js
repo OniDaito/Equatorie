@@ -6,15 +6,17 @@
   \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
  /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
       \/     \/     \/                    \/         
-                                              CoffeeGL
+                                              Equatorie
                                               Benjamin Blundell - ben@section9.co.uk
                                               http://www.section9.co.uk
 */
 
 
 (function() {
-  var Equatorie, EquatorieInteract, EquatorieString, EquatorieSystem, cgl, eq, f, loadAssets,
+  var CoffeeGL, Equatorie, EquatorieInteract, EquatorieString, EquatorieSystem, cgl, eq, f, loadAssets,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+
+  CoffeeGL = require('../lib/coffeegl/coffeegl').CoffeeGL;
 
   EquatorieSystem = require('./system').EquatorieSystem;
 
@@ -204,7 +206,7 @@
         _this.physics.postMessage({
           cmd: "startup"
         });
-        _this.interact = new EquatorieInteract(_this.system, _this.physics, _this.c, _this.white_start, _this.white_end, _this.black_start, _this.black_end, _this.epicycle, _this.pointer, _this.marker, _this.string_height);
+        _this.interact = new EquatorieInteract(_this.system, _this.physics, _this.c, _this.white_start, _this.white_end, _this.black_start, _this.black_end, _this.epicycle, _this.pointer, _this.marker, _this.plate, _this.string_height);
         _this.interact.setDate(new Date("December 31, 1392 12:00:00"));
         if (typeof window !== "undefined" && window !== null) {
           window.Equatorie = eq.interact;

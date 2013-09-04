@@ -1,4 +1,6 @@
 
+{CoffeeGL} = require '../lib/coffeegl/coffeegl'
+
 class EquatorieSystem
 
   constructor : () ->
@@ -7,7 +9,7 @@ class EquatorieSystem
     @inch_to_base = 0.166666666667  # Convert inches into blender units  
     @epicycle_radius = 6.0          # used with epicycle ratio - Blender Units
     @epicycle_thickness = 0.333334
-    @precession = 0.0 #0.00003838  # Degrees per day # ignored using Sebs values I think
+    @precession = 0.00003838  # Degrees per day # ignored using Sebs values I think
     @moon_radius = 1.17742          # Blender unit radius of the moon's holes
 
     @planet_data = {}
@@ -60,9 +62,9 @@ class EquatorieSystem
 
     @epoch = new Date ("January 1, 1900 00:00:00")
     @epoch_julian = 2415020
-   
-    ###
+  
 
+    ###
     # Seb's Data
 
     @planet_data.venus =
@@ -168,6 +170,7 @@ class EquatorieSystem
       @_calculateMeanMotus()
       @_calculateParallel()
       @_calculateSunCrossingPoint()
+      @_calculateTruePlace()
       
     else if planet == "moon" or planet == "moon_latitude"
       @_calculateMeanMotus()
@@ -178,6 +181,7 @@ class EquatorieSystem
       @_calculateMoonEquations()
       @_calculatePointerAngle()
       @_calculatePointerPoint()
+      @_calculateTruePlace()
 
   # set the state of the system to all zeroes
   reset : () ->
@@ -255,11 +259,10 @@ class EquatorieSystem
     else
       j = d + Math.floor((153 * m + 2)/5) + (365 * y) + Math.floor(y/4) - Math.floor(y/100) + Math.floor(y/400) - 32045
 
-    console.log j
-
     #Math.abs(date - @epoch) / 86400000
     p = j - @epoch_julian
 
+    @state.date = j
 
     @state.passed = p
     p
@@ -269,7 +272,7 @@ class EquatorieSystem
   # In the case of mercury, it works out the initial deferent from which the final is derived
   _calculateDeferentAngle : () ->
     if @state.planet in ['mars','venus','jupiter','saturn','mercury']
-      angle = -@planet_data[@state.planet].apogee_longitude - ( @precession * @state.date )
+      angle = -@planet_data[@state.planet].apogee_longitude - ( @precession * @state.passed )
       @state.deferentAngle = angle
       return angle
 
@@ -580,24 +583,31 @@ class EquatorieSystem
 
     
     else if @state.planet in ["moon","moon_latitude"]
-      deferent_position = @state.deferentPosition
       a = @state.epicyclePosition.length()
-      b = deferent_position.dist @state.epicyclePosition
-      c = deferent_position.length()
+      b = @state.equantPosition.dist @state.epicyclePosition
+      c = @state.equantPosition.length()
 
       sa = CoffeeGL.radToDeg Math.acos( (a*a + b*b - c*c) /  (2*a*b) )
-      @state.meanAux = 90 + sa
+
+
+      a = @state.epicyclePosition.length()
+      b = @state.deferentPosition.dist @state.epicyclePosition
+      c = @state.deferentPosition.length()
+
+      sb = CoffeeGL.radToDeg Math.acos( (a*a + b*b - c*c) /  (2*a*b) )
+
+      @state.meanAux = 90 - sa - sb
 
       va = @state.epicyclePosition.copy()
       va.multScalar -1
-      vb = CoffeeGL.Vec2.sub @state.epicyclePosition, deferent_position
+      vb = CoffeeGL.Vec2.sub @state.epicyclePosition, @state.equantPosition
       va.normalize()
       vb.normalize()
      
       determinate = va.x * vb.y - va.y * vb.x
 
       if determinate > 0
-        @state.meanAux = 90 - sa
+        @state.meanAux = 90 + sa + sb
 
       @state.pointerAngle = angle
 
@@ -620,7 +630,7 @@ class EquatorieSystem
     perp = dir.copy()
     perp.x = -dir.y
     perp.y = dir.x
-  
+
     perp.multScalar (@base_radius * @planet_data[@state.planet].epicycle_ratio )
 
     ca = Math.cos CoffeeGL.degToRad -angle
@@ -635,7 +645,8 @@ class EquatorieSystem
 
   # in degrees from the centre of the base and the sign of aries (x axis in this system)
   _calculateTruePlace : () ->
-    if @state.planet in ["mercury","venus","mars","jupiter","saturn"]
+    if @state.planet in ["mercury","venus","mars","jupiter","saturn","moon"]
+      console.log @state.pointerPoint
       pp = @state.pointerPoint
       dir = CoffeeGL.Vec2.normalize pp
       xaxis = new CoffeeGL.Vec2(1,0)
@@ -644,7 +655,8 @@ class EquatorieSystem
         angle = 360 - angle
 
       @state.truePlace = angle
-      angle
+    else if @state.planet == "sun"
+      @state.truePlace = 0
 
 module.exports = 
   EquatorieSystem : EquatorieSystem
