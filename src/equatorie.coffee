@@ -21,12 +21,14 @@ class Equatorie
 
   init : () =>
     
-    # All nodes to be drawn
+    # All nodes to be drawn in colour
     @top_node = new CoffeeGL.Node()
+
+    # All nodes to be depth tested
+    @depth_node = new CoffeeGL.Node()
 
     @string_height = 0.2
     @string_nodes = new CoffeeGL.Node()
-
 
     # Nodes for the picking
     @pickable = new CoffeeGL.Node()
@@ -34,6 +36,7 @@ class Equatorie
     @ray = new CoffeeGL.Vec3(0,0,0)
 
     @fbo_fxaa = new CoffeeGL.Fbo()
+    @fbo_depth = new CoffeeGL.Fbo()
   
     @advance_date = 0
 
@@ -57,33 +60,7 @@ class Equatorie
     window.EquatorieLoaded = @loaded if window?
     window.EquatorieLoadProgress = @load_progress if window?
 
-    # test test
-    
-    @system._calculateDate(new Date ("December 31, 1392 12:00:00") )
-    @system._setPlanet("mars")   
-    @system._calculateDeferentAngle()
-    #console.log @system._calculateDeferentPosition()
-
-    @system._setPlanet("venus")   
-    @system._calculateDeferentAngle()
-    #console.log @system._calculateDeferentPosition()
-
-    @system._setPlanet("jupiter")   
-    @system._calculateDeferentAngle()
-    #console.log @system._calculateDeferentPosition()
-
-    @system._setPlanet("saturn")   
-    @system._calculateDeferentAngle()
-    #console.log @system._calculateDeferentPosition()
-
-    @system._setPlanet("mercury")   
-    @system._calculateDeferentAngle()
-    @system._calculateDeferentPosition()
-    #console.log @system.state.deferentPosition
-
-    @system.reset()
-
-
+   
     # Our basic marker / pin - this is part of our interaction
     cube = new CoffeeGL.Shapes.Cuboid new CoffeeGL.Vec3 0.2,0.2,0.2
     sphere = new CoffeeGL.Node new CoffeeGL.Shapes.Sphere 0.15, 12
@@ -146,6 +123,12 @@ class Equatorie
     @black_start.uColour = new CoffeeGL.Colour.RGBA(0.9,0.2,0.2,0.8)
     @black_end.uColour = new CoffeeGL.Colour.RGBA(0.2,0.2,0.9,0.8)
 
+    # Cameras
+
+    @c = new CoffeeGL.Camera.TouchPerspCamera new CoffeeGL.Vec3(0,0,10)
+    @c.rotateFocal new CoffeeGL.Vec3(1,0,0), CoffeeGL.degToRad -25
+
+    @o = new CoffeeGL.Camera.OrthoCamera new CoffeeGL.Vec3 0,0,0.1
 
     # Function called when everything is loaded
     f = () =>
@@ -160,7 +143,6 @@ class Equatorie
       @backing = new CoffeeGL.Node new CoffeeGL.Quad()
       @backing.shader = @shader_background
   
-      @top_node.add(@equatorie_model)
 
       @string_nodes.shader = @shader_string
 
@@ -176,12 +158,15 @@ class Equatorie
 
       # Create the node for shiny ansio things
       @shiny =  new CoffeeGL.Node()
-      @equatorie_model.add @shiny
-      @equatorie_model.remove @epicycle
-      @equatorie_model.remove @pointer
-      @equatorie_model.remove @rim
-      @equatorie_model.remove @plate
-      @equatorie_model.remove @base
+      @top_node.add @shiny
+
+      # Add the Equatorie Model to render to the depth node
+      @depth_node.add @epicycle
+      @depth_node.add @rim
+      @depth_node.add @plate
+      @depth_node.add @base
+
+      @depth_node.add  @shader_depth
 
       # Create the tangents
       @_setTangents @pointer.geometry
@@ -298,10 +283,15 @@ class Equatorie
       CoffeeGL.Context.mouseMove.del @c.onMouseMove, @c
       CoffeeGL.Context.mouseDown.del @c.onMouseDown, @c
 
-      # FXAA Shader
+      # FXAA/SSAO Shader
       @screen_quad = new CoffeeGL.Node new CoffeeGL.Quad()
       @screen_quad.viewportSize = new CoffeeGL.Vec2 CoffeeGL.Context.width, CoffeeGL.Context.height 
-      @screen_quad.add @shader_fxaa
+      @screen_quad.uRenderedTextureWidth = CoffeeGL.Context.width
+      @screen_quad.uRenderedTextureHeight =  CoffeeGL.Context.height
+      @screen_quad.uSampler = 0
+      @screen_quad.uSamplerDepth = 1
+      @screen_quad.add @o
+
 
       @ready = true
 
@@ -314,12 +304,9 @@ class Equatorie
 
     date = new Date()
     
-    
-    @c = new CoffeeGL.Camera.TouchPerspCamera new CoffeeGL.Vec3(0,0,10)
-    @c.rotateFocal new CoffeeGL.Vec3(1,0,0), CoffeeGL.degToRad -25
-   
-    @top_node.add(@c)
-    @pickable.add(@c)
+    @top_node.add @c
+    @pickable.add @c
+    @depth_node.add @c
 
     # Lights
 
@@ -375,11 +362,12 @@ class Equatorie
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT)
 
     @c.update CoffeeGL.Context.width, CoffeeGL.Context.height
+    @o.update CoffeeGL.Context.width, CoffeeGL.Context.height
 
     if not @ready
       return
 
- 
+    # Draw to the Colour Buffer
     @fbo_fxaa.bind()
     @fbo_fxaa.clear()
     GL.disable GL.DEPTH_TEST
@@ -388,28 +376,59 @@ class Equatorie
     @top_node.draw()
     @fbo_fxaa.unbind()
 
+    # Draw to the depth fbo
+
+    @fbo_depth.bind()
+    @fbo_depth.clear()
+    @depth_node.draw()
+    @fbo_depth.unbind()
+
     # Draw everything pickable to the pickable FBO
-    if @shader_picker?
-      @fbo_picking.bind()
-      @fbo_picking.clear()
-      @shader_picker.bind()
-      @pickable.draw()
-    
-      # Cx for picking
-      if @mp.y != -1 and @mp.x != -1
-        pixel = new Uint8Array(4);
-        GL.readPixels(@mp.x, @fbo_picking.height - @mp.y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixel)
+   
+    @fbo_picking.bind()
+    @fbo_picking.clear()
+    @shader_picker.bind()
+    @pickable.draw()
+  
+    # Cx for picking
+    if @mp.y != -1 and @mp.x != -1
+      pixel = new Uint8Array(4);
+      GL.readPixels(@mp.x, @fbo_picking.height - @mp.y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixel)
 
-        @interact.checkPicked pixel
-    
-      @shader_picker.unbind()
-      @fbo_picking.unbind()
+      @interact.checkPicked pixel
+  
+    @shader_picker.unbind()
+    @fbo_picking.unbind()
 
-    GL.disable GL.DEPTH_TEST
+    # Now draw the screen space effects
+
+    # SSAO
+    @fbo_depth.texture.unit = 1
+
+    @fbo_fxaa.bind()
+
     @fbo_fxaa.texture.bind()
+    @fbo_depth.texture.bind()
+
+    @shader_ssao.bind()
     @screen_quad.draw()
+    @shader_ssao.unbind()
+    
+    @fbo_depth.texture.unbind()
     @fbo_fxaa.texture.unbind()
-    GL.enable GL.DEPTH_TEST
+
+    @fbo_fxaa.unbind()
+
+    # FXAA
+
+    @fbo_fxaa.texture.bind()
+    @shader_fxaa.bind()
+    @screen_quad.draw()
+    @shader_fxaa.unbind()
+    @fbo_fxaa.texture.unbind()
+
+
+ 
 
 
   onMouseMove : (event) ->
@@ -429,9 +448,12 @@ class Equatorie
   resize : (w,h) ->
     @fbo_picking.resize w,h
     @fbo_fxaa.resize w,h
+    @fbo_depth.resize w,h
     if @screen_quad?
       @screen_quad.viewportSize.x = w
       @screen_quad.viewportSize.y = h
+      @screen_quad.uRenderedTextureWidth = w
+      @screen_quad.uRenderedTextureHeight =  h
 
   _setTangents : (geom) ->
     for face in geom.faces

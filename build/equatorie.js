@@ -38,12 +38,14 @@
       var cube, cube_thin, date, f, sphere, tp,
         _this = this;
       this.top_node = new CoffeeGL.Node();
+      this.depth_node = new CoffeeGL.Node();
       this.string_height = 0.2;
       this.string_nodes = new CoffeeGL.Node();
       this.pickable = new CoffeeGL.Node();
       this.fbo_picking = new CoffeeGL.Fbo();
       this.ray = new CoffeeGL.Vec3(0, 0, 0);
       this.fbo_fxaa = new CoffeeGL.Fbo();
+      this.fbo_depth = new CoffeeGL.Fbo();
       this.advance_date = 0;
       this.basic_nodes = new CoffeeGL.Node();
       this.mp = new CoffeeGL.Vec2(-1, -1);
@@ -58,19 +60,6 @@
       if (typeof window !== "undefined" && window !== null) {
         window.EquatorieLoadProgress = this.load_progress;
       }
-      this.system._calculateDate(new Date("December 31, 1392 12:00:00"));
-      this.system._setPlanet("mars");
-      this.system._calculateDeferentAngle();
-      this.system._setPlanet("venus");
-      this.system._calculateDeferentAngle();
-      this.system._setPlanet("jupiter");
-      this.system._calculateDeferentAngle();
-      this.system._setPlanet("saturn");
-      this.system._calculateDeferentAngle();
-      this.system._setPlanet("mercury");
-      this.system._calculateDeferentAngle();
-      this.system._calculateDeferentPosition();
-      this.system.reset();
       cube = new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.2, 0.2, 0.2));
       sphere = new CoffeeGL.Node(new CoffeeGL.Shapes.Sphere(0.15, 12));
       cube_thin = new CoffeeGL.Node(new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.01, 0.5, 0.01)));
@@ -115,13 +104,15 @@
       this.white_end.uColour = new CoffeeGL.Colour.RGBA(0.2, 0.2, 0.9, 0.8);
       this.black_start.uColour = new CoffeeGL.Colour.RGBA(0.9, 0.2, 0.2, 0.8);
       this.black_end.uColour = new CoffeeGL.Colour.RGBA(0.2, 0.2, 0.9, 0.8);
+      this.c = new CoffeeGL.Camera.TouchPerspCamera(new CoffeeGL.Vec3(0, 0, 10));
+      this.c.rotateFocal(new CoffeeGL.Vec3(1, 0, 0), CoffeeGL.degToRad(-25));
+      this.o = new CoffeeGL.Camera.OrthoCamera(new CoffeeGL.Vec3(0, 0, 0.1));
       f = function() {
         var child, q, tn, x, _i, _j, _len, _len1, _ref, _ref1;
         _this.top_node.add(_this.basic_nodes);
         _this.basic_nodes.shader = _this.shader_basic;
         _this.backing = new CoffeeGL.Node(new CoffeeGL.Quad());
         _this.backing.shader = _this.shader_background;
-        _this.top_node.add(_this.equatorie_model);
         _this.string_nodes.shader = _this.shader_string;
         _this.top_node.add(_this.string_nodes);
         _this.base = _this.equatorie_model.children[4];
@@ -130,12 +121,12 @@
         _this.rim = _this.equatorie_model.children[3];
         _this.plate = _this.equatorie_model.children[2];
         _this.shiny = new CoffeeGL.Node();
-        _this.equatorie_model.add(_this.shiny);
-        _this.equatorie_model.remove(_this.epicycle);
-        _this.equatorie_model.remove(_this.pointer);
-        _this.equatorie_model.remove(_this.rim);
-        _this.equatorie_model.remove(_this.plate);
-        _this.equatorie_model.remove(_this.base);
+        _this.top_node.add(_this.shiny);
+        _this.depth_node.add(_this.epicycle);
+        _this.depth_node.add(_this.rim);
+        _this.depth_node.add(_this.plate);
+        _this.depth_node.add(_this.base);
+        _this.depth_node.add(_this.shader_depth);
         _this._setTangents(_this.pointer.geometry);
         _this._setTangents(_this.epicycle.geometry);
         _this._setTangents(_this.rim.geometry);
@@ -223,16 +214,19 @@
         CoffeeGL.Context.mouseDown.del(_this.c.onMouseDown, _this.c);
         _this.screen_quad = new CoffeeGL.Node(new CoffeeGL.Quad());
         _this.screen_quad.viewportSize = new CoffeeGL.Vec2(CoffeeGL.Context.width, CoffeeGL.Context.height);
-        _this.screen_quad.add(_this.shader_fxaa);
+        _this.screen_quad.uRenderedTextureWidth = CoffeeGL.Context.width;
+        _this.screen_quad.uRenderedTextureHeight = CoffeeGL.Context.height;
+        _this.screen_quad.uSampler = 0;
+        _this.screen_quad.uSamplerDepth = 1;
+        _this.screen_quad.add(_this.o);
         return _this.ready = true;
       };
       this.loaded.addOnce(f, this);
       loadAssets(this, this.loaded, this.load_progress);
       date = new Date();
-      this.c = new CoffeeGL.Camera.TouchPerspCamera(new CoffeeGL.Vec3(0, 0, 10));
-      this.c.rotateFocal(new CoffeeGL.Vec3(1, 0, 0), CoffeeGL.degToRad(-25));
       this.top_node.add(this.c);
       this.pickable.add(this.c);
+      this.depth_node.add(this.c);
       this.light = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0, 5.0, 25.0), new CoffeeGL.Colour.RGB(1.0, 1.0, 1.0));
       this.light2 = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0, 15.0, 5.0), new CoffeeGL.Colour.RGB(1.0, 1.0, 1.0));
       this.top_node.add(this.light);
@@ -280,6 +274,7 @@
       GL.clearColor(0.15, 0.15, 0.15, 1.0);
       GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
       this.c.update(CoffeeGL.Context.width, CoffeeGL.Context.height);
+      this.o.update(CoffeeGL.Context.width, CoffeeGL.Context.height);
       if (!this.ready) {
         return;
       }
@@ -290,24 +285,36 @@
       GL.enable(GL.DEPTH_TEST);
       this.top_node.draw();
       this.fbo_fxaa.unbind();
-      if (this.shader_picker != null) {
-        this.fbo_picking.bind();
-        this.fbo_picking.clear();
-        this.shader_picker.bind();
-        this.pickable.draw();
-        if (this.mp.y !== -1 && this.mp.x !== -1) {
-          pixel = new Uint8Array(4);
-          GL.readPixels(this.mp.x, this.fbo_picking.height - this.mp.y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixel);
-          this.interact.checkPicked(pixel);
-        }
-        this.shader_picker.unbind();
-        this.fbo_picking.unbind();
+      this.fbo_depth.bind();
+      this.fbo_depth.clear();
+      this.depth_node.draw();
+      this.fbo_depth.unbind();
+      this.fbo_picking.bind();
+      this.fbo_picking.clear();
+      this.shader_picker.bind();
+      this.pickable.draw();
+      if (this.mp.y !== -1 && this.mp.x !== -1) {
+        pixel = new Uint8Array(4);
+        GL.readPixels(this.mp.x, this.fbo_picking.height - this.mp.y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixel);
+        this.interact.checkPicked(pixel);
       }
-      GL.disable(GL.DEPTH_TEST);
+      this.shader_picker.unbind();
+      this.fbo_picking.unbind();
+      this.fbo_depth.texture.unit = 1;
+      this.fbo_fxaa.bind();
       this.fbo_fxaa.texture.bind();
+      this.fbo_depth.texture.bind();
+      this.shader_ssao.bind();
       this.screen_quad.draw();
+      this.shader_ssao.unbind();
+      this.fbo_depth.texture.unbind();
       this.fbo_fxaa.texture.unbind();
-      return GL.enable(GL.DEPTH_TEST);
+      this.fbo_fxaa.unbind();
+      this.fbo_fxaa.texture.bind();
+      this.shader_fxaa.bind();
+      this.screen_quad.draw();
+      this.shader_fxaa.unbind();
+      return this.fbo_fxaa.texture.unbind();
     };
 
     Equatorie.prototype.onMouseMove = function(event) {
@@ -328,9 +335,12 @@
     Equatorie.prototype.resize = function(w, h) {
       this.fbo_picking.resize(w, h);
       this.fbo_fxaa.resize(w, h);
+      this.fbo_depth.resize(w, h);
       if (this.screen_quad != null) {
         this.screen_quad.viewportSize.x = w;
-        return this.screen_quad.viewportSize.y = h;
+        this.screen_quad.viewportSize.y = h;
+        this.screen_quad.uRenderedTextureWidth = w;
+        return this.screen_quad.uRenderedTextureHeight = h;
       }
     };
 

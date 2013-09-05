@@ -126,6 +126,27 @@ _loadBackingShader = new LoadItem () ->
     @loaded()
   @
 
+_loadDepthShader = new LoadItem () ->
+  r = new CoffeeGL.Request('../shaders/depth.glsl')
+  r.get (data) =>
+    @obj.shader_depth = new CoffeeGL.Shader(data)
+    @loaded()
+  @
+
+_loadSSAOShader = new LoadItem () ->
+  r = new CoffeeGL.Request('../shaders/ssao.glsl')
+
+  r.get (data) =>
+    @obj.shader_ssao = new CoffeeGL.Shader(data,  {
+      "uSampler" : "uSampler"
+      "uSamplerDepth" : "uSamplerDepth"
+      "uRenderedTextureWidth" : "uRenderedTextureWidth"
+      "uRenderedTextureHeight" : "uRenderedTextureHeight"
+      })
+    
+    @loaded()
+  @
+
 _loadFXAAShader = new LoadItem () ->
   r = new CoffeeGL.Request('../shaders/fxaa.glsl')
   r.get (data) =>
@@ -175,6 +196,8 @@ loadAssets = (obj, signal, signal_progress) ->
   lq.add _loadFXAAShader
   lq.add _loadNeedleModel
   lq.add _loadNeedleNormal
+  lq.add _loadSSAOShader
+  lq.add _loadDepthShader
 
   lq.start()
   @

@@ -39,12 +39,14 @@
       var cube, cube_thin, date, f, sphere, tp,
         _this = this;
       this.top_node = new CoffeeGL.Node();
+      this.depth_node = new CoffeeGL.Node();
       this.string_height = 0.2;
       this.string_nodes = new CoffeeGL.Node();
       this.pickable = new CoffeeGL.Node();
       this.fbo_picking = new CoffeeGL.Fbo();
       this.ray = new CoffeeGL.Vec3(0, 0, 0);
       this.fbo_fxaa = new CoffeeGL.Fbo();
+      this.fbo_depth = new CoffeeGL.Fbo();
       this.advance_date = 0;
       this.basic_nodes = new CoffeeGL.Node();
       this.mp = new CoffeeGL.Vec2(-1, -1);
@@ -59,19 +61,6 @@
       if (typeof window !== "undefined" && window !== null) {
         window.EquatorieLoadProgress = this.load_progress;
       }
-      this.system._calculateDate(new Date("December 31, 1392 12:00:00"));
-      this.system._setPlanet("mars");
-      this.system._calculateDeferentAngle();
-      this.system._setPlanet("venus");
-      this.system._calculateDeferentAngle();
-      this.system._setPlanet("jupiter");
-      this.system._calculateDeferentAngle();
-      this.system._setPlanet("saturn");
-      this.system._calculateDeferentAngle();
-      this.system._setPlanet("mercury");
-      this.system._calculateDeferentAngle();
-      this.system._calculateDeferentPosition();
-      this.system.reset();
       cube = new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.2, 0.2, 0.2));
       sphere = new CoffeeGL.Node(new CoffeeGL.Shapes.Sphere(0.15, 12));
       cube_thin = new CoffeeGL.Node(new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.01, 0.5, 0.01)));
@@ -116,13 +105,15 @@
       this.white_end.uColour = new CoffeeGL.Colour.RGBA(0.2, 0.2, 0.9, 0.8);
       this.black_start.uColour = new CoffeeGL.Colour.RGBA(0.9, 0.2, 0.2, 0.8);
       this.black_end.uColour = new CoffeeGL.Colour.RGBA(0.2, 0.2, 0.9, 0.8);
+      this.c = new CoffeeGL.Camera.TouchPerspCamera(new CoffeeGL.Vec3(0, 0, 10));
+      this.c.rotateFocal(new CoffeeGL.Vec3(1, 0, 0), CoffeeGL.degToRad(-25));
+      this.o = new CoffeeGL.Camera.OrthoCamera(new CoffeeGL.Vec3(0, 0, 0.1));
       f = function() {
         var child, q, tn, x, _i, _j, _len, _len1, _ref, _ref1;
         _this.top_node.add(_this.basic_nodes);
         _this.basic_nodes.shader = _this.shader_basic;
         _this.backing = new CoffeeGL.Node(new CoffeeGL.Quad());
         _this.backing.shader = _this.shader_background;
-        _this.top_node.add(_this.equatorie_model);
         _this.string_nodes.shader = _this.shader_string;
         _this.top_node.add(_this.string_nodes);
         _this.base = _this.equatorie_model.children[4];
@@ -131,12 +122,12 @@
         _this.rim = _this.equatorie_model.children[3];
         _this.plate = _this.equatorie_model.children[2];
         _this.shiny = new CoffeeGL.Node();
-        _this.equatorie_model.add(_this.shiny);
-        _this.equatorie_model.remove(_this.epicycle);
-        _this.equatorie_model.remove(_this.pointer);
-        _this.equatorie_model.remove(_this.rim);
-        _this.equatorie_model.remove(_this.plate);
-        _this.equatorie_model.remove(_this.base);
+        _this.top_node.add(_this.shiny);
+        _this.depth_node.add(_this.epicycle);
+        _this.depth_node.add(_this.rim);
+        _this.depth_node.add(_this.plate);
+        _this.depth_node.add(_this.base);
+        _this.depth_node.add(_this.shader_depth);
         _this._setTangents(_this.pointer.geometry);
         _this._setTangents(_this.epicycle.geometry);
         _this._setTangents(_this.rim.geometry);
@@ -224,16 +215,19 @@
         CoffeeGL.Context.mouseDown.del(_this.c.onMouseDown, _this.c);
         _this.screen_quad = new CoffeeGL.Node(new CoffeeGL.Quad());
         _this.screen_quad.viewportSize = new CoffeeGL.Vec2(CoffeeGL.Context.width, CoffeeGL.Context.height);
-        _this.screen_quad.add(_this.shader_fxaa);
+        _this.screen_quad.uRenderedTextureWidth = CoffeeGL.Context.width;
+        _this.screen_quad.uRenderedTextureHeight = CoffeeGL.Context.height;
+        _this.screen_quad.uSampler = 0;
+        _this.screen_quad.uSamplerDepth = 1;
+        _this.screen_quad.add(_this.o);
         return _this.ready = true;
       };
       this.loaded.addOnce(f, this);
       loadAssets(this, this.loaded, this.load_progress);
       date = new Date();
-      this.c = new CoffeeGL.Camera.TouchPerspCamera(new CoffeeGL.Vec3(0, 0, 10));
-      this.c.rotateFocal(new CoffeeGL.Vec3(1, 0, 0), CoffeeGL.degToRad(-25));
       this.top_node.add(this.c);
       this.pickable.add(this.c);
+      this.depth_node.add(this.c);
       this.light = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0, 5.0, 25.0), new CoffeeGL.Colour.RGB(1.0, 1.0, 1.0));
       this.light2 = new CoffeeGL.Light.PointLight(new CoffeeGL.Vec3(0.0, 15.0, 5.0), new CoffeeGL.Colour.RGB(1.0, 1.0, 1.0));
       this.top_node.add(this.light);
@@ -281,6 +275,7 @@
       GL.clearColor(0.15, 0.15, 0.15, 1.0);
       GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
       this.c.update(CoffeeGL.Context.width, CoffeeGL.Context.height);
+      this.o.update(CoffeeGL.Context.width, CoffeeGL.Context.height);
       if (!this.ready) {
         return;
       }
@@ -291,24 +286,36 @@
       GL.enable(GL.DEPTH_TEST);
       this.top_node.draw();
       this.fbo_fxaa.unbind();
-      if (this.shader_picker != null) {
-        this.fbo_picking.bind();
-        this.fbo_picking.clear();
-        this.shader_picker.bind();
-        this.pickable.draw();
-        if (this.mp.y !== -1 && this.mp.x !== -1) {
-          pixel = new Uint8Array(4);
-          GL.readPixels(this.mp.x, this.fbo_picking.height - this.mp.y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixel);
-          this.interact.checkPicked(pixel);
-        }
-        this.shader_picker.unbind();
-        this.fbo_picking.unbind();
+      this.fbo_depth.bind();
+      this.fbo_depth.clear();
+      this.depth_node.draw();
+      this.fbo_depth.unbind();
+      this.fbo_picking.bind();
+      this.fbo_picking.clear();
+      this.shader_picker.bind();
+      this.pickable.draw();
+      if (this.mp.y !== -1 && this.mp.x !== -1) {
+        pixel = new Uint8Array(4);
+        GL.readPixels(this.mp.x, this.fbo_picking.height - this.mp.y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixel);
+        this.interact.checkPicked(pixel);
       }
-      GL.disable(GL.DEPTH_TEST);
+      this.shader_picker.unbind();
+      this.fbo_picking.unbind();
+      this.fbo_depth.texture.unit = 1;
+      this.fbo_fxaa.bind();
       this.fbo_fxaa.texture.bind();
+      this.fbo_depth.texture.bind();
+      this.shader_ssao.bind();
       this.screen_quad.draw();
+      this.shader_ssao.unbind();
+      this.fbo_depth.texture.unbind();
       this.fbo_fxaa.texture.unbind();
-      return GL.enable(GL.DEPTH_TEST);
+      this.fbo_fxaa.unbind();
+      this.fbo_fxaa.texture.bind();
+      this.shader_fxaa.bind();
+      this.screen_quad.draw();
+      this.shader_fxaa.unbind();
+      return this.fbo_fxaa.texture.unbind();
     };
 
     Equatorie.prototype.onMouseMove = function(event) {
@@ -329,9 +336,12 @@
     Equatorie.prototype.resize = function(w, h) {
       this.fbo_picking.resize(w, h);
       this.fbo_fxaa.resize(w, h);
+      this.fbo_depth.resize(w, h);
       if (this.screen_quad != null) {
         this.screen_quad.viewportSize.x = w;
-        return this.screen_quad.viewportSize.y = h;
+        this.screen_quad.viewportSize.y = h;
+        this.screen_quad.uRenderedTextureWidth = w;
+        return this.screen_quad.uRenderedTextureHeight = h;
       }
     };
 
@@ -975,7 +985,7 @@
 },{"../lib/coffeegl/coffeegl":2}],5:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.3
 (function() {
-  var CoffeeGL, LoadItem, LoadQueue, loadAssets, _loadAniso, _loadBackingShader, _loadBaseNormal, _loadBasic, _loadEpicycleNormal, _loadFXAAShader, _loadLighting, _loadModel, _loadNeedleModel, _loadNeedleNormal, _loadPicking, _loadPlateNormal, _loadPointerNormal, _loadRimNormal, _loadStringShader;
+  var CoffeeGL, LoadItem, LoadQueue, loadAssets, _loadAniso, _loadBackingShader, _loadBaseNormal, _loadBasic, _loadDepthShader, _loadEpicycleNormal, _loadFXAAShader, _loadLighting, _loadModel, _loadNeedleModel, _loadNeedleNormal, _loadPicking, _loadPlateNormal, _loadPointerNormal, _loadRimNormal, _loadSSAOShader, _loadStringShader;
 
   CoffeeGL = require('../lib/coffeegl/coffeegl').CoffeeGL;
 
@@ -1186,6 +1196,33 @@
     return this;
   });
 
+  _loadDepthShader = new LoadItem(function() {
+    var r,
+      _this = this;
+    r = new CoffeeGL.Request('../shaders/depth.glsl');
+    r.get(function(data) {
+      _this.obj.shader_depth = new CoffeeGL.Shader(data);
+      return _this.loaded();
+    });
+    return this;
+  });
+
+  _loadSSAOShader = new LoadItem(function() {
+    var r,
+      _this = this;
+    r = new CoffeeGL.Request('../shaders/ssao.glsl');
+    r.get(function(data) {
+      _this.obj.shader_ssao = new CoffeeGL.Shader(data, {
+        "uSampler": "uSampler",
+        "uSamplerDepth": "uSamplerDepth",
+        "uRenderedTextureWidth": "uRenderedTextureWidth",
+        "uRenderedTextureHeight": "uRenderedTextureHeight"
+      });
+      return _this.loaded();
+    });
+    return this;
+  });
+
   _loadFXAAShader = new LoadItem(function() {
     var r,
       _this = this;
@@ -1248,6 +1285,8 @@
     lq.add(_loadFXAAShader);
     lq.add(_loadNeedleModel);
     lq.add(_loadNeedleNormal);
+    lq.add(_loadSSAOShader);
+    lq.add(_loadDepthShader);
     lq.start();
     return this;
   };
@@ -1258,7 +1297,149 @@
 
 }).call(this);
 
-},{"../lib/coffeegl/coffeegl":2}],6:[function(require,module,exports){
+},{"../lib/coffeegl/coffeegl":2}],2:[function(require,module,exports){
+// Generated by CoffeeScript 1.6.1
+
+/* ABOUT
+                       __  .__              ________ 
+   ______ ____   _____/  |_|__| ____   ____/   __   \
+  /  ___// __ \_/ ___\   __\  |/  _ \ /    \____    /
+  \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
+ /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
+      \/     \/     \/                    \/         
+                                              CoffeeGL
+                                              Benjamin Blundell - ben@section9.co.uk
+                                              http://www.section9.co.uk
+
+This software is released under the MIT Licence. See LICENCE.txt for details
+
+
+- Resources
+
+* http://www.yuiblog.com/blog/2007/06/12/module-pattern/
+* http://www.plexical.com/blog/2012/01/25/writing-coffeescript-for-browser-and-nod/
+* https://github.com/field/FieldKit.js
+
+- TODO
+* Need a shorthand here for sure!
+*/
+
+
+/* CoffeeGL entry point
+*/
+
+
+(function() {
+  var CoffeeGL, GL, extend, util, _setupFrame;
+
+  CoffeeGL = {};
+
+  GL = {};
+
+  util = require('./util');
+
+  extend = function() {
+    var pkg;
+    switch (arguments.length) {
+      case 1:
+        return util.extend(CoffeeGL, arguments[0]);
+      case 2:
+        pkg = arguments[0];
+        if (CoffeeGL[pkg] == null) {
+          CoffeeGL[pkg] = {};
+        }
+        return util.extend(CoffeeGL[pkg], arguments[1]);
+    }
+  };
+
+  if (typeof window !== "undefined" && window !== null) {
+    window.CoffeeGL = CoffeeGL;
+  }
+
+  if (typeof window !== "undefined" && window !== null) {
+    window.GL = GL;
+  }
+
+  extend(require('./app'));
+
+  extend(require('./math'));
+
+  extend("Colour", require('./colour'));
+
+  extend(require('./primitives'));
+
+  extend(require('./node'));
+
+  extend(require('./model'));
+
+  extend(require('./shader'));
+
+  extend(require('./request'));
+
+  extend(require('./fbo'));
+
+  extend(require('./texture'));
+
+  extend("Camera", require('./camera'));
+
+  extend("Shapes", require('./shapes'));
+
+  extend(require('./webgl'));
+
+  extend(require('./util'));
+
+  extend(require('./signal'));
+
+  extend("Light", require('./light'));
+
+  extend(require('./material'));
+
+  extend(require('./error'));
+
+  extend(require('./functions'));
+
+  extend(require('./animation'));
+
+  _setupFrame = function(root) {
+    var onEachFrame;
+    if (root.webkitRequestAnimationFrame) {
+      onEachFrame = function(cb) {
+        var _cb;
+        _cb = function() {
+          cb();
+          return webkitRequestAnimationFrame(_cb);
+        };
+        return _cb();
+      };
+    } else if (root.mozRequestAnimationFrame) {
+      onEachFrame = function(cb) {
+        var _cb;
+        _cb = function() {
+          cb();
+          return mozRequestAnimationFrame(_cb);
+        };
+        return _cb();
+      };
+    } else {
+      onEachFrame = function(cb) {
+        return setInterval(cb, 1000 / 60);
+      };
+    }
+    return root.onEachFrame = onEachFrame;
+  };
+
+  if (typeof window !== "undefined" && window !== null) {
+    _setupFrame(window);
+  }
+
+  module.exports = {
+    CoffeeGL: CoffeeGL,
+    GL: GL
+  };
+
+}).call(this);
+
+},{"./util":7,"./math":8,"./app":9,"./colour":10,"./primitives":11,"./node":12,"./model":13,"./shader":14,"./request":15,"./fbo":16,"./texture":17,"./camera":18,"./shapes":19,"./webgl":20,"./signal":21,"./light":22,"./material":23,"./error":24,"./functions":25,"./animation":26}],6:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.3
 /*
                        __  .__              ________ 
@@ -2032,149 +2213,7 @@
 
 }).call(this);
 
-},{"../lib/coffeegl/coffeegl":2}],2:[function(require,module,exports){
-// Generated by CoffeeScript 1.6.1
-
-/* ABOUT
-                       __  .__              ________ 
-   ______ ____   _____/  |_|__| ____   ____/   __   \
-  /  ___// __ \_/ ___\   __\  |/  _ \ /    \____    /
-  \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
- /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
-      \/     \/     \/                    \/         
-                                              CoffeeGL
-                                              Benjamin Blundell - ben@section9.co.uk
-                                              http://www.section9.co.uk
-
-This software is released under the MIT Licence. See LICENCE.txt for details
-
-
-- Resources
-
-* http://www.yuiblog.com/blog/2007/06/12/module-pattern/
-* http://www.plexical.com/blog/2012/01/25/writing-coffeescript-for-browser-and-nod/
-* https://github.com/field/FieldKit.js
-
-- TODO
-* Need a shorthand here for sure!
-*/
-
-
-/* CoffeeGL entry point
-*/
-
-
-(function() {
-  var CoffeeGL, GL, extend, util, _setupFrame;
-
-  CoffeeGL = {};
-
-  GL = {};
-
-  util = require('./util');
-
-  extend = function() {
-    var pkg;
-    switch (arguments.length) {
-      case 1:
-        return util.extend(CoffeeGL, arguments[0]);
-      case 2:
-        pkg = arguments[0];
-        if (CoffeeGL[pkg] == null) {
-          CoffeeGL[pkg] = {};
-        }
-        return util.extend(CoffeeGL[pkg], arguments[1]);
-    }
-  };
-
-  if (typeof window !== "undefined" && window !== null) {
-    window.CoffeeGL = CoffeeGL;
-  }
-
-  if (typeof window !== "undefined" && window !== null) {
-    window.GL = GL;
-  }
-
-  extend(require('./app'));
-
-  extend(require('./math'));
-
-  extend("Colour", require('./colour'));
-
-  extend(require('./primitives'));
-
-  extend(require('./node'));
-
-  extend(require('./model'));
-
-  extend(require('./shader'));
-
-  extend(require('./request'));
-
-  extend(require('./fbo'));
-
-  extend(require('./texture'));
-
-  extend("Camera", require('./camera'));
-
-  extend("Shapes", require('./shapes'));
-
-  extend(require('./webgl'));
-
-  extend(require('./util'));
-
-  extend(require('./signal'));
-
-  extend("Light", require('./light'));
-
-  extend(require('./material'));
-
-  extend(require('./error'));
-
-  extend(require('./functions'));
-
-  extend(require('./animation'));
-
-  _setupFrame = function(root) {
-    var onEachFrame;
-    if (root.webkitRequestAnimationFrame) {
-      onEachFrame = function(cb) {
-        var _cb;
-        _cb = function() {
-          cb();
-          return webkitRequestAnimationFrame(_cb);
-        };
-        return _cb();
-      };
-    } else if (root.mozRequestAnimationFrame) {
-      onEachFrame = function(cb) {
-        var _cb;
-        _cb = function() {
-          cb();
-          return mozRequestAnimationFrame(_cb);
-        };
-        return _cb();
-      };
-    } else {
-      onEachFrame = function(cb) {
-        return setInterval(cb, 1000 / 60);
-      };
-    }
-    return root.onEachFrame = onEachFrame;
-  };
-
-  if (typeof window !== "undefined" && window !== null) {
-    _setupFrame(window);
-  }
-
-  module.exports = {
-    CoffeeGL: CoffeeGL,
-    GL: GL
-  };
-
-}).call(this);
-
-},{"./util":7,"./app":8,"./math":9,"./colour":10,"./primitives":11,"./node":12,"./model":13,"./shader":14,"./request":15,"./fbo":16,"./texture":17,"./camera":18,"./shapes":19,"./webgl":20,"./signal":21,"./light":22,"./material":23,"./error":24,"./functions":25,"./animation":26}],7:[function(require,module,exports){
+},{"../lib/coffeegl/coffeegl":2}],7:[function(require,module,exports){
 (function(){// Generated by CoffeeScript 1.6.1
 (function() {
   var util;
@@ -2449,188 +2488,6 @@ Error Handling code
 }).call(this);
 
 },{}],8:[function(require,module,exports){
-// Generated by CoffeeScript 1.6.1
-
-/* ABOUT
-                       __  .__              ________ 
-   ______ ____   _____/  |_|__| ____   ____/   __   \
-  /  ___// __ \_/ ___\   __\  |/  _ \ /    \____    /
-  \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
- /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
-      \/     \/     \/                    \/         
-                                              CoffeeGL
-                                              Benjamin Blundell - ben@section9.co.uk
-                                              http://www.section9.co.uk
-
-This software is released under the MIT Licence. See LICENCE.txt for details
-
-- Resources
-
-* http://www.yuiblog.com/blog/2007/06/12/module-pattern/
-* http://www.plexical.com/blog/2012/01/25/writing-coffeescript-for-browser-and-nod/
-* https://github.com/field/FieldKit.js
-*/
-
-
-(function() {
-  var App, CoffeeGLError, CoffeeGLLog, Colour, Matrix4, OrthoCamera, PerspCamera, Shader, Vec2, Vec3, Vec4, makeDebugContext, makeMouseEmitter, makeTouchEmitter, _ref, _ref1, _ref2, _ref3,
-    _this = this;
-
-  _ref = require("./math"), Vec2 = _ref.Vec2, Vec3 = _ref.Vec3, Vec4 = _ref.Vec4, Matrix4 = _ref.Matrix4;
-
-  Shader = require("./shader").Shader;
-
-  _ref1 = require("./camera"), PerspCamera = _ref1.PerspCamera, OrthoCamera = _ref1.OrthoCamera;
-
-  _ref2 = require("./signal"), makeMouseEmitter = _ref2.makeMouseEmitter, makeTouchEmitter = _ref2.makeTouchEmitter;
-
-  Colour = require("./colour").Colour;
-
-  _ref3 = require("./error"), CoffeeGLError = _ref3.CoffeeGLError, CoffeeGLLog = _ref3.CoffeeGLLog;
-
-  makeDebugContext = require("./debug").makeDebugContext;
-
-  /* App
-  */
-
-
-  App = (function() {
-
-    function App(element, app_context, init, draw, update, onError, debug) {
-      var _this = this;
-      this.app_context = app_context;
-      this.init = init;
-      this.draw = draw;
-      this.update = update;
-      this.onError = onError;
-      this.debug = debug != null ? debug : false;
-      this.getDelta = function() {
-        return App.prototype.getDelta.apply(_this, arguments);
-      };
-      this.run = function() {
-        return App.prototype.run.apply(_this, arguments);
-      };
-      this.totalTime = 0.0;
-      this.loops = 0;
-      this.maxFrameSkip = 10;
-      this.nextGameTick = (new Date).getTime();
-      this.resources = 0;
-      this.startTime = Date.now();
-      this.oldTime = this.startTime;
-      this.canvas = document.getElementById(element);
-      this.height = this.canvas.height;
-      this.width = this.canvas.width;
-      this.gl = this.canvas.getContext('experimental-webgl');
-      if (this.gl == null) {
-        this.gl = canvas.getContext('webgl');
-      }
-      if (!this.gl) {
-        if (this.onError != null) {
-          this.onError();
-        }
-        CoffeeGLError("WebGL Not supported or context not found", "App");
-        return;
-      }
-      this.profile();
-      if (this.debug) {
-        CoffeeGLLog("creating OpenGL debug context");
-        makeDebugContext(this.gl);
-      }
-      this.resize(this.width, this.height);
-      this._init();
-    }
-
-    App.prototype.profile = function() {
-      var highp;
-      this.profile = {};
-      this.profile.antialias = this.gl.getContextAttributes().antialias;
-      this.profile.aa_size = this.gl.getParameter(this.gl.SAMPLES);
-      highp = this.gl.getShaderPrecisionFormat(this.gl.FRAGMENT_SHADER, this.gl.HIGH_FLOAT);
-      this.profile.highpSupported = highp.precision !== 0;
-      this.profile.maxTexSize = this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
-      this.profile.maxCubeSize = this.gl.getParameter(this.gl.MAX_CUBE_MAP_TEXTURE_SIZE);
-      this.profile.maxRenderbufferSize = this.gl.getParameter(this.gl.MAX_RENDERBUFFER_SIZE);
-      this.profile.vertexTextureUnits = this.gl.getParameter(this.gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS);
-      this.profile.fragmentTextureUnits = this.gl.getParameter(this.gl.MAX_TEXTURE_IMAGE_UNITS);
-      this.profile.combinedUnits = this.gl.getParameter(this.gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS);
-      this.profile.maxVSattribs = this.gl.getParameter(this.gl.MAX_VERTEX_ATTRIBS);
-      this.profile.maxVertexShaderUniforms = this.gl.getParameter(this.gl.MAX_VERTEX_UNIFORM_VECTORS);
-      this.profile.maxFragmentShaderUniforms = this.gl.getParameter(this.gl.MAX_FRAGMENT_UNIFORM_VECTORS);
-      this.profile.maxVaryings = this.gl.getParameter(this.gl.MAX_VARYING_VECTORS);
-      return console.log(this.profile);
-    };
-
-    App.prototype.run = function() {
-      this._draw();
-      return this._update(this.getDelta());
-    };
-
-    App.prototype._init = function() {
-      CoffeeGL.Context = this;
-      if (typeof window !== "undefined" && window !== null) {
-        window.GL = this.gl;
-      }
-      if (typeof window !== "undefined" && window !== null) {
-        makeMouseEmitter(this);
-      }
-      if (typeof window !== "undefined" && window !== null) {
-        makeTouchEmitter(this);
-      }
-      if (this.init != null) {
-        this.init.call(this.app_context);
-      }
-      if (typeof window !== "undefined" && window !== null) {
-        window.onEachFrame(this.run);
-      }
-      return this;
-    };
-
-    App.prototype.getDelta = function() {
-      var deltaTime;
-      deltaTime = Date.now() - this.oldTime;
-      this.oldTime = Date.now();
-      return deltaTime;
-    };
-
-    App.prototype.resize = function(w, h) {
-      if (this.canvas) {
-        if (this.gl) {
-          this.width = w;
-          this.height = h;
-          this.gl.viewportWidth = this.width;
-          this.gl.viewportHeight = this.height;
-          return this.gl.viewport(0, 0, this.gl.viewportWidth, this.gl.viewportHeight);
-        }
-      }
-    };
-
-    App.prototype._draw = function() {
-      CoffeeGL.Context = this;
-      if (typeof window !== "undefined" && window !== null) {
-        window.GL = this.gl;
-      }
-      if (this.draw != null) {
-        return this.draw.call(this.app_context);
-      }
-    };
-
-    App.prototype._update = function(dt) {
-      if (this.update != null) {
-        return this.update.call(this.app_context, dt);
-      }
-    };
-
-    return App;
-
-  })();
-
-  module.exports = {
-    App: App
-  };
-
-}).call(this);
-
-},{"./math":9,"./shader":14,"./camera":18,"./signal":21,"./colour":10,"./error":24,"./debug":27}],9:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -3975,7 +3832,7 @@ http://www.flipcode.com/documents/matrfaq.html
       c = -(zfar + znear) / (zfar - znear);
       d = -2 * zfar * znear / (zfar - znear);
       this.a = new glMatrixArrayType([x, 0, 0, 0, 0, y, 0, 0, a, b, c, -1, 0, 0, d, 0]);
-      return 0;
+      return this;
     };
 
     Matrix4.prototype.makeOrtho = function(left, right, bottom, top, znear, zfar) {
@@ -3983,7 +3840,7 @@ http://www.flipcode.com/documents/matrfaq.html
       tx = -(right + left) / (right - left);
       ty = -(top + bottom) / (top - bottom);
       tz = -(zfar + znear) / (zfar - znear);
-      this.a = new glMatrixArrayType([2 / (right - left), 0, 0, tx, 0, 2 / (top - bottom), 0, ty, 0, 0, -2 / (zfar - znear), tz, 0, 0, 0, 1]);
+      this.a = new glMatrixArrayType([2 / (right - left), 0, 0, 0, 0, 2 / (top - bottom), 0, 0, 0, 0, -2 / (zfar - znear), 0, tx, ty, tz, 1]);
       return this;
     };
 
@@ -4431,7 +4288,189 @@ http://www.flipcode.com/documents/matrfaq.html
 
 }).call(this);
 
-},{"./error":24}],11:[function(require,module,exports){
+},{"./error":24}],9:[function(require,module,exports){
+// Generated by CoffeeScript 1.6.1
+
+/* ABOUT
+                       __  .__              ________ 
+   ______ ____   _____/  |_|__| ____   ____/   __   \
+  /  ___// __ \_/ ___\   __\  |/  _ \ /    \____    /
+  \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
+ /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
+      \/     \/     \/                    \/         
+                                              CoffeeGL
+                                              Benjamin Blundell - ben@section9.co.uk
+                                              http://www.section9.co.uk
+
+This software is released under the MIT Licence. See LICENCE.txt for details
+
+- Resources
+
+* http://www.yuiblog.com/blog/2007/06/12/module-pattern/
+* http://www.plexical.com/blog/2012/01/25/writing-coffeescript-for-browser-and-nod/
+* https://github.com/field/FieldKit.js
+*/
+
+
+(function() {
+  var App, CoffeeGLError, CoffeeGLLog, Colour, Matrix4, OrthoCamera, PerspCamera, Shader, Vec2, Vec3, Vec4, makeDebugContext, makeMouseEmitter, makeTouchEmitter, _ref, _ref1, _ref2, _ref3,
+    _this = this;
+
+  _ref = require("./math"), Vec2 = _ref.Vec2, Vec3 = _ref.Vec3, Vec4 = _ref.Vec4, Matrix4 = _ref.Matrix4;
+
+  Shader = require("./shader").Shader;
+
+  _ref1 = require("./camera"), PerspCamera = _ref1.PerspCamera, OrthoCamera = _ref1.OrthoCamera;
+
+  _ref2 = require("./signal"), makeMouseEmitter = _ref2.makeMouseEmitter, makeTouchEmitter = _ref2.makeTouchEmitter;
+
+  Colour = require("./colour").Colour;
+
+  _ref3 = require("./error"), CoffeeGLError = _ref3.CoffeeGLError, CoffeeGLLog = _ref3.CoffeeGLLog;
+
+  makeDebugContext = require("./debug").makeDebugContext;
+
+  /* App
+  */
+
+
+  App = (function() {
+
+    function App(element, app_context, init, draw, update, onError, debug) {
+      var _this = this;
+      this.app_context = app_context;
+      this.init = init;
+      this.draw = draw;
+      this.update = update;
+      this.onError = onError;
+      this.debug = debug != null ? debug : false;
+      this.getDelta = function() {
+        return App.prototype.getDelta.apply(_this, arguments);
+      };
+      this.run = function() {
+        return App.prototype.run.apply(_this, arguments);
+      };
+      this.totalTime = 0.0;
+      this.loops = 0;
+      this.maxFrameSkip = 10;
+      this.nextGameTick = (new Date).getTime();
+      this.resources = 0;
+      this.startTime = Date.now();
+      this.oldTime = this.startTime;
+      this.canvas = document.getElementById(element);
+      this.height = this.canvas.height;
+      this.width = this.canvas.width;
+      this.gl = this.canvas.getContext('experimental-webgl');
+      if (this.gl == null) {
+        this.gl = canvas.getContext('webgl');
+      }
+      if (!this.gl) {
+        if (this.onError != null) {
+          this.onError();
+        }
+        CoffeeGLError("WebGL Not supported or context not found", "App");
+        return;
+      }
+      this.profile();
+      if (this.debug) {
+        CoffeeGLLog("creating OpenGL debug context");
+        makeDebugContext(this.gl);
+      }
+      this.resize(this.width, this.height);
+      this._init();
+    }
+
+    App.prototype.profile = function() {
+      var highp;
+      this.profile = {};
+      this.profile.antialias = this.gl.getContextAttributes().antialias;
+      this.profile.aa_size = this.gl.getParameter(this.gl.SAMPLES);
+      highp = this.gl.getShaderPrecisionFormat(this.gl.FRAGMENT_SHADER, this.gl.HIGH_FLOAT);
+      this.profile.highpSupported = highp.precision !== 0;
+      this.profile.maxTexSize = this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE);
+      this.profile.maxCubeSize = this.gl.getParameter(this.gl.MAX_CUBE_MAP_TEXTURE_SIZE);
+      this.profile.maxRenderbufferSize = this.gl.getParameter(this.gl.MAX_RENDERBUFFER_SIZE);
+      this.profile.vertexTextureUnits = this.gl.getParameter(this.gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS);
+      this.profile.fragmentTextureUnits = this.gl.getParameter(this.gl.MAX_TEXTURE_IMAGE_UNITS);
+      this.profile.combinedUnits = this.gl.getParameter(this.gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+      this.profile.maxVSattribs = this.gl.getParameter(this.gl.MAX_VERTEX_ATTRIBS);
+      this.profile.maxVertexShaderUniforms = this.gl.getParameter(this.gl.MAX_VERTEX_UNIFORM_VECTORS);
+      this.profile.maxFragmentShaderUniforms = this.gl.getParameter(this.gl.MAX_FRAGMENT_UNIFORM_VECTORS);
+      this.profile.maxVaryings = this.gl.getParameter(this.gl.MAX_VARYING_VECTORS);
+      return console.log(this.profile);
+    };
+
+    App.prototype.run = function() {
+      this._draw();
+      return this._update(this.getDelta());
+    };
+
+    App.prototype._init = function() {
+      CoffeeGL.Context = this;
+      if (typeof window !== "undefined" && window !== null) {
+        window.GL = this.gl;
+      }
+      if (typeof window !== "undefined" && window !== null) {
+        makeMouseEmitter(this);
+      }
+      if (typeof window !== "undefined" && window !== null) {
+        makeTouchEmitter(this);
+      }
+      if (this.init != null) {
+        this.init.call(this.app_context);
+      }
+      if (typeof window !== "undefined" && window !== null) {
+        window.onEachFrame(this.run);
+      }
+      return this;
+    };
+
+    App.prototype.getDelta = function() {
+      var deltaTime;
+      deltaTime = Date.now() - this.oldTime;
+      this.oldTime = Date.now();
+      return deltaTime;
+    };
+
+    App.prototype.resize = function(w, h) {
+      if (this.canvas) {
+        if (this.gl) {
+          this.width = w;
+          this.height = h;
+          this.gl.viewportWidth = this.width;
+          this.gl.viewportHeight = this.height;
+          return this.gl.viewport(0, 0, this.gl.viewportWidth, this.gl.viewportHeight);
+        }
+      }
+    };
+
+    App.prototype._draw = function() {
+      CoffeeGL.Context = this;
+      if (typeof window !== "undefined" && window !== null) {
+        window.GL = this.gl;
+      }
+      if (this.draw != null) {
+        return this.draw.call(this.app_context);
+      }
+    };
+
+    App.prototype._update = function(dt) {
+      if (this.update != null) {
+        return this.update.call(this.app_context, dt);
+      }
+    };
+
+    return App;
+
+  })();
+
+  module.exports = {
+    App: App
+  };
+
+}).call(this);
+
+},{"./math":8,"./shader":14,"./camera":18,"./signal":21,"./colour":10,"./error":24,"./debug":27}],11:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -4829,7 +4868,7 @@ When applying materials, we may need to AUTOGEN stuff - thats not a bad idea act
 
 }).call(this);
 
-},{"./colour":10,"./math":9}],12:[function(require,module,exports){
+},{"./colour":10,"./math":8}],12:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -5019,7 +5058,7 @@ to be unbrewed.
 
 }).call(this);
 
-},{"./math":9,"./webgl":20,"./camera":18,"./material":23,"./texture":17,"./Light":28,"./primitives":11,"./util":7}],13:[function(require,module,exports){
+},{"./math":8,"./webgl":20,"./camera":18,"./material":23,"./texture":17,"./Light":28,"./primitives":11,"./util":7}],13:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -5300,7 +5339,7 @@ Accepts three.js style json model format
 
 }).call(this);
 
-},{"./primitives":11,"./node":12,"./math":9,"./material":23,"./colour":10,"./texture":17,"./request":15,"./signal":21,"./error":24,"./loader":29}],14:[function(require,module,exports){
+},{"./primitives":11,"./node":12,"./math":8,"./material":23,"./colour":10,"./texture":17,"./request":15,"./signal":21,"./error":24,"./loader":29}],14:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -5797,7 +5836,7 @@ This software is released under the MIT Licence. See LICENCE.txt for details
 
 }).call(this);
 
-},{"./math":9,"./light":22,"./shader_library":30,"./error":24}],15:[function(require,module,exports){
+},{"./math":8,"./light":22,"./shader_library":30,"./error":24}],15:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT   
@@ -6040,7 +6079,7 @@ Remember, NPOT textures are support but not with repeats or mipmapping
 
 }).call(this);
 
-},{"./error":24,"./colour":10,"./math":9,"./texture":17}],17:[function(require,module,exports){
+},{"./error":24,"./colour":10,"./math":8,"./texture":17}],17:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -6398,10 +6437,10 @@ https://gist.github.com/eligrey/384583 - useful for changes to pos,look etc?
       this.far = far;
       OrthoCamera.__super__.constructor.call(this, this.pos, this.look, this.up);
       if (this.near == null) {
-        this.near = 0.1;
+        this.near = -1.0;
       }
       if (this.far == null) {
-        this.far = 10.0;
+        this.far = 1.0;
       }
     }
 
@@ -6411,7 +6450,7 @@ https://gist.github.com/eligrey/384583 - useful for changes to pos,look etc?
         h = CoffeeGL.Context.height;
       }
       OrthoCamera.__super__.update.call(this);
-      this.p.makeOrtho(0, w, 0, h, this.near, this.far);
+      this.p.makeOrtho(-1, 1, -1, 1, this.near, this.far);
       return this;
     };
 
@@ -6665,7 +6704,7 @@ https://gist.github.com/eligrey/384583 - useful for changes to pos,look etc?
 
 }).call(this);
 
-},{"./math":9,"./primitives":11,"./signal":21}],19:[function(require,module,exports){
+},{"./math":8,"./primitives":11,"./signal":21}],19:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -6948,7 +6987,7 @@ This software is released under the MIT Licence. See LICENCE.txt for details
 
 }).call(this);
 
-},{"./coffeegl":2,"./node":12,"./colour":10,"./math":9,"./primitives":11}],20:[function(require,module,exports){
+},{"./coffeegl":2,"./node":12,"./colour":10,"./math":8,"./primitives":11}],20:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -7433,7 +7472,7 @@ and buffers
 
 }).call(this);
 
-},{"./math":9,"./colour":10,"./primitives":11,"./shapes":19,"./error":24,"./util":7}],21:[function(require,module,exports){
+},{"./math":8,"./colour":10,"./primitives":11,"./shapes":19,"./error":24,"./util":7}],21:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -7738,7 +7777,7 @@ Influenced by signals.js - an object where listeners and events may be added
 
 }).call(this);
 
-},{"./util":7,"./math":9}],22:[function(require,module,exports){
+},{"./util":7,"./math":8}],22:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT 
@@ -7814,7 +7853,7 @@ TODO - updating the pos and the matrix together :S tricksy
 
 }).call(this);
 
-},{"./math":9,"./colour":10}],23:[function(require,module,exports){
+},{"./math":8,"./colour":10}],23:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -7981,7 +8020,7 @@ This software is released under the MIT Licence. See LICENCE.txt for details
 
 }).call(this);
 
-},{"./math":9}],26:[function(require,module,exports){
+},{"./math":8}],26:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -8080,7 +8119,7 @@ This software is released under the MIT Licence. See LICENCE.txt for details
 
 }).call(this);
 
-},{"./math":9,"./colour":10,"./error":24}],27:[function(require,module,exports){
+},{"./math":8,"./colour":10,"./error":24}],27:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 (function() {
   var glEnumToString, glEnums, glFunctionArgToString, glValidEnumContexts, initDebugContext, makeDebugContext, mightBeEnum;
@@ -8469,7 +8508,7 @@ TODO - updating the pos and the matrix together :S tricksy
 
 }).call(this);
 
-},{"./math":9,"./colour":10}],29:[function(require,module,exports){
+},{"./colour":10,"./math":8}],29:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
