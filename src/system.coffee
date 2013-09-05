@@ -646,7 +646,6 @@ class EquatorieSystem
   # in degrees from the centre of the base and the sign of aries (x axis in this system)
   _calculateTruePlace : () ->
     if @state.planet in ["mercury","venus","mars","jupiter","saturn","moon"]
-      console.log @state.pointerPoint
       pp = @state.pointerPoint
       dir = CoffeeGL.Vec2.normalize pp
       xaxis = new CoffeeGL.Vec2(1,0)
@@ -656,7 +655,17 @@ class EquatorieSystem
 
       @state.truePlace = angle
     else if @state.planet == "sun"
-      @state.truePlace = 0
+      # black string crossing the limb
+
+      xaxis = new CoffeeGL.Vec2 1,0
+      angle = CoffeeGL.radToDeg Math.acos xaxis.dot CoffeeGL.Vec2.normalize @state.sunCirclePoint
+      
+      determinate = @state.sunCirclePoint.y
+      if determinate > 0
+        @state.truePlace = 360 - angle
+      else
+        @state.truePlace = angle
+
 
 module.exports = 
   EquatorieSystem : EquatorieSystem

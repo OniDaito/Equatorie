@@ -508,9 +508,8 @@
     };
 
     EquatorieSystem.prototype._calculateTruePlace = function() {
-      var angle, dir, pp, xaxis, _ref;
+      var angle, determinate, dir, pp, xaxis, _ref;
       if ((_ref = this.state.planet) === "mercury" || _ref === "venus" || _ref === "mars" || _ref === "jupiter" || _ref === "saturn" || _ref === "moon") {
-        console.log(this.state.pointerPoint);
         pp = this.state.pointerPoint;
         dir = CoffeeGL.Vec2.normalize(pp);
         xaxis = new CoffeeGL.Vec2(1, 0);
@@ -520,7 +519,14 @@
         }
         return this.state.truePlace = angle;
       } else if (this.state.planet === "sun") {
-        return this.state.truePlace = 0;
+        xaxis = new CoffeeGL.Vec2(1, 0);
+        angle = CoffeeGL.radToDeg(Math.acos(xaxis.dot(CoffeeGL.Vec2.normalize(this.state.sunCirclePoint))));
+        determinate = this.state.sunCirclePoint.y;
+        if (determinate > 0) {
+          return this.state.truePlace = 360 - angle;
+        } else {
+          return this.state.truePlace = angle;
+        }
       }
     };
 

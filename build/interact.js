@@ -136,6 +136,18 @@
       return new CoffeeGL.Vec2((vt.x + 1) / 2 * CoffeeGL.Context.width, CoffeeGL.Context.height - ((vt.y + 1) / 2 * CoffeeGL.Context.height));
     };
 
+    EquatorieInteract.prototype._setPOIVec = function(vp) {
+      var i0, i1, i2, vt;
+      i0 = new CoffeeGL.Matrix4();
+      i0.setPos(vp);
+      i1 = this.camera.m;
+      i2 = this.camera.p.copy();
+      vt = new CoffeeGL.Vec3(0, 0, 0.1);
+      i2.mult(i1).mult(i0);
+      i2.multVec(vt);
+      return new CoffeeGL.Vec2((vt.x + 1) / 2 * CoffeeGL.Context.width, CoffeeGL.Context.height - ((vt.y + 1) / 2 * CoffeeGL.Context.height));
+    };
+
     EquatorieInteract.prototype._stateSetPlanetDateInit = function() {
       var current_state;
       current_state = this.stack[this.stack_idx];
@@ -317,7 +329,8 @@
     EquatorieInteract.prototype._stateMoveBlackThreadSunInit = function() {
       var current_state, pv;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Move the black thread so it crosses the white thread at the Sun's eccentric circle.";
+      current_state.text = "Move the black thread so it crosses the white thread at the Sun's eccentric circle. Read the value of the black string as it cuts the rim. It should be " + this.system.state.truePlace.toFixed(2);
+      current_state.pos = this._setPOIVec(new CoffeeGL.Vec3(this.system.state.sunCirclePoint.x, 0, this.system.state.sunCirclePoint.y));
       pv = this.system.state.sunCirclePoint.copy();
       pv.normalize();
       pv.multScalar(10.0);
@@ -329,7 +342,7 @@
       var current_state;
       current_state = this.stack[this.stack_idx];
       this.black_end.matrix.setPos(current_state.end_interp.set(dt));
-      current_state.pos = this._setPOI(this.black_end);
+      current_state.pos = this._setPOIVec(new CoffeeGL.Vec3(this.system.state.sunCirclePoint.x, 0, this.system.state.sunCirclePoint.y));
       this.move_poi.dispatch(current_state.pos);
       this.physics.postMessage({
         cmd: "black_end_move",

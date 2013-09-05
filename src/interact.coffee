@@ -93,6 +93,19 @@ class EquatorieInteract
 
     new CoffeeGL.Vec2 (vt.x+1) / 2 * CoffeeGL.Context.width, CoffeeGL.Context.height - ((vt.y+1) / 2 * CoffeeGL.Context.height)
 
+  _setPOIVec : (vp) ->
+
+    i0 = new CoffeeGL.Matrix4()
+    i0.setPos vp
+    i1 = @camera.m
+    i2 = @camera.p.copy()
+
+    vt = new CoffeeGL.Vec3 0,0,0.1
+    i2.mult(i1).mult(i0)
+    i2.multVec vt
+
+    new CoffeeGL.Vec2 (vt.x+1) / 2 * CoffeeGL.Context.width, CoffeeGL.Context.height - ((vt.y+1) / 2 * CoffeeGL.Context.height)
+
 
   # A set of potential functions for moving parts of the Equatorie around
   
@@ -267,9 +280,10 @@ class EquatorieInteract
 
 
   _stateMoveBlackThreadSunInit : () =>
-
+  
     current_state = @stack[@stack_idx]
-    current_state.text = "Move the black thread so it crosses the white thread at the Sun's eccentric circle."
+    current_state.text = "Move the black thread so it crosses the white thread at the Sun's eccentric circle. Read the value of the black string as it cuts the rim. It should be " + @system.state.truePlace.toFixed(2)
+    current_state.pos = @_setPOIVec new CoffeeGL.Vec3 @system.state.sunCirclePoint.x, 0, @system.state.sunCirclePoint.y
 
     pv = @system.state.sunCirclePoint.copy()
     pv.normalize()
@@ -281,8 +295,7 @@ class EquatorieInteract
   _stateMoveBlackThreadSun : (dt) =>
     current_state = @stack[@stack_idx]
     @black_end.matrix.setPos current_state.end_interp.set dt
-    
-    current_state.pos = @_setPOI @black_end
+    current_state.pos = @_setPOIVec new CoffeeGL.Vec3 @system.state.sunCirclePoint.x, 0, @system.state.sunCirclePoint.y
     @move_poi.dispatch current_state.pos
 
     @physics.postMessage {cmd : "black_end_move", data: @black_end.matrix.getPos() }
