@@ -50,13 +50,6 @@
         apogee_longitude : 270.76666667
         mean_longitude : 266.25
         mean_anomaly : 13.45
-      
-      
-      
-      # Epoch from Evans
-      
-      @epoch = new Date ("January 1, 1900 00:00:00")
-      @epoch_julian = 2415020
       */
 
       this.planet_data.venus = {

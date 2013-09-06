@@ -56,15 +56,13 @@ class EquatorieSystem
       mean_longitude : 266.25
       mean_anomaly : 13.45
 
-    
+    ###
 
     # Epoch from Evans
 
-    @epoch = new Date ("January 1, 1900 00:00:00")
-    @epoch_julian = 2415020
+    #@epoch = new Date ("January 1, 1900 00:00:00")
+    #@epoch_julian = 2415020
   
-
-    ###
     # Seb's Data
 
     @planet_data.venus =
@@ -102,6 +100,7 @@ class EquatorieSystem
       apogee_longitude : 252.11666667
       mean_longitude : 184.75
       mean_anomaly : 103.78333
+    
 
     @planet_data.mercury =
       deferent_speed : 0.9856464

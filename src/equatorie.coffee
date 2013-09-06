@@ -20,7 +20,7 @@
 class Equatorie
 
   init : () =>
-    
+  
     # All nodes to be drawn in colour
     @top_node = new CoffeeGL.Node()
 
@@ -36,7 +36,8 @@ class Equatorie
     @ray = new CoffeeGL.Vec3(0,0,0)
 
     @fbo_fxaa = new CoffeeGL.Fbo()
-    @fbo_depth = new CoffeeGL.Fbo()
+    if not CoffeeGL.Context.profile.mobile
+      @fbo_depth = new CoffeeGL.Fbo()
   
     @advance_date = 0
 
@@ -377,11 +378,11 @@ class Equatorie
     @fbo_fxaa.unbind()
 
     # Draw to the depth fbo
-
-    @fbo_depth.bind()
-    @fbo_depth.clear()
-    @depth_node.draw()
-    @fbo_depth.unbind()
+    if not CoffeeGL.Context.profile.mobile
+      @fbo_depth.bind()
+      @fbo_depth.clear()
+      @depth_node.draw()
+      @fbo_depth.unbind()
 
     # Draw everything pickable to the pickable FBO
    
@@ -401,31 +402,41 @@ class Equatorie
     @fbo_picking.unbind()
 
     # Now draw the screen space effects
+    if CoffeeGL.Context.profile.mobile
 
-    # SSAO
-    @fbo_depth.texture.unit = 1
+      # FXAA
+      @fbo_fxaa.texture.bind()
+      @shader_fxaa.bind()
+      @screen_quad.draw()
+      @shader_fxaa.unbind()
+      @fbo_fxaa.texture.unbind()
 
-    @fbo_fxaa.bind()
+    else
 
-    @fbo_fxaa.texture.bind()
-    @fbo_depth.texture.bind()
+      # SSAO
+      @fbo_depth.texture.unit = 1
 
-    @shader_ssao.bind()
-    @screen_quad.draw()
-    @shader_ssao.unbind()
-    
-    @fbo_depth.texture.unbind()
-    @fbo_fxaa.texture.unbind()
+      @fbo_fxaa.bind()
 
-    @fbo_fxaa.unbind()
+      @fbo_fxaa.texture.bind()
+      @fbo_depth.texture.bind()
 
-    # FXAA
+      @shader_ssao.bind()
+      @screen_quad.draw()
+      @shader_ssao.unbind()
+      
+      @fbo_depth.texture.unbind()
+      @fbo_fxaa.texture.unbind()
 
-    @fbo_fxaa.texture.bind()
-    @shader_fxaa.bind()
-    @screen_quad.draw()
-    @shader_fxaa.unbind()
-    @fbo_fxaa.texture.unbind()
+      @fbo_fxaa.unbind()
+
+      # FXAA
+
+      @fbo_fxaa.texture.bind()
+      @shader_fxaa.bind()
+      @screen_quad.draw()
+      @shader_fxaa.unbind()
+      @fbo_fxaa.texture.unbind()
 
 
  
@@ -448,7 +459,8 @@ class Equatorie
   resize : (w,h) ->
     @fbo_picking.resize w,h
     @fbo_fxaa.resize w,h
-    @fbo_depth.resize w,h
+    if not CoffeeGL.Context.profile.mobile
+      @fbo_depth.resize w,h
     if @screen_quad?
       @screen_quad.viewportSize.x = w
       @screen_quad.viewportSize.y = h

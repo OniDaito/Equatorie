@@ -45,7 +45,9 @@
       this.fbo_picking = new CoffeeGL.Fbo();
       this.ray = new CoffeeGL.Vec3(0, 0, 0);
       this.fbo_fxaa = new CoffeeGL.Fbo();
-      this.fbo_depth = new CoffeeGL.Fbo();
+      if (!CoffeeGL.Context.profile.mobile) {
+        this.fbo_depth = new CoffeeGL.Fbo();
+      }
       this.advance_date = 0;
       this.basic_nodes = new CoffeeGL.Node();
       this.mp = new CoffeeGL.Vec2(-1, -1);
@@ -285,10 +287,12 @@
       GL.enable(GL.DEPTH_TEST);
       this.top_node.draw();
       this.fbo_fxaa.unbind();
-      this.fbo_depth.bind();
-      this.fbo_depth.clear();
-      this.depth_node.draw();
-      this.fbo_depth.unbind();
+      if (!CoffeeGL.Context.profile.mobile) {
+        this.fbo_depth.bind();
+        this.fbo_depth.clear();
+        this.depth_node.draw();
+        this.fbo_depth.unbind();
+      }
       this.fbo_picking.bind();
       this.fbo_picking.clear();
       this.shader_picker.bind();
@@ -300,21 +304,29 @@
       }
       this.shader_picker.unbind();
       this.fbo_picking.unbind();
-      this.fbo_depth.texture.unit = 1;
-      this.fbo_fxaa.bind();
-      this.fbo_fxaa.texture.bind();
-      this.fbo_depth.texture.bind();
-      this.shader_ssao.bind();
-      this.screen_quad.draw();
-      this.shader_ssao.unbind();
-      this.fbo_depth.texture.unbind();
-      this.fbo_fxaa.texture.unbind();
-      this.fbo_fxaa.unbind();
-      this.fbo_fxaa.texture.bind();
-      this.shader_fxaa.bind();
-      this.screen_quad.draw();
-      this.shader_fxaa.unbind();
-      return this.fbo_fxaa.texture.unbind();
+      if (CoffeeGL.Context.profile.mobile) {
+        this.fbo_fxaa.texture.bind();
+        this.shader_fxaa.bind();
+        this.screen_quad.draw();
+        this.shader_fxaa.unbind();
+        return this.fbo_fxaa.texture.unbind();
+      } else {
+        this.fbo_depth.texture.unit = 1;
+        this.fbo_fxaa.bind();
+        this.fbo_fxaa.texture.bind();
+        this.fbo_depth.texture.bind();
+        this.shader_ssao.bind();
+        this.screen_quad.draw();
+        this.shader_ssao.unbind();
+        this.fbo_depth.texture.unbind();
+        this.fbo_fxaa.texture.unbind();
+        this.fbo_fxaa.unbind();
+        this.fbo_fxaa.texture.bind();
+        this.shader_fxaa.bind();
+        this.screen_quad.draw();
+        this.shader_fxaa.unbind();
+        return this.fbo_fxaa.texture.unbind();
+      }
     };
 
     Equatorie.prototype.onMouseMove = function(event) {
@@ -335,7 +347,9 @@
     Equatorie.prototype.resize = function(w, h) {
       this.fbo_picking.resize(w, h);
       this.fbo_fxaa.resize(w, h);
-      this.fbo_depth.resize(w, h);
+      if (!CoffeeGL.Context.profile.mobile) {
+        this.fbo_depth.resize(w, h);
+      }
       if (this.screen_quad != null) {
         this.screen_quad.viewportSize.x = w;
         this.screen_quad.viewportSize.y = h;
