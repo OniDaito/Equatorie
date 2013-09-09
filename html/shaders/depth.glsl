@@ -1,7 +1,9 @@
 ##>VERTEX
-precision highp float;
 {{ShaderLibrary.Basic}}
 {{ShaderLibrary.BasicCamera}}
+
+
+precision highp float;
 
 void main(void) {
   gl_Position = uProjectionMatrix * uCameraMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);

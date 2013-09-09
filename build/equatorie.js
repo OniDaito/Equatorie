@@ -304,7 +304,7 @@
       }
       this.shader_picker.unbind();
       this.fbo_picking.unbind();
-      if (CoffeeGL.Context.profile.mobile || true) {
+      if (CoffeeGL.Context.profile.mobile) {
         this.fbo_fxaa.texture.bind();
         this.shader_fxaa.bind();
         this.screen_quad.draw();
@@ -316,6 +316,8 @@
         this.fbo_fxaa.texture.bind();
         this.fbo_depth.texture.bind();
         this.shader_ssao.bind();
+        this.shader_ssao.setUniform1f("uNearPlane", this.c.near);
+        this.shader_ssao.setUniform1f("uFarPlane", this.c.far);
         this.screen_quad.draw();
         this.shader_ssao.unbind();
         this.fbo_depth.texture.unbind();

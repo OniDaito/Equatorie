@@ -21,9 +21,8 @@ changelog:
 (http://www.cgafaq.info/wiki/Evenly_distributed_points_on_sphere)
 */
 
-precision mediump float;
+precision highp float;
 
-{{ShaderLibrary.VertexNormal}}
 {{ShaderLibrary.VertexTexCoord}}
 
 uniform sampler2D uSampler;
@@ -32,22 +31,18 @@ uniform sampler2D uSamplerDepth;
 uniform float uRenderedTextureWidth;
 uniform float uRenderedTextureHeight;
 
-#define PI    3.14159265
+#define PI 3.14159265
 
 float width = uRenderedTextureWidth; //texture width
 float height = uRenderedTextureHeight; //texture height
 
-vec2 texCoord = vTexCoord;
-
-// make sure that these two values are the same for your camera, otherwise distances will be wrong.
-
-float znear = 0.1; //Z-near
-float zfar = 100.0; //Z-far
+uniform float uNearPlane; //Z-near
+uniform float uFarPlane; //Z-far
 
 //user variables
-int samples = 16; //ao sample count
+const int samples = 16; //ao sample count
 
-float radius = 3.0; //ao radius
+float radius = 1.0; //ao radius
 float aoclamp = 0.25; //depth clamp - reduces haloing at screen edges
 bool noise = true; //use noise instead of pattern for sample dithering
 float noiseamount = 0.0002; //dithering amount
@@ -55,7 +50,7 @@ float noiseamount = 0.0002; //dithering amount
 float diffarea = 0.4; //self-shadowing reduction
 float gdisplace = 0.4; //gauss bell center
 
-bool mist = true; //use mist?
+bool mist = false; //use mist?
 float miststart = 0.0; //mist start
 float mistend = 16.0; //mist end
 
@@ -77,25 +72,31 @@ vec2 rand(vec2 coord)  {
   return vec2(noiseX,noiseY)*noiseamount;
 }
 
+
+float unpack (vec4 colour) {
+  const vec4 bitShifts = vec4(1.0 / (256.0 * 256.0 * 256.0),
+                1.0 / (256.0 * 256.0),
+                1.0 / 256.0,
+                1);
+  return dot(colour , bitShifts);
+}
+
+
 float doMist() {
-  float zdepth = texture2D(uSamplerDepth,texCoord.xy).x;
-  float depth = -zfar * znear / (zdepth * (zfar - znear) - zfar);
+  float zdepth = unpack(texture2D(uSamplerDepth,vTexCoord.xy));
+  float depth  = zdepth; //pow(zdepth, 64.0);
+  depth = -uFarPlane * uNearPlane / (zdepth * (uFarPlane - uNearPlane) - uFarPlane);
   return clamp((depth-miststart)/mistend,0.0,1.0);
 }
+
+// unpack
 
 
 // Passed in by the coffeegl depth shader. Ranges from 0.0 to 1.0 packed
 float readDepth(in vec2 coord)  {
   vec4 colour = texture2D(uSamplerDepth, coord);
-
-  const vec4 bitShifts = vec4(1.0 / (256.0 * 256.0 * 256.0),
-                1.0 / (256.0 * 256.0),
-                1.0 / 256.0,
-                1);
-  float unpacked = dot(colour , bitShifts);
-
-  return (2.0 * znear) / (zfar + znear - unpacked * (zfar-znear));
-
+  float unpacked = unpack(colour);
+  return (2.0 * uNearPlane) / (uFarPlane + uNearPlane - unpacked * (uFarPlane-uNearPlane));
 }
 
 float compareDepths(in float depth1, in float depth2,inout int far) {   
@@ -136,22 +137,12 @@ float calAO(float depth,float dw, float dh) {
   return temp;
 } 
 
-float unpack (vec4 colour) {
-  const vec4 bitShifts = vec4(1.0 / (256.0 * 256.0 * 256.0),
-                1.0 / (256.0 * 256.0),
-                1.0 / 256.0,
-                1);
-  return dot(colour , bitShifts);
-}
-
-
-
 void main(void) {
-  vec2 noise = rand(texCoord); 
-  float depth = readDepth(texCoord);
+  vec2 noise = rand(vTexCoord); 
+  float depth = readDepth(vTexCoord);
   
-  float w = (1.0 / width)/clamp(depth,aoclamp,1.0)+(noise.x*(1.0-noise.x));
-  float h = (1.0 / height)/clamp(depth,aoclamp,1.0)+(noise.y*(1.0-noise.y));
+  float w = (1.0 / width)/clamp(depth,aoclamp,1.0);//+(noise.x*(1.0-noise.x));
+  float h = (1.0 / height)/clamp(depth,aoclamp,1.0);//+(noise.y*(1.0-noise.y));
   
   float pw;
   float ph;
@@ -159,11 +150,11 @@ void main(void) {
   float ao;
   
   float dl = PI*(3.0-sqrt(5.0));
-  float dz = 1.0/16.0; // Was 1.0/samples
+  float dz = 1.0/float(samples);
   float l = 0.0;
   float z = 1.0 - dz/2.0;
   
-  for (int i = 0; i <= 16; i ++) {  // The 16 was samples
+  for (int i = 0; i <= samples; i ++) {  // The 16 was samples
     float r = sqrt(1.0-z);
     pw = cos(l)*r;
     ph = sin(l)*r;
@@ -179,7 +170,7 @@ void main(void) {
     ao = mix(ao, 1.0,doMist());
   }
   
-  vec3 color = texture2D(uSampler,texCoord).rgb;
+  vec3 color = texture2D(uSampler,vTexCoord).rgb;
   
   vec3 lumcoeff = vec3(0.299,0.587,0.114);
   float lum = dot(color.rgb, lumcoeff);
@@ -193,5 +184,7 @@ void main(void) {
   
   
   gl_FragColor = vec4(final,1.0); 
+
+ 
   
 }

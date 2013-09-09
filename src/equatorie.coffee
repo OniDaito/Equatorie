@@ -402,7 +402,7 @@ class Equatorie
     @fbo_picking.unbind()
 
     # Now draw the screen space effects
-    if CoffeeGL.Context.profile.mobile or true
+    if CoffeeGL.Context.profile.mobile
 
       # FXAA
       @fbo_fxaa.texture.bind()
@@ -422,6 +422,9 @@ class Equatorie
       @fbo_depth.texture.bind()
 
       @shader_ssao.bind()
+      @shader_ssao.setUniform1f "uNearPlane", @c.near
+      @shader_ssao.setUniform1f "uFarPlane", @c.far
+      
       @screen_quad.draw()
       @shader_ssao.unbind()
       
