@@ -402,7 +402,7 @@ class Equatorie
     @fbo_picking.unbind()
 
     # Now draw the screen space effects
-    if CoffeeGL.Context.profile.mobile
+    if CoffeeGL.Context.profile.mobile or true
 
       # FXAA
       @fbo_fxaa.texture.bind()

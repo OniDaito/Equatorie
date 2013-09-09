@@ -304,7 +304,7 @@
       }
       this.shader_picker.unbind();
       this.fbo_picking.unbind();
-      if (CoffeeGL.Context.profile.mobile) {
+      if (CoffeeGL.Context.profile.mobile || true) {
         this.fbo_fxaa.texture.bind();
         this.shader_fxaa.bind();
         this.screen_quad.draw();
