@@ -10,7 +10,7 @@
   bottom: 10px;
   height: 50px;
   z-index: 1002;
-  width: 480px;
+  width: 560px;
 }
 
 #equatorie_text_right {
@@ -30,6 +30,16 @@
   left: 48%;
 }
 
+#zoom_container {
+  position: absolute;
+  display: none;
+  top: 80px;
+  width: 50px;
+  height:120px;
+  left:10px;
+  z-index: 1002;
+}
+
 #buttonAbout {
   float: right;
 }
@@ -44,6 +54,10 @@
 }
 
 #button_next {
+  display: none;
+}
+
+#button_prev {
   display: none;
 }
 

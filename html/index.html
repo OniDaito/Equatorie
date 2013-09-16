@@ -26,6 +26,7 @@ equatorie.html
 
 <link href="/css/bootstrap.min.css" media="all" rel="stylesheet" type="text/css" />
 <link href="/css/datepicker.css" media="all" rel="stylesheet" type="text/css" />
+<link href="/css/slider.css" media="all" rel="stylesheet" type="text/css" />
 <link href="/css/equatorie.css" media="all" rel="stylesheet" type="text/css" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -45,9 +46,18 @@ equatorie.html
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/js/bootstrap.min.js"></script>
 <script type="text/javascript" src="/js/bootstrap-datepicker.js"></script>
+<script type="text/javascript" src="/js/bootstrap-slider.js"></script>
 <script type="text/javascript" src="/js/equatorie.min.js"></script>
 
 <!-- <script src="http://192.168.2.14:8080/target/target-script-min.js"></script> -->
+
+<!-- Zoom Controls -->
+
+<div id = "zoom_container">
+  <input id="zoomslider" type="text" class="span1 slider" value="" data-slider-min="0" data-slider-max="1.0" data-slider-step="0.01" data-slider-value="0.5" data-slider-orientation="vertical" data-slider-selection="after"data-slider-tooltip="hide">
+
+</div>
+
 
 <!-- Main Controls -->
 
@@ -79,7 +89,7 @@ equatorie.html
 </div>
 
 
-
+<button id="button_prev" type="button" class="btn btn-primary">Previous Step</button>
 <button id="button_next" type="button" class="btn btn-primary">Next Step</button>
 <button id="button_reset" type="button" class="btn btn-danger">Reset</button>
 
@@ -170,8 +180,10 @@ loaded = function() {
   $('#equatorie_text_left').css({display: "block"});
   $('#equatorie_text_right').css({display: "block"});
   $('#equatorie_loading').css({display: "none"});
+  $('#zoom_container').css({display: "block"});
 
   window.EquatorieMovePOI.add(moving, this);
+  window.EquatorieZoomSignal.add(zooming, this);
 }
 
 loading = function (loaded) {
@@ -196,8 +208,20 @@ moving = function (pos) {
   });
 }
 
+// Called when the zoom signal is dispatched by Equatorie
+zooming = function (level) {
+  $("#zoomslider").slider('setValue',level);
+}
+
 window.EquatorieLoadProgress.add (loading, this);
 window.EquatorieLoaded.addOnce(loaded, this);
+
+// Zoom Slider
+
+$('#zoomslider').slider()
+  .on('slide', function(ev){
+    window.Equatorie.setZoom(ev.value);
+  });
 
 // Date Picker
 
@@ -225,54 +249,53 @@ $('#dp1').on('change', function() {
   }
 })
 
+_initButtons = function() {
+  $("#button_next").show();
+  $("#button_prev").show();
+  $("#button_prev").prop('disabled', true);
+  $("#button_reset").show();
+}
+
 // Functions for selectors for the planets
 
 $("#selectMercury").click(function(){
   window.Equatorie.chosen_planet = "mercury"; 
-  $("#button_next").show();
-  $("#button_reset").show();
+  _initButtons();
 });
 
 $("#selectVenus").click(function(){
   window.Equatorie.chosen_planet = "venus";
-  $("#button_next").show();
-  $("#button_reset").show();
+  _initButtons();
 });
 
 $("#selectMars").click(function(){
   window.Equatorie.chosen_planet = "mars";
-  $("#button_next").show();
-  $("#button_reset").show();
+  _initButtons();
 });
 
 $("#selectJupiter").click(function(){
   window.Equatorie.chosen_planet = "jupiter";
-  $("#button_next").show();
-  $("#button_reset").show();
+  _initButtons();
 });
 
 $("#selectSaturn").click(function(){
   window.Equatorie.chosen_planet = "saturn";
-  $("#button_next").show();
-  $("#button_reset").show();
+  _initButtons();
 });
 
 $("#selectSun").click(function(){
   window.Equatorie.chosen_planet = "sun";
-  $("#button_next").show();
-  $("#button_reset").show();
+  _initButtons();
 });
 
 $("#selectMoon").click(function(){
   window.Equatorie.chosen_planet = "moon";
-  $("#button_next").show();
-  $("#button_reset").show();
+  _initButtons();
 });
 
 $("#selectMoonLat").click(function(){
   window.Equatorie.chosen_planet = "moon_latitude";
-  $("#button_next").show();
-  $("#button_reset").show();
+  _initButtons();
 });
 
    
@@ -283,6 +306,60 @@ var options = {
     trigger: 'manual',
     placement: 'right'
 };
+
+// Prev button activation
+
+$('#button_prev').click( function() {
+
+  if(window.Equatorie !== undefined) {
+  
+
+    nd = window.Equatorie.stepBackward();
+
+    if (nd.pos !== undefined){
+      $container.css({
+        position: 'absolute',
+        left: nd.pos.x,
+        top: nd.pos.y
+      });
+    }
+
+    if (nd.text !== undefined){
+      $container.popover('destroy');
+    
+      $container.popover($.extend({}, {
+          content: nd.text
+      }, options)).popover('show');
+
+
+    } else {
+      $container.popover('destroy');
+   
+    }
+
+    // Next button activation
+    if (window.Equatorie.stack_idx == window.Equatorie.stack.length - 1){
+      $('#button_next').prop('disabled', true);
+    }
+    else {
+      $('#button_next').prop('disabled', false);
+    }
+
+    // Prev button activation
+    if (window.Equatorie.stack_idx > 0){
+      $('#button_prev').prop('disabled', false);
+    }
+    else {
+      $('#button_prev').prop('disabled', true);
+    }
+
+  }
+
+
+});
+
+
+// Next button activation
 
 $('#button_next').click( function() {
 
@@ -314,11 +391,20 @@ $('#button_next').click( function() {
    
     }
 
+    // Next button activation
     if (window.Equatorie.stack_idx == window.Equatorie.stack.length - 1){
       $('#button_next').prop('disabled', true);
     }
     else {
       $('#button_next').prop('disabled', false);
+    }
+
+    // Prev button activation
+    if (window.Equatorie.stack_idx > 0){
+      $('#button_prev').prop('disabled', false);
+    }
+    else {
+      $('#button_prev').prop('disabled', true);
     }
 
   }
@@ -335,6 +421,7 @@ $('#button_reset').click( function() {
     });
 
     $("#button_next").hide();
+    $("#button_prev").hide();
     $("#button_reset").hide();
     $("#actionSelect button:first-child").prop('disabled', false);
     $('#button_next').prop('disabled', false);

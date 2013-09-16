@@ -126,11 +126,10 @@ class Equatorie
 
     # Cameras
 
-    @c = new CoffeeGL.Camera.TouchPerspCamera new CoffeeGL.Vec3(0,0,10)
+    @c = new CoffeeGL.Camera.TouchPerspCamera new CoffeeGL.Vec3(0,0,10), new CoffeeGL.Vec3(0,0,0), new CoffeeGL.Vec3(0,1.0,0.0), 55.0, 0.01, 30.0, 0.1
     @c.rotateFocal new CoffeeGL.Vec3(1,0,0), CoffeeGL.degToRad -25
 
-    @o = new CoffeeGL.Camera.OrthoCamera new CoffeeGL.Vec3 0,0,0.1
-
+    @o = new CoffeeGL.Camera.OrthoCamera new CoffeeGL.Vec3(0,0,0.1)
     # Function called when everything is loaded
     f = () =>
 
@@ -275,6 +274,10 @@ class Equatorie
       CoffeeGL.Context.mouseOut.add @interact.onMouseOut, @interact
       CoffeeGL.Context.mouseMove.add @interact.onMouseMove, @interact
       CoffeeGL.Context.mouseUp.add @interact.onMouseUp, @interact
+      CoffeeGL.Context.mouseWheel.add @interact.onMouseWheel, @interact
+
+      CoffeeGL.Context.touchSpread.add @interact.onTouchSpread, @interact
+      CoffeeGL.Context.touchPinch.add @interact.onTouchPinch, @interact
 
       CoffeeGL.Context.mouseOver.add @onMouseOver, @
       CoffeeGL.Context.mouseOut.add @onMouseOut, @

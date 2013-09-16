@@ -46,6 +46,10 @@ class EquatorieInteract
     @move_poi = new CoffeeGL.Signal()
     window.EquatorieMovePOI = @move_poi if window?
 
+    # signal for setting the zoom control
+    @zoom_signal = new CoffeeGL.Signal()
+    window.EquatorieZoomSignal = @zoom_signal if window?
+
     @stack = []     # A stack for the states of the system
     @stack_idx = 0  # current stack position
 
@@ -713,6 +717,28 @@ class EquatorieInteract
     rval.pos = @stack[@stack_idx].pos if @stack[@stack_idx].pos?
     rval
 
+  stepBackward : () ->
+
+    @time.start = new Date().getTime()
+
+    if @stack.length != 0
+     
+      if @stack_idx - 1 >= 0
+        # Make sure current state has completed
+        @stack[@stack_idx].update(0.0)
+        @time.dt = 0
+        @stack_idx -=1
+        @stack[@stack_idx].update(0.0)
+    
+        @stack[@stack_idx].activate()
+
+    # Return data for the JQuery / Bootstrap front end
+    rval = {}
+
+    rval.text = @stack[@stack_idx].text if @stack[@stack_idx].text?
+    rval.pos = @stack[@stack_idx].pos if @stack[@stack_idx].pos?
+    rval
+
   # Date is a date object
   setDate : (date) ->
     if not date?
@@ -725,6 +751,10 @@ class EquatorieInteract
     if @date.getHours != 12
       @date.setHours(12)
 
+  # Given a zoom level (0-1), set the camera
+
+  setZoom: (dz) ->
+    @camera.zoom(dz)
 
   onMouseOver : (event) ->    
     @mp.x = event.mouseX
@@ -744,6 +774,21 @@ class EquatorieInteract
     @picked = false
     @dragging = false
 
+  _checkCameraZoom : () ->
+    dir = CoffeeGL.Vec3.sub @camera.look, @camera.pos
+    dl = dir.length()
+    camera_zoom = dl / (@camera.far - @camera.near)
+    @zoom_signal.dispatch(camera_zoom)
+
+  onMouseWheel : (event) ->
+    # Check the zoom level from the camera
+    @_checkCameraZoom()
+
+  onTouchPinch : (event) ->
+    @_checkCameraZoom()
+
+  onTouchSpread : (event) ->
+    @_checkCameraZoom()
 
 module.exports = 
   EquatorieInteract : EquatorieInteract

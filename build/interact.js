@@ -95,6 +95,10 @@
       if (typeof window !== "undefined" && window !== null) {
         window.EquatorieMovePOI = this.move_poi;
       }
+      this.zoom_signal = new CoffeeGL.Signal();
+      if (typeof window !== "undefined" && window !== null) {
+        window.EquatorieZoomSignal = this.zoom_signal;
+      }
       this.stack = [];
       this.stack_idx = 0;
       this.time = {
@@ -729,6 +733,28 @@
       return rval;
     };
 
+    EquatorieInteract.prototype.stepBackward = function() {
+      var rval;
+      this.time.start = new Date().getTime();
+      if (this.stack.length !== 0) {
+        if (this.stack_idx - 1 >= 0) {
+          this.stack[this.stack_idx].update(0.0);
+          this.time.dt = 0;
+          this.stack_idx -= 1;
+          this.stack[this.stack_idx].update(0.0);
+          this.stack[this.stack_idx].activate();
+        }
+      }
+      rval = {};
+      if (this.stack[this.stack_idx].text != null) {
+        rval.text = this.stack[this.stack_idx].text;
+      }
+      if (this.stack[this.stack_idx].pos != null) {
+        rval.pos = this.stack[this.stack_idx].pos;
+      }
+      return rval;
+    };
+
     EquatorieInteract.prototype.setDate = function(date) {
       if (date == null) {
         this.date = new Date();
@@ -739,6 +765,10 @@
       if (this.date.getHours !== 12) {
         return this.date.setHours(12);
       }
+    };
+
+    EquatorieInteract.prototype.setZoom = function(dz) {
+      return this.camera.zoom(dz);
     };
 
     EquatorieInteract.prototype.onMouseOver = function(event) {
@@ -759,6 +789,26 @@
       this.mdown = false;
       this.picked = false;
       return this.dragging = false;
+    };
+
+    EquatorieInteract.prototype._checkCameraZoom = function() {
+      var camera_zoom, dir, dl;
+      dir = CoffeeGL.Vec3.sub(this.camera.look, this.camera.pos);
+      dl = dir.length();
+      camera_zoom = dl / (this.camera.far - this.camera.near);
+      return this.zoom_signal.dispatch(camera_zoom);
+    };
+
+    EquatorieInteract.prototype.onMouseWheel = function(event) {
+      return this._checkCameraZoom();
+    };
+
+    EquatorieInteract.prototype.onTouchPinch = function(event) {
+      return this._checkCameraZoom();
+    };
+
+    EquatorieInteract.prototype.onTouchSpread = function(event) {
+      return this._checkCameraZoom();
     };
 
     return EquatorieInteract;

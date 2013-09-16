@@ -106,7 +106,7 @@
       this.white_end.uColour = new CoffeeGL.Colour.RGBA(0.2, 0.2, 0.9, 0.8);
       this.black_start.uColour = new CoffeeGL.Colour.RGBA(0.9, 0.2, 0.2, 0.8);
       this.black_end.uColour = new CoffeeGL.Colour.RGBA(0.2, 0.2, 0.9, 0.8);
-      this.c = new CoffeeGL.Camera.TouchPerspCamera(new CoffeeGL.Vec3(0, 0, 10));
+      this.c = new CoffeeGL.Camera.TouchPerspCamera(new CoffeeGL.Vec3(0, 0, 10), new CoffeeGL.Vec3(0, 0, 0), new CoffeeGL.Vec3(0, 1.0, 0.0), 55.0, 0.01, 30.0, 0.1);
       this.c.rotateFocal(new CoffeeGL.Vec3(1, 0, 0), CoffeeGL.degToRad(-25));
       this.o = new CoffeeGL.Camera.OrthoCamera(new CoffeeGL.Vec3(0, 0, 0.1));
       f = function() {
@@ -209,6 +209,9 @@
         CoffeeGL.Context.mouseOut.add(_this.interact.onMouseOut, _this.interact);
         CoffeeGL.Context.mouseMove.add(_this.interact.onMouseMove, _this.interact);
         CoffeeGL.Context.mouseUp.add(_this.interact.onMouseUp, _this.interact);
+        CoffeeGL.Context.mouseWheel.add(_this.interact.onMouseWheel, _this.interact);
+        CoffeeGL.Context.touchSpread.add(_this.interact.onTouchSpread, _this.interact);
+        CoffeeGL.Context.touchPinch.add(_this.interact.onTouchPinch, _this.interact);
         CoffeeGL.Context.mouseOver.add(_this.onMouseOver, _this);
         CoffeeGL.Context.mouseOut.add(_this.onMouseOut, _this);
         CoffeeGL.Context.mouseMove.add(_this.onMouseMove, _this);
