@@ -180,7 +180,7 @@ class EquatorieInteract
     current_state.pos = @_setPOI(@black_end)
     mv = @system.state.meanMotusPosition.copy()
     mv.normalize()
-    mv.multScalar(10.0)
+    mv.multScalar(8.0)
     current_state.end_interp = new CoffeeGL.Interpolation @black_end.matrix.getPos(), new CoffeeGL.Vec3(mv.x, @string_height, mv.y) 
     current_state.start_interp = new CoffeeGL.Interpolation @black_start.matrix.getPos(), new CoffeeGL.Vec3(0, @string_height, 0) 
 
@@ -214,7 +214,7 @@ class EquatorieInteract
     pv = @system.state.parallelPosition
     pv.sub(eq)
     pv.normalize()
-    pv.multScalar(10.0)
+    pv.multScalar(8.0)
     pv.add(eq)
 
     current_state.end_interp = new CoffeeGL.Interpolation @white_end.matrix.getPos(), new CoffeeGL.Vec3(pv.x, @string_height, pv.y) 
@@ -243,7 +243,7 @@ class EquatorieInteract
     pv = @system.state.epicyclePosition.copy()
     pv.sub @system.state.equantPosition
     pv.normalize()
-    pv.multScalar(10.0)
+    pv.multScalar(8.0)
     pv.add @system.state.equantPosition
     pv = new CoffeeGL.Vec3 pv.x,@string_height,pv.y
 
@@ -277,7 +277,7 @@ class EquatorieInteract
     pv = @system.state.parallelPosition.copy()
     pv.sub @system.state.equantPosition
     pv.normalize()
-    pv.multScalar(10.0)
+    pv.multScalar(8.0)
     pv.add @system.state.equantPosition
     pv = new CoffeeGL.Vec3 pv.x,@string_height,pv.y
 
@@ -307,7 +307,7 @@ class EquatorieInteract
 
     pv = @system.state.sunCirclePoint.copy()
     pv.normalize()
-    pv.multScalar(10.0)
+    pv.multScalar(8.0)
     pv = new CoffeeGL.Vec3 pv.x,@string_height,pv.y
     current_state.end_interp = new CoffeeGL.Interpolation @white_start.matrix.getPos(), pv
 
@@ -452,7 +452,7 @@ class EquatorieInteract
 
     mv = new CoffeeGL.Vec3 @system.state.pointerPoint.x,0, @system.state.pointerPoint.y
     mv.normalize()
-    mv.multScalar(10.0)
+    mv.multScalar(8.0)
     mv.y = @string_height
     current_state.end_interp = new CoffeeGL.Interpolation @black_end.matrix.getPos(), mv
 

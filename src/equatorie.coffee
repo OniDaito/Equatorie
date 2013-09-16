@@ -88,8 +88,8 @@ class Equatorie
   
 
     # Add Strings
-    @white_string = new EquatorieString 10, 0.015, 20
-    @black_string = new EquatorieString 10, 0.015, 20
+    @white_string = new EquatorieString 8, 0.015, 20
+    @black_string = new EquatorieString 8, 0.015, 20
 
     @pin = new CoffeeGL.Node()
     @pin.add sphere

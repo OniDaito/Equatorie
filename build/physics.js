@@ -92,7 +92,7 @@
     groundShape = new CANNON.Plane();
     groundBody = new CANNON.RigidBody(0, groundShape);
     this.dynamicsWorld.add(groundBody);
-    this.white_string = new PhysicsString(10.2, 0.015, 20, {
+    this.white_string = new PhysicsString(8.2, 0.015, 20, {
       x: 2,
       y: 0.2,
       z: 2
@@ -101,7 +101,7 @@
       y: 0.2,
       z: -2
     }, this.dynamicsWorld, this.bodies, this.constraints);
-    this.black_string = new PhysicsString(10.2, 0.015, 20, {
+    this.black_string = new PhysicsString(8.2, 0.015, 20, {
       x: -2,
       y: 0.2,
       z: 2

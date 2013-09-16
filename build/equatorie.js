@@ -80,8 +80,8 @@
       cube_thin = new CoffeeGL.Node(new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.01, 0.5, 0.01)));
       cube_thin.matrix.translate(new CoffeeGL.Vec3(0, -0.2, 0));
       sphere.matrix.translate(new CoffeeGL.Vec3(0, 0.1, 0));
-      this.white_string = new EquatorieString(10, 0.015, 20);
-      this.black_string = new EquatorieString(10, 0.015, 20);
+      this.white_string = new EquatorieString(8, 0.015, 20);
+      this.black_string = new EquatorieString(8, 0.015, 20);
       this.pin = new CoffeeGL.Node();
       this.pin.add(sphere);
       this.white_start = new CoffeeGL.Node;

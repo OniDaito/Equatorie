@@ -118,10 +118,10 @@ interval = null
   @dynamicsWorld.add(groundBody)
 
   # Create the white string
-  @white_string = new PhysicsString 10.2, 0.015, 20, {x: 2, y:0.2, z:2}, {x: -2, y:0.2, z:-2}, @dynamicsWorld, @bodies, @constraints
+  @white_string = new PhysicsString 8.2, 0.015, 20, {x: 2, y:0.2, z:2}, {x: -2, y:0.2, z:-2}, @dynamicsWorld, @bodies, @constraints
 
   # ... and the black one
-  @black_string = new PhysicsString 10.2, 0.015, 20, {x: -2, y:0.2, z:2}, {x: -4, y:0.2, z:2}, @dynamicsWorld, @bodies, @constraints
+  @black_string = new PhysicsString 8.2, 0.015, 20, {x: -2, y:0.2, z:2}, {x: -4, y:0.2, z:2}, @dynamicsWorld, @bodies, @constraints
 
   last = Date.now()
   

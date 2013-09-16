@@ -223,7 +223,7 @@
       current_state.pos = this._setPOI(this.black_end);
       mv = this.system.state.meanMotusPosition.copy();
       mv.normalize();
-      mv.multScalar(10.0);
+      mv.multScalar(8.0);
       current_state.end_interp = new CoffeeGL.Interpolation(this.black_end.matrix.getPos(), new CoffeeGL.Vec3(mv.x, this.string_height, mv.y));
       return current_state.start_interp = new CoffeeGL.Interpolation(this.black_start.matrix.getPos(), new CoffeeGL.Vec3(0, this.string_height, 0));
     };
@@ -257,7 +257,7 @@
       pv = this.system.state.parallelPosition;
       pv.sub(eq);
       pv.normalize();
-      pv.multScalar(10.0);
+      pv.multScalar(8.0);
       pv.add(eq);
       current_state.end_interp = new CoffeeGL.Interpolation(this.white_end.matrix.getPos(), new CoffeeGL.Vec3(pv.x, this.string_height, pv.y));
       eq = this.system.state.equantPosition;
@@ -288,7 +288,7 @@
       pv = this.system.state.epicyclePosition.copy();
       pv.sub(this.system.state.equantPosition);
       pv.normalize();
-      pv.multScalar(10.0);
+      pv.multScalar(8.0);
       pv.add(this.system.state.equantPosition);
       pv = new CoffeeGL.Vec3(pv.x, this.string_height, pv.y);
       current_state.end_interp = new CoffeeGL.Interpolation(this.white_end.matrix.getPos(), pv);
@@ -323,7 +323,7 @@
       pv = this.system.state.parallelPosition.copy();
       pv.sub(this.system.state.equantPosition);
       pv.normalize();
-      pv.multScalar(10.0);
+      pv.multScalar(8.0);
       pv.add(this.system.state.equantPosition);
       pv = new CoffeeGL.Vec3(pv.x, this.string_height, pv.y);
       return current_state.start_interp = new CoffeeGL.Interpolation(this.white_start.matrix.getPos(), pv);
@@ -354,7 +354,7 @@
       current_state.pos = this._setPOIVec(new CoffeeGL.Vec3(this.system.state.sunCirclePoint.x, 0, this.system.state.sunCirclePoint.y));
       pv = this.system.state.sunCirclePoint.copy();
       pv.normalize();
-      pv.multScalar(10.0);
+      pv.multScalar(8.0);
       pv = new CoffeeGL.Vec3(pv.x, this.string_height, pv.y);
       return current_state.end_interp = new CoffeeGL.Interpolation(this.white_start.matrix.getPos(), pv);
     };
@@ -488,7 +488,7 @@
       }
       mv = new CoffeeGL.Vec3(this.system.state.pointerPoint.x, 0, this.system.state.pointerPoint.y);
       mv.normalize();
-      mv.multScalar(10.0);
+      mv.multScalar(8.0);
       mv.y = this.string_height;
       return current_state.end_interp = new CoffeeGL.Interpolation(this.black_end.matrix.getPos(), mv);
     };
