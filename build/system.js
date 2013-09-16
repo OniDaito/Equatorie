@@ -184,7 +184,8 @@
         caputDraconisMotus: 0,
         moonLatitudeDegree: 0,
         moonLatitudeLeft: 0,
-        moonLatitudeRight: 0
+        moonLatitudeRight: 0,
+        moonLatitudeCentre: 0
       };
     };
 
@@ -385,14 +386,16 @@
       this.state.moonLatitudeDegree = l;
       x = Math.cos(CoffeeGL.degToRad(-this.state.moonLatitudeDegree));
       y = Math.sin(CoffeeGL.degToRad(-this.state.moonLatitudeDegree));
+      this.state.moonLatitudeFinal = y * -5;
       s = new CoffeeGL.Vec2(x, y);
-      s.multScalar(this.base_radius);
+      s.multScalar(this.base_radius - this.epicycle_thickness);
       x2 = Math.cos(CoffeeGL.degToRad(this.state.moonLatitudeDegree - 180));
       y2 = Math.sin(CoffeeGL.degToRad(this.state.moonLatitudeDegree - 180));
       e = new CoffeeGL.Vec2(x2, y2);
-      e.multScalar(this.base_radius);
+      e.multScalar(this.base_radius - this.epicycle_thickness);
       this.state.moonLatitudeLeft = s;
       this.state.moonLatitudeRight = e;
+      this.state.moonLatitudeCentre = new CoffeeGL.Vec2(0, s.y);
       return this;
     };
 

@@ -215,6 +215,7 @@ class EquatorieSystem
       moonLatitudeDegree : 0
       moonLatitudeLeft : 0
       moonLatitudeRight : 0
+      moonLatitudeCentre: 0
 
   # The following are private subroutines and are executed in a particular order to generate
   # the system state
@@ -475,20 +476,25 @@ class EquatorieSystem
 
     @state.moonLatitudeDegree = l
 
+
     x = Math.cos CoffeeGL.degToRad -@state.moonLatitudeDegree
     y = Math.sin CoffeeGL.degToRad -@state.moonLatitudeDegree
 
+    @state.moonLatitudeFinal = y * -5
+
     s = new CoffeeGL.Vec2 x,y
-    s.multScalar @base_radius
+    s.multScalar (@base_radius-@epicycle_thickness)
 
     x2 = Math.cos CoffeeGL.degToRad(@state.moonLatitudeDegree-180)
     y2 = Math.sin CoffeeGL.degToRad(@state.moonLatitudeDegree-180)
 
     e = new CoffeeGL.Vec2 x2, y2
-    e.multScalar @base_radius
+    e.multScalar (@base_radius-@epicycle_thickness)
 
     @state.moonLatitudeLeft = s
     @state.moonLatitudeRight = e
+
+    @state.moonLatitudeCentre = new CoffeeGL.Vec2 0,s.y
 
     @
 

@@ -13,7 +13,7 @@
 
 
 (function() {
-  var CoffeeGL, Equatorie, EquatorieInteract, EquatorieString, EquatorieSystem, cgl, eq, f, loadAssets,
+  var CoffeeGL, Equatorie, EquatorieInteract, EquatorieString, EquatorieSystem, cgl, eq, loadAssets,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
   CoffeeGL = require('../lib/coffeegl/coffeegl').CoffeeGL;
@@ -37,6 +37,19 @@
     Equatorie.prototype.init = function() {
       var cube, cube_thin, date, f, sphere, tp,
         _this = this;
+      f = function() {
+        var h, w;
+        w = $(window).width();
+        h = $(window).height();
+        $("#webgl-canvas").attr("width", w);
+        $("#webgl-canvas").attr("height", h);
+        $("#webgl-canvas").width(w);
+        $("#webgl-canvas").height(h);
+        cgl.resize(w, h);
+        return eq.resize(w, h);
+      };
+      $(window).bind("resize", f);
+      $(window).bind("ready", f);
       this.top_node = new CoffeeGL.Node();
       this.depth_node = new CoffeeGL.Node();
       this.string_height = 0.2;
@@ -307,7 +320,7 @@
       }
       this.shader_picker.unbind();
       this.fbo_picking.unbind();
-      if (CoffeeGL.Context.profile.mobile) {
+      if (CoffeeGL.Context.profile.mobile || true) {
         this.fbo_fxaa.texture.bind();
         this.shader_fxaa.bind();
         this.screen_quad.draw();
@@ -382,22 +395,6 @@
 
   eq = new Equatorie();
 
-  cgl = new CoffeeGL.App('webgl-canvas', eq, eq.init, eq.draw, eq.update);
-
-  f = function() {
-    var h, w;
-    w = $(window).width();
-    h = $(window).height();
-    $("#webgl-canvas").attr("width", w);
-    $("#webgl-canvas").attr("height", h);
-    $("#webgl-canvas").width(w);
-    $("#webgl-canvas").height(h);
-    cgl.resize(w, h);
-    return eq.resize(w, h);
-  };
-
-  $(window).bind("resize", f);
-
-  $(window).bind("ready", f);
+  cgl = new CoffeeGL.App('webgl-canvas', eq, eq.init, eq.draw, eq.update, window.notSupported);
 
 }).call(this);

@@ -14,7 +14,7 @@
 
 
 (function() {
-  var CoffeeGL, Equatorie, EquatorieInteract, EquatorieString, EquatorieSystem, cgl, eq, f, loadAssets,
+  var CoffeeGL, Equatorie, EquatorieInteract, EquatorieString, EquatorieSystem, cgl, eq, loadAssets,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
   CoffeeGL = require('../lib/coffeegl/coffeegl').CoffeeGL;
@@ -38,6 +38,19 @@
     Equatorie.prototype.init = function() {
       var cube, cube_thin, date, f, sphere, tp,
         _this = this;
+      f = function() {
+        var h, w;
+        w = $(window).width();
+        h = $(window).height();
+        $("#webgl-canvas").attr("width", w);
+        $("#webgl-canvas").attr("height", h);
+        $("#webgl-canvas").width(w);
+        $("#webgl-canvas").height(h);
+        cgl.resize(w, h);
+        return eq.resize(w, h);
+      };
+      $(window).bind("resize", f);
+      $(window).bind("ready", f);
       this.top_node = new CoffeeGL.Node();
       this.depth_node = new CoffeeGL.Node();
       this.string_height = 0.2;
@@ -308,7 +321,7 @@
       }
       this.shader_picker.unbind();
       this.fbo_picking.unbind();
-      if (CoffeeGL.Context.profile.mobile) {
+      if (CoffeeGL.Context.profile.mobile || true) {
         this.fbo_fxaa.texture.bind();
         this.shader_fxaa.bind();
         this.screen_quad.draw();
@@ -383,23 +396,7 @@
 
   eq = new Equatorie();
 
-  cgl = new CoffeeGL.App('webgl-canvas', eq, eq.init, eq.draw, eq.update);
-
-  f = function() {
-    var h, w;
-    w = $(window).width();
-    h = $(window).height();
-    $("#webgl-canvas").attr("width", w);
-    $("#webgl-canvas").attr("height", h);
-    $("#webgl-canvas").width(w);
-    $("#webgl-canvas").height(h);
-    cgl.resize(w, h);
-    return eq.resize(w, h);
-  };
-
-  $(window).bind("resize", f);
-
-  $(window).bind("ready", f);
+  cgl = new CoffeeGL.App('webgl-canvas', eq, eq.init, eq.draw, eq.update, window.notSupported);
 
 }).call(this);
 
@@ -590,7 +587,8 @@
         caputDraconisMotus: 0,
         moonLatitudeDegree: 0,
         moonLatitudeLeft: 0,
-        moonLatitudeRight: 0
+        moonLatitudeRight: 0,
+        moonLatitudeCentre: 0
       };
     };
 
@@ -791,14 +789,16 @@
       this.state.moonLatitudeDegree = l;
       x = Math.cos(CoffeeGL.degToRad(-this.state.moonLatitudeDegree));
       y = Math.sin(CoffeeGL.degToRad(-this.state.moonLatitudeDegree));
+      this.state.moonLatitudeFinal = y * -5;
       s = new CoffeeGL.Vec2(x, y);
-      s.multScalar(this.base_radius);
+      s.multScalar(this.base_radius - this.epicycle_thickness);
       x2 = Math.cos(CoffeeGL.degToRad(this.state.moonLatitudeDegree - 180));
       y2 = Math.sin(CoffeeGL.degToRad(this.state.moonLatitudeDegree - 180));
       e = new CoffeeGL.Vec2(x2, y2);
-      e.multScalar(this.base_radius);
+      e.multScalar(this.base_radius - this.epicycle_thickness);
       this.state.moonLatitudeLeft = s;
       this.state.moonLatitudeRight = e;
+      this.state.moonLatitudeCentre = new CoffeeGL.Vec2(0, s.y);
       return this;
     };
 
@@ -1368,6 +1368,8 @@
       this.marker = marker;
       this.plate = plate;
       this.string_height = string_height;
+      this._stateReadLatitude = __bind(this._stateReadLatitude, this);
+      this._stateReadLatitudeInit = __bind(this._stateReadLatitudeInit, this);
       this._stateMoveBlackStringLatitude = __bind(this._stateMoveBlackStringLatitude, this);
       this._stateMoveBlackStringLatitudeInit = __bind(this._stateMoveBlackStringLatitudeInit, this);
       this._stateMoveBlackStringFinal = __bind(this._stateMoveBlackStringFinal, this);
@@ -1467,7 +1469,7 @@
     EquatorieInteract.prototype._stateSetPlanetDateInit = function() {
       var current_state;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Set the planet you are looking for and work out the number of days passed since the epoch 31/12/1392";
+      current_state.text = 'To begin using the equatorium, first work out how many years and days have passed since 31 December 1392, the "radix" (baseline date) of the tables in the manuscript.';
       current_state.pos = this._setPOI(this.epicycle);
       return this;
     };
@@ -1480,7 +1482,13 @@
     EquatorieInteract.prototype._stateRotatePlateInit = function() {
       var current_state;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Rotate the plate to account for Precession since the epoch 31/12/1392";
+      current_state.text = "The circular brass plate stores information about the planets’ apogees.  This must be rotated to account for changes in the apogees (owing to precession) since 1392.";
+      if (this.chosen_planet === "sun") {
+        current_state.text = "The circular brass plate stores information about the Sun’s apogee.  This must be rotated to account for changes in the apogees (owing to precession) since 1392.";
+      }
+      if (this.chosen_planet === "moon") {
+        current_state.text = "Use the annual and daily tables to find the Moon’s mean longitude and mean anomaly for the date you want.";
+      }
       current_state.pos = this._setPOI(this.plate);
       this.plate.matrix.identity();
       return current_state.plate_interp = new CoffeeGL.Interpolation(0, CoffeeGL.degToRad(this.system.precession * this.system.state.passed));
@@ -1498,9 +1506,12 @@
     EquatorieInteract.prototype._stateCalculateMeanMotusInit = function() {
       var current_state;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Find the mean motus for the body in question.";
+      current_state.text = "Use the annual and daily tables to find the planet’s mean longitude and mean anomaly for the date you want.";
       if (this.chosen_planet === "moon_latitude") {
         current_state.text = "Subract the true motus of Caput Draconis from the Moon's true motus.";
+      }
+      if (this.chosen_planet === "sun") {
+        current_state.text = "Use the annual and daily tables to find the Sun’s mean longitude for the date you want.";
       }
       current_state.pos = this._setPOI(this.epicycle);
       return this;
@@ -1517,7 +1528,7 @@
     EquatorieInteract.prototype._stateMoveBlackThreadInit = function() {
       var current_state, mv;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Move the black thread so it runs from the Earth to the Mean Motus";
+      current_state.text = "Move the black thread so it runs from the Earth (centre of the disc) to the mean longitude (the scale on the disc runs anti-clockwise).";
       current_state.pos = this._setPOI(this.black_end);
       mv = this.system.state.meanMotusPosition.copy();
       mv.normalize();
@@ -1547,7 +1558,10 @@
     EquatorieInteract.prototype._stateMoveWhiteThreadInit = function() {
       var current_state, eq, pv;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Move the white thread so it runs from the Equant, parallel to the black thread";
+      current_state.text = "Move the white thread so it is parallel to the black thread, with one end fixed at the planet’s equant point.";
+      if (this.chosen_planet === "mercury") {
+        current_state.text += " Unlike the other planets, Mercury’s equant point is not fixed in the direction of its apogee, but moves on a little circle that is marked on the brass plate.";
+      }
       eq = this.system.state.equantPosition;
       pv = this.system.state.parallelPosition;
       pv.sub(eq);
@@ -1579,7 +1593,7 @@
     EquatorieInteract.prototype._stateMoveWhiteThreadMoonInit = function() {
       var current_state, eq, pv;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Move the white thread so one end is over the equant and the other runs across the centre of the epicyle. The equant is 180 degrees from the deferent.";
+      current_state.text = "6. Move the white thread so it runs from the Moon’s equant point (which is opposite the deferent centre on the little circle), over the centre of the epicycle.";
       pv = this.system.state.epicyclePosition.copy();
       pv.sub(this.system.state.equantPosition);
       pv.normalize();
@@ -1612,7 +1626,7 @@
     EquatorieInteract.prototype._stateMoveWhiteThreadSunInit = function() {
       var current_state, ev, pv;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Move the white thread so it runs parallel to the black thread from the Sun's equant point.";
+      current_state.text = "Move the white thread so it is parallel to the black thread, with one end fixed at the centre of the Sun’s eccentric circle.  Unlike the planets’ equant circles, the Sun’s eccentric circle is marked in full on the disc.";
       ev = new CoffeeGL.Vec3(this.system.state.equantPosition.x, this.string_height, this.system.state.equantPosition.y);
       current_state.end_interp = new CoffeeGL.Interpolation(this.white_end.matrix.getPos(), ev);
       pv = this.system.state.parallelPosition.copy();
@@ -1645,7 +1659,7 @@
     EquatorieInteract.prototype._stateMoveBlackThreadSunInit = function() {
       var current_state, pv;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Move the black thread so it crosses the white thread at the Sun's eccentric circle. Read the value of the black string as it cuts the rim. It should be " + this.system.state.truePlace.toFixed(2);
+      current_state.text = "Move the black thread so it runs from the Earth, through the point where the white thread cuts the Sun’s eccentric circle, to the scale on the disc. The true longitude can be read there: it is " + this.system.state.truePlace.toFixed(2);
       current_state.pos = this._setPOIVec(new CoffeeGL.Vec3(this.system.state.sunCirclePoint.x, 0, this.system.state.sunCirclePoint.y));
       pv = this.system.state.sunCirclePoint.copy();
       pv.normalize();
@@ -1670,9 +1684,9 @@
     EquatorieInteract.prototype._stateMoveEpicycleInit = function() {
       var c, current_state, d, dr, e, v;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Move the epicycle so its common centre deferent is over the deferent point.";
+      current_state.text = 'Move the brass epicycle and use a pin through its "common deferent centre" to fix it to the planet’s deferent centre.';
       if (this.chosen_planet === "moon") {
-        current_state.text += " The Moon has a moving deferent centre.";
+        current_state.text = 'Move the brass epicycle and use a pin through its "common deferent centre" to fix it to the Moon’s deferent centre.  Unlike the planets, the Moon has a deferent centre which moves around the little circle marked near the rim of the brass plate.';
       }
       d = this.system.state.deferentPosition;
       c = this.system.state.basePosition;
@@ -1706,9 +1720,9 @@
     EquatorieInteract.prototype._stateRotateEpicycleInit = function() {
       var current_state;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Rotate the epicycle until it's centre is over the white string";
+      current_state.text = "Rotate the epicycle until its centre is over the white thread.";
       if (this.chosen_planet === "moon") {
-        current_state.text = "Rotate the epicycle until it's centre is over the black string";
+        current_state.text = "Rotate the epicycle until its centre is over the black thread.";
       }
       return current_state.rot_interp = new CoffeeGL.Interpolation(0, this.system.state.epicycleRotation);
     };
@@ -1740,7 +1754,7 @@
     EquatorieInteract.prototype._stateRotateMeanAuxInit = function() {
       var current_state;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Rotate the label till it is aligned with the white string.";
+      current_state.text = 'Align the "label" (pointer) with the white thread.';
       return current_state.rot_interp = new CoffeeGL.Interpolation(0, this.system.state.meanAux);
     };
 
@@ -1757,7 +1771,10 @@
     EquatorieInteract.prototype._stateRotateLabelInit = function() {
       var current_state;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Rotate the label by the Mean Argument";
+      current_state.text = "Taking this position as zero, turn the label anti-clockwise to mark out the mean anomaly.";
+      if (this.chosen_planet === "moon") {
+        current_state.text = "Taking this position as zero, turn the label to mark out the mean anomaly.  Note that unlike for the planets, the label should be rotated clockwise.";
+      }
       return current_state.rot_interp = new CoffeeGL.Interpolation(0, this.system.state.pointerAngle);
     };
 
@@ -1774,7 +1791,10 @@
     EquatorieInteract.prototype._stateMoveBlackStringFinalInit = function() {
       var current_state, mv;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Move the black string till it meets the point on the label. Read off the true place where the string crosses the limb. It should be: " + this.system.state.truePlace.toFixed(2);
+      current_state.text = "Move the black thread so it runs from the Earth, through the the planet’s mark on the label, to the scale on the disc. The true longitude can be read there: it is " + this.system.state.truePlace.toFixed(2);
+      if (this.chosen_planet === "moon") {
+        current_state.text = "Move the black thread so it runs from the Earth, through the the Moon’s mark on the label, to the scale on the disc.  The true longitude can be read there: it is " + this.system.state.truePlace.toFixed(2);
+      }
       mv = new CoffeeGL.Vec3(this.system.state.pointerPoint.x, 0, this.system.state.pointerPoint.y);
       mv.normalize();
       mv.multScalar(10.0);
@@ -1796,14 +1816,13 @@
     };
 
     EquatorieInteract.prototype._stateMoveBlackStringLatitudeInit = function() {
-      var current_state, e, l, s;
+      var current_state, e, s;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Move the black string so it is perpendicular to the Alhudda line and cutting the rim at the spot marked by the previous value.";
+      current_state.text = "Move the black [or white] thread so it is perpendicular to the graduated “Alhudda” line on the disc, and crosses the edge of the disc where the scale shows the value you found in the last step.";
       s = new CoffeeGL.Vec3(this.system.state.moonLatitudeLeft.x, 0, this.system.state.moonLatitudeLeft.y);
       e = new CoffeeGL.Vec3(this.system.state.moonLatitudeRight.x, 0, this.system.state.moonLatitudeRight.y);
-      l = s.dist(e);
-      s.x = s.x - (6 - l / 2);
-      e.x = e.x + (6 - l / 2);
+      s.x = -5.5;
+      e.x = 5.5;
       s.y = this.string_height;
       e.y = this.string_height;
       current_state.start_interp = new CoffeeGL.Interpolation(this.black_start.matrix.getPos(), s);
@@ -1828,15 +1847,28 @@
       return this;
     };
 
+    EquatorieInteract.prototype._stateReadLatitudeInit = function() {
+      var current_state;
+      current_state = this.stack[this.stack_idx];
+      return current_state.text = "The Moon’s latitude can be read on the 0-5° scale marked on the Alhudda line: it is " + this.system.state.moonLatitudeFinal.toFixed(2);
+    };
+
+    EquatorieInteract.prototype._stateReadLatitude = function(dt) {
+      var current_state;
+      current_state = this.stack[this.stack_idx];
+      current_state.pos = this._setPOIVec(new CoffeeGL.Vec3(this.system.state.moonLatitudeCentre.x, this.string_height, this.system.state.moonLatitudeCentre.y));
+      return this.move_poi.dispatch(current_state.pos);
+    };
+
     EquatorieInteract.prototype.addStates = function(planet, date) {
       var _this = this;
       this.stack = [];
-      this.stack.push(new EquatorieState(this._stateSetPlanetDateInit, function() {
-        return (function(planet, date) {
-          return _this._stateSetPlanetDate(planet, date);
-        })(planet, date);
-      }));
       if (planet === 'mars' || planet === 'venus' || planet === 'jupiter' || planet === 'saturn' || planet === 'mercury') {
+        this.stack.push(new EquatorieState(this._stateSetPlanetDateInit, function() {
+          return (function(planet, date) {
+            return _this._stateSetPlanetDate(planet, date);
+          })(planet, date);
+        }));
         this.stack.push(new EquatorieState(this._stateRotatePlateInit, this._stateRotatePlate));
         this.stack.push(new EquatorieState(this._stateCalculateMeanMotusInit, this._stateCalculateMeanMotus));
         this.stack.push(new EquatorieState(this._stateMoveBlackThreadInit, this._stateMoveBlackThread));
@@ -1847,8 +1879,11 @@
         this.stack.push(new EquatorieState(this._stateRotateLabelInit, this._stateRotateLabel));
         return this.stack.push(new EquatorieState(this._stateMoveBlackStringFinalInit, this._stateMoveBlackStringFinal));
       } else if (planet === 'moon') {
-        this.stack.push(new EquatorieState(this._stateRotatePlateInit, this._stateRotatePlate));
-        this.stack.push(new EquatorieState(this._stateRotatePlateInit, this._stateRotatePlate));
+        this.stack.push(new EquatorieState(this._stateSetPlanetDateInit, function() {
+          return (function(planet, date) {
+            return _this._stateSetPlanetDate(planet, date);
+          })(planet, date);
+        }));
         this.stack.push(new EquatorieState(this._stateCalculateMeanMotusInit, this._stateCalculateMeanMotus));
         this.stack.push(new EquatorieState(this._stateMoveBlackThreadInit, this._stateMoveBlackThread));
         this.stack.push(new EquatorieState(this._stateMoveEpicycleInit, this._stateMoveEpicycle));
@@ -1858,9 +1893,16 @@
         this.stack.push(new EquatorieState(this._stateRotateLabelInit, this._stateRotateLabel));
         return this.stack.push(new EquatorieState(this._stateMoveBlackStringFinalInit, this._stateMoveBlackStringFinal));
       } else if (planet === "moon_latitude") {
+        this.system.solveForPlanetDate(planet, date);
         this.stack.push(new EquatorieState(this._stateCalculateMeanMotusInit, this._stateCalculateMeanMotus));
-        return this.stack.push(new EquatorieState(this._stateMoveBlackStringLatitudeInit, this._stateMoveBlackStringLatitude));
+        this.stack.push(new EquatorieState(this._stateMoveBlackStringLatitudeInit, this._stateMoveBlackStringLatitude));
+        return this.stack.push(new EquatorieState(this._stateReadLatitudeInit, this._stateReadLatitude));
       } else if (planet === "sun") {
+        this.stack.push(new EquatorieState(this._stateSetPlanetDateInit, function() {
+          return (function(planet, date) {
+            return _this._stateSetPlanetDate(planet, date);
+          })(planet, date);
+        }));
         this.stack.push(new EquatorieState(this._stateRotatePlateInit, this._stateRotatePlate));
         this.stack.push(new EquatorieState(this._stateCalculateMeanMotusInit, this._stateCalculateMeanMotus));
         this.stack.push(new EquatorieState(this._stateMoveBlackThreadInit, this._stateMoveBlackThread));
@@ -1889,18 +1931,27 @@
       });
     };
 
-    EquatorieInteract.prototype.solveForPlanet = function(planet, date) {
-      var s, state, _i, _ref, _results;
-      this.reset();
-      this.addStates(planet, date);
-      _results = [];
-      for (s = _i = 0, _ref = this.stack.length - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; s = 0 <= _ref ? ++_i : --_i) {
-        this.stack_idx = s;
-        state = this.stack[s];
-        state.activate();
-        _results.push(state.update(1.0));
+    EquatorieInteract.prototype.solveImmediate = function() {
+      var rval, s, tidx;
+      tidx = this.stack_idx;
+      this.stack = [];
+      this.stack_idx = 0;
+      this.system.reset();
+      this.addStates(this.chosen_planet, this.date);
+      s = 0;
+      while (s < tidx) {
+        this.stepForward();
+        s += 1;
       }
-      return _results;
+      this.stack[this.stack_idx].activate();
+      rval = {};
+      if (this.stack[this.stack_idx].text != null) {
+        rval.text = this.stack[this.stack_idx].text;
+      }
+      if (this.stack[this.stack_idx].pos != null) {
+        rval.pos = this.stack[this.stack_idx].pos;
+      }
+      return rval;
     };
 
     EquatorieInteract.prototype.onMouseDown = function(event) {
@@ -2012,13 +2063,6 @@
       controller = this.datgui.add(this.pointer, 'uAlphaY', 0, 1);
       controller = this.datgui.add(this.epicycle, 'uAlphaX', 0, 1);
       return controller = this.datgui.add(this.epicycle, 'uAlphaY', 0, 1);
-    };
-
-    EquatorieInteract.prototype.solveForCurrentDatePlanet = function() {
-      var date;
-      date = new Date();
-      date.setDate(this.date.getDate() + this.advance_date);
-      return this.solveForPlanet(this.chosen_planet, date);
     };
 
     EquatorieInteract.prototype.stepForward = function() {
@@ -2574,7 +2618,7 @@ This software is released under the MIT Licence. See LICENCE.txt for details
 
 
 (function() {
-  var App, CoffeeGLError, CoffeeGLLog, Colour, Matrix4, OrthoCamera, PerspCamera, Shader, Vec2, Vec3, Vec4, makeDebugContext, makeMouseEmitter, makeTouchEmitter, _ref, _ref1, _ref2, _ref3,
+  var App, CoffeeGLError, CoffeeGLLog, CoffeeGLWarning, Colour, Matrix4, OrthoCamera, PerspCamera, Shader, Vec2, Vec3, Vec4, makeDebugContext, makeMouseEmitter, makeTouchEmitter, _ref, _ref1, _ref2, _ref3,
     _this = this;
 
   _ref = require("./math"), Vec2 = _ref.Vec2, Vec3 = _ref.Vec3, Vec4 = _ref.Vec4, Matrix4 = _ref.Matrix4;
@@ -2587,7 +2631,7 @@ This software is released under the MIT Licence. See LICENCE.txt for details
 
   Colour = require("./colour").Colour;
 
-  _ref3 = require("./error"), CoffeeGLError = _ref3.CoffeeGLError, CoffeeGLLog = _ref3.CoffeeGLLog;
+  _ref3 = require("./error"), CoffeeGLError = _ref3.CoffeeGLError, CoffeeGLWarning = _ref3.CoffeeGLWarning, CoffeeGLLog = _ref3.CoffeeGLLog;
 
   makeDebugContext = require("./debug").makeDebugContext;
 
@@ -2623,13 +2667,13 @@ This software is released under the MIT Licence. See LICENCE.txt for details
       this.width = this.canvas.width;
       this.gl = this.canvas.getContext('experimental-webgl');
       if (this.gl == null) {
-        this.gl = canvas.getContext('webgl');
+        this.gl = this.canvas.getContext('webgl');
       }
       if (!this.gl) {
         if (this.onError != null) {
           this.onError();
         }
-        CoffeeGLError("WebGL Not supported or context not found", "App");
+        CoffeeGLWarning("WebGL Not supported or context not found", "App");
         return;
       }
       this.profile();
@@ -4549,7 +4593,197 @@ http://www.flipcode.com/documents/matrfaq.html
 
 }).call(this);
 
-},{"./error":24}],11:[function(require,module,exports){
+},{"./error":24}],12:[function(require,module,exports){
+// Generated by CoffeeScript 1.6.1
+
+/* ABOUT
+                       __  .__              ________ 
+   ______ ____   _____/  |_|__| ____   ____/   __   \
+  /  ___// __ \_/ ___\   __\  |/  _ \ /    \____    /
+  \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
+ /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
+      \/     \/     \/                    \/         
+                                              CoffeeGL
+                                              Benjamin Blundell - ben@section9.co.uk
+                                              http://www.section9.co.uk
+
+This software is released under the MIT Licence. See LICENCE.txt for details
+
+
+Consists of a matrix, a material, parent and children for the scene graph computation
+Doesnt have to be drawn per-se
+
+If @geometry is attached, this node can be made drawable
+If the node is made gldrawable, buffers will be attached to this node. The node then needs 
+to be unbrewed.
+*/
+
+
+(function() {
+  var Camera, Geometry, Material, Matrix3, Matrix4, Node, PointLight, Texture, Vec3, Vec4, makeNodeDrawableGL, util, _ref,
+    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
+  _ref = require('./math'), Vec3 = _ref.Vec3, Vec4 = _ref.Vec4, Matrix3 = _ref.Matrix3, Matrix4 = _ref.Matrix4;
+
+  makeNodeDrawableGL = require('./webgl').makeNodeDrawableGL;
+
+  Camera = require('./camera').Camera;
+
+  Material = require('./material').Material;
+
+  Texture = require('./texture').Texture;
+
+  PointLight = require('./Light').PointLight;
+
+  Geometry = require('./primitives').Geometry;
+
+  util = require('./util');
+
+  /*Node
+  */
+
+
+  Node = (function() {
+
+    function Node(geometry, material, textures, shader, pointLights) {
+      this.geometry = geometry;
+      this.material = material;
+      this.textures = textures;
+      this.shader = shader;
+      this.pointLights = pointLights;
+      this.matrix = new Matrix4();
+      this._modelMatrix = new Matrix4();
+      this._normalMatrix = new Matrix3();
+      this.children = [];
+      if (this.pointLights == null) {
+        this.pointLights = [];
+        this.pointLightsGlobal = [];
+        this.numPointLights = 0;
+      }
+      if (this.textures == null) {
+        this.textures = [];
+      }
+    }
+
+    Node.prototype.add = function(p) {
+      if (typeof p._addToNode === "function") {
+        p._addToNode(this);
+      }
+      return this;
+    };
+
+    Node.prototype.remove = function(p) {
+      if (typeof p._removeFromNode === "function") {
+        p._removeFromNode(this);
+      }
+      return this;
+    };
+
+    Node.prototype._addToNode = function(node) {
+      node.children.push(this);
+      return this;
+    };
+
+    Node.prototype.copy = function() {
+      return util.clone(this);
+    };
+
+    Node.prototype.del = function(p) {
+      var i;
+      if (__indexOf.call(this.children, p) >= 0) {
+        i = this.children.indexOf(p);
+        this.children.splice(i, 1);
+      }
+      return this;
+    };
+
+    Node.prototype._removeFromNode = function(node) {
+      node.del(this);
+      return this;
+    };
+
+    Node.prototype.draw = function() {
+      var front;
+      front = {
+        _modelMatrix: new Matrix4(),
+        _pointLightsGlobal: [],
+        _normalMatrix: new Matrix4(),
+        _camera: void 0,
+        _shader: void 0
+      };
+      return this._draw(this, front);
+    };
+
+    Node.prototype._draw = function(node, front) {
+      var child, cloned, light, newlight, nm, tex, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref1, _ref2, _ref3, _ref4;
+      _ref1 = node.textures;
+      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+        tex = _ref1[_i];
+        tex.bind();
+      }
+      front._modelMatrix = Matrix4.mult(front._modelMatrix, node.matrix);
+      nm = node._modelMatrix.copy();
+      front._normalMatrix = nm.invert().transpose().getMatrix3();
+      if (node.pointLights != null) {
+        _ref2 = node.pointLights;
+        for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
+          light = _ref2[_j];
+          newlight = util.clone(light);
+          front._modelMatrix.multVec(newlight.pos);
+          front._pointLightsGlobal.push(newlight);
+        }
+        front._numPointLightsGlobal = front._pointLightsGlobal.length;
+      }
+      if (node.camera != null) {
+        front._camera = node.camera;
+      }
+      front._shader = node.shader;
+      if (node.material != null) {
+        front._material = node.material;
+      }
+      if (node.drawGL == null) {
+        makeNodeDrawableGL(node);
+        if (node.geometry != null) {
+          if (!node.geometry.brewed) {
+            node.brew();
+          }
+        }
+      }
+      node = util.extend(node, front);
+      node.drawGL();
+      _ref3 = node.children;
+      for (_k = 0, _len2 = _ref3.length; _k < _len2; _k++) {
+        child = _ref3[_k];
+        cloned = {
+          _modelMatrix: new Matrix4(front._modelMatrix),
+          _pointLightsGlobal: [],
+          _normalMatrix: new Matrix4(),
+          _camera: front._camera,
+          _material: front._material,
+          _shader: front._shader
+        };
+        cloned._pointLightsGlobal = cloned._pointLightsGlobal.concat(front._pointLightsGlobal);
+        this._draw(child, cloned);
+      }
+      _ref4 = node.textures;
+      for (_l = 0, _len3 = _ref4.length; _l < _len3; _l++) {
+        tex = _ref4[_l];
+        tex.unbind();
+      }
+      return node;
+    };
+
+    return Node;
+
+  })();
+
+  module.exports = {
+    Node: Node
+  };
+
+}).call(this);
+
+},{"./math":9,"./webgl":20,"./camera":18,"./material":23,"./texture":17,"./Light":28,"./primitives":11,"./util":7}],11:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -4947,197 +5181,7 @@ When applying materials, we may need to AUTOGEN stuff - thats not a bad idea act
 
 }).call(this);
 
-},{"./colour":10,"./math":9}],12:[function(require,module,exports){
-// Generated by CoffeeScript 1.6.1
-
-/* ABOUT
-                       __  .__              ________ 
-   ______ ____   _____/  |_|__| ____   ____/   __   \
-  /  ___// __ \_/ ___\   __\  |/  _ \ /    \____    /
-  \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
- /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
-      \/     \/     \/                    \/         
-                                              CoffeeGL
-                                              Benjamin Blundell - ben@section9.co.uk
-                                              http://www.section9.co.uk
-
-This software is released under the MIT Licence. See LICENCE.txt for details
-
-
-Consists of a matrix, a material, parent and children for the scene graph computation
-Doesnt have to be drawn per-se
-
-If @geometry is attached, this node can be made drawable
-If the node is made gldrawable, buffers will be attached to this node. The node then needs 
-to be unbrewed.
-*/
-
-
-(function() {
-  var Camera, Geometry, Material, Matrix3, Matrix4, Node, PointLight, Texture, Vec3, Vec4, makeNodeDrawableGL, util, _ref,
-    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-
-  _ref = require('./math'), Vec3 = _ref.Vec3, Vec4 = _ref.Vec4, Matrix3 = _ref.Matrix3, Matrix4 = _ref.Matrix4;
-
-  makeNodeDrawableGL = require('./webgl').makeNodeDrawableGL;
-
-  Camera = require('./camera').Camera;
-
-  Material = require('./material').Material;
-
-  Texture = require('./texture').Texture;
-
-  PointLight = require('./Light').PointLight;
-
-  Geometry = require('./primitives').Geometry;
-
-  util = require('./util');
-
-  /*Node
-  */
-
-
-  Node = (function() {
-
-    function Node(geometry, material, textures, shader, pointLights) {
-      this.geometry = geometry;
-      this.material = material;
-      this.textures = textures;
-      this.shader = shader;
-      this.pointLights = pointLights;
-      this.matrix = new Matrix4();
-      this._modelMatrix = new Matrix4();
-      this._normalMatrix = new Matrix3();
-      this.children = [];
-      if (this.pointLights == null) {
-        this.pointLights = [];
-        this.pointLightsGlobal = [];
-        this.numPointLights = 0;
-      }
-      if (this.textures == null) {
-        this.textures = [];
-      }
-    }
-
-    Node.prototype.add = function(p) {
-      if (typeof p._addToNode === "function") {
-        p._addToNode(this);
-      }
-      return this;
-    };
-
-    Node.prototype.remove = function(p) {
-      if (typeof p._removeFromNode === "function") {
-        p._removeFromNode(this);
-      }
-      return this;
-    };
-
-    Node.prototype._addToNode = function(node) {
-      node.children.push(this);
-      return this;
-    };
-
-    Node.prototype.copy = function() {
-      return util.clone(this);
-    };
-
-    Node.prototype.del = function(p) {
-      var i;
-      if (__indexOf.call(this.children, p) >= 0) {
-        i = this.children.indexOf(p);
-        this.children.splice(i, 1);
-      }
-      return this;
-    };
-
-    Node.prototype._removeFromNode = function(node) {
-      node.del(this);
-      return this;
-    };
-
-    Node.prototype.draw = function() {
-      var front;
-      front = {
-        _modelMatrix: new Matrix4(),
-        _pointLightsGlobal: [],
-        _normalMatrix: new Matrix4(),
-        _camera: void 0,
-        _shader: void 0
-      };
-      return this._draw(this, front);
-    };
-
-    Node.prototype._draw = function(node, front) {
-      var child, cloned, light, newlight, nm, tex, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref1, _ref2, _ref3, _ref4;
-      _ref1 = node.textures;
-      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-        tex = _ref1[_i];
-        tex.bind();
-      }
-      front._modelMatrix = Matrix4.mult(front._modelMatrix, node.matrix);
-      nm = node._modelMatrix.copy();
-      front._normalMatrix = nm.invert().transpose().getMatrix3();
-      if (node.pointLights != null) {
-        _ref2 = node.pointLights;
-        for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
-          light = _ref2[_j];
-          newlight = util.clone(light);
-          front._modelMatrix.multVec(newlight.pos);
-          front._pointLightsGlobal.push(newlight);
-        }
-        front._numPointLightsGlobal = front._pointLightsGlobal.length;
-      }
-      if (node.camera != null) {
-        front._camera = node.camera;
-      }
-      front._shader = node.shader;
-      if (node.material != null) {
-        front._material = node.material;
-      }
-      if (node.drawGL == null) {
-        makeNodeDrawableGL(node);
-        if (node.geometry != null) {
-          if (!node.geometry.brewed) {
-            node.brew();
-          }
-        }
-      }
-      node = util.extend(node, front);
-      node.drawGL();
-      _ref3 = node.children;
-      for (_k = 0, _len2 = _ref3.length; _k < _len2; _k++) {
-        child = _ref3[_k];
-        cloned = {
-          _modelMatrix: new Matrix4(front._modelMatrix),
-          _pointLightsGlobal: [],
-          _normalMatrix: new Matrix4(),
-          _camera: front._camera,
-          _material: front._material,
-          _shader: front._shader
-        };
-        cloned._pointLightsGlobal = cloned._pointLightsGlobal.concat(front._pointLightsGlobal);
-        this._draw(child, cloned);
-      }
-      _ref4 = node.textures;
-      for (_l = 0, _len3 = _ref4.length; _l < _len3; _l++) {
-        tex = _ref4[_l];
-        tex.unbind();
-      }
-      return node;
-    };
-
-    return Node;
-
-  })();
-
-  module.exports = {
-    Node: Node
-  };
-
-}).call(this);
-
-},{"./math":9,"./webgl":20,"./camera":18,"./material":23,"./texture":17,"./Light":28,"./primitives":11,"./util":7}],13:[function(require,module,exports){
+},{"./colour":10,"./math":9}],13:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -5418,7 +5462,86 @@ Accepts three.js style json model format
 
 }).call(this);
 
-},{"./primitives":11,"./node":12,"./math":9,"./material":23,"./colour":10,"./texture":17,"./request":15,"./signal":21,"./error":24,"./loader":29}],14:[function(require,module,exports){
+},{"./primitives":11,"./node":12,"./math":9,"./material":23,"./colour":10,"./texture":17,"./request":15,"./signal":21,"./error":24,"./loader":29}],15:[function(require,module,exports){
+// Generated by CoffeeScript 1.6.1
+
+/* ABOUT   
+                       __  .__              ________ 
+   ______ ____   _____/  |_|__| ____   ____/   __   \
+  /  ___// __ \_/ ___\   __\  |/  _ \ /    \____    /
+  \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
+ /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
+      \/     \/     \/                    \/         
+                                              CoffeeGL
+                                              Benjamin Blundell - ben@section9.co.uk
+                                              http://www.section9.co.uk
+
+This software is released under the MIT Licence. See LICENCE.txt for details
+
+
+- Resources
+
+* http://coffeescriptcookbook.com/chapters/ajax/ajax_request_without_jquery
+
+- TODO
+  * Need to get some kind of percentage in here, along with a signal we can check!
+  * Need to check if its binary, json or other here, properly!
+*/
+
+
+(function() {
+  var CoffeeGL, Request, Signal;
+
+  CoffeeGL = require('./coffeegl').CoffeeGL;
+
+  Signal = require('./signal').Signal;
+
+  /*Request
+  */
+
+
+  Request = (function() {
+
+    function Request(url) {
+      this.url = url;
+    }
+
+    Request.prototype.get = function(callback) {
+      var _this = this;
+      this.req = new XMLHttpRequest();
+      this.req.onreadystatechange = function() {
+        var data, l;
+        if (_this.req.readyState === 4) {
+          if (_this.req.status === 200 || _this.req.status === 304) {
+            l = _this.url.length - 1;
+            if (_this.url.indexOf("xml", l - 3) >= 0 || _this.url.indexOf("js", l - 2) >= 0 || _this.url.indexOf("json", l - 2) >= 0) {
+              data = eval('(' + _this.req.responseText + ')');
+              data._coffeegl_request_url = _this.url;
+              callback(data);
+            } else {
+              callback(_this.req.responseText);
+            }
+          }
+        }
+        return _this;
+      };
+      this.req.open('GET', this.url);
+      this.req.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+      this.req.send(null);
+      return this;
+    };
+
+    return Request;
+
+  })();
+
+  module.exports = {
+    Request: Request
+  };
+
+}).call(this);
+
+},{"./coffeegl":2,"./signal":21}],14:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -5917,260 +6040,7 @@ This software is released under the MIT Licence. See LICENCE.txt for details
 
 }).call(this);
 
-},{"./math":9,"./light":22,"./shader_library":30,"./error":24}],15:[function(require,module,exports){
-// Generated by CoffeeScript 1.6.1
-
-/* ABOUT   
-                       __  .__              ________ 
-   ______ ____   _____/  |_|__| ____   ____/   __   \
-  /  ___// __ \_/ ___\   __\  |/  _ \ /    \____    /
-  \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
- /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
-      \/     \/     \/                    \/         
-                                              CoffeeGL
-                                              Benjamin Blundell - ben@section9.co.uk
-                                              http://www.section9.co.uk
-
-This software is released under the MIT Licence. See LICENCE.txt for details
-
-
-- Resources
-
-* http://coffeescriptcookbook.com/chapters/ajax/ajax_request_without_jquery
-
-- TODO
-  * Need to get some kind of percentage in here, along with a signal we can check!
-  * Need to check if its binary, json or other here, properly!
-*/
-
-
-(function() {
-  var CoffeeGL, Request, Signal;
-
-  CoffeeGL = require('./coffeegl').CoffeeGL;
-
-  Signal = require('./signal').Signal;
-
-  /*Request
-  */
-
-
-  Request = (function() {
-
-    function Request(url) {
-      this.url = url;
-    }
-
-    Request.prototype.get = function(callback) {
-      var _this = this;
-      this.req = new XMLHttpRequest();
-      this.req.onreadystatechange = function() {
-        var data, l;
-        if (_this.req.readyState === 4) {
-          if (_this.req.status === 200 || _this.req.status === 304) {
-            l = _this.url.length - 1;
-            if (_this.url.indexOf("xml", l - 3) >= 0 || _this.url.indexOf("js", l - 2) >= 0 || _this.url.indexOf("json", l - 2) >= 0) {
-              data = eval('(' + _this.req.responseText + ')');
-              data._coffeegl_request_url = _this.url;
-              callback(data);
-            } else {
-              callback(_this.req.responseText);
-            }
-          }
-        }
-        return _this;
-      };
-      this.req.open('GET', this.url);
-      this.req.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-      this.req.send(null);
-      return this;
-    };
-
-    return Request;
-
-  })();
-
-  module.exports = {
-    Request: Request
-  };
-
-}).call(this);
-
-},{"./coffeegl":2,"./signal":21}],16:[function(require,module,exports){
-// Generated by CoffeeScript 1.6.1
-
-/* ABOUT
-                       __  .__              ________ 
-   ______ ____   _____/  |_|__| ____   ____/   __   \
-  /  ___// __ \_/ ___\   __\  |/  _ \ /    \____    /
-  \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
- /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
-      \/     \/     \/                    \/         
-                                              CoffeeGL
-                                              Benjamin Blundell - ben@section9.co.uk
-                                              http://www.section9.co.uk
-
-This software is released under the MIT Licence. See LICENCE.txt for details
-
-
-Framebuffer objects - reads the current active context from the exports and creates a FBO
-
-Basic FBO with depth, linear filtering and RGBA with unsigned bytes
-
-Remember, NPOT textures are support but not with repeats or mipmapping
-
-- TODO
-  * Depth options
-*/
-
-
-(function() {
-  var CoffeeGLDebug, CoffeeGLError, Fbo, RGB, RGBA, TextureBase, Vec2, _ref, _ref1;
-
-  _ref = require('./error'), CoffeeGLError = _ref.CoffeeGLError, CoffeeGLDebug = _ref.CoffeeGLDebug;
-
-  _ref1 = require('./colour'), RGB = _ref1.RGB, RGBA = _ref1.RGBA;
-
-  Vec2 = require('./math').Vec2;
-
-  TextureBase = require('./texture').TextureBase;
-
-  /*Fbo
-  */
-
-
-  Fbo = (function() {
-
-    function Fbo(width, height, channels, datatype, depth) {
-      var gl;
-      this.width = width;
-      this.height = height;
-      this.channels = channels;
-      this.datatype = datatype;
-      this.depth = depth;
-      gl = CoffeeGL.Context.gl;
-      if (!((this.width != null) && (this.height != null))) {
-        this.width = CoffeeGL.Context.width;
-        this.height = CoffeeGL.Context.height;
-      }
-      if (this.channels == null) {
-        this.channels = gl.RGBA;
-      }
-      if (this.datatype == null) {
-        this.datatype = gl.UNSIGNED_BYTE;
-      }
-      if (this.depth == null) {
-        this.depth = true;
-      }
-      this.framebuffer = gl.createFramebuffer();
-      CoffeeGLDebug("Created an FBO  with dimensions: " + this.width + "," + this.height);
-      this._build();
-    }
-
-    Fbo.prototype.resize = function(w, h) {
-      if (w instanceof Vec2) {
-        this.width = w.x;
-        this.height = w.y;
-      } else if ((w != null) && (h != null)) {
-        this.width = w;
-        this.height = h;
-      } else {
-        return this;
-      }
-      this._build();
-      return this;
-    };
-
-    Fbo.prototype._build = function() {
-      var gl, params;
-      gl = CoffeeGL.Context.gl;
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
-      if (this.texture == null) {
-        params = {
-          "min": gl.LINEAR,
-          "max": gl.LINEAR,
-          "wraps": gl.CLAMP_TO_EDGE,
-          "wrapt": gl.CLAMP_TO_EDGE,
-          "width": this.width,
-          "height": this.height,
-          "channels": this.channels,
-          "datatype": this.datatype
-        };
-        this.texture = new TextureBase(params);
-        this.texture.build();
-      } else {
-        this.texture.bind();
-        gl.texImage2D(gl.TEXTURE_2D, 0, this.channels, this.width, this.height, 0, this.channels, this.datatype, null);
-      }
-      this.renderbuffer = gl.createRenderbuffer();
-      gl.bindRenderbuffer(gl.RENDERBUFFER, this.renderbuffer);
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texture.texture, 0);
-      if (this.depth) {
-        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.width, this.height);
-        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.renderbuffer);
-      }
-      gl.bindRenderbuffer(gl.RENDERBUFFER, null);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      this.texture.unbind();
-      if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
-        return CoffeeGLError("Failed to Create Framebuffer!");
-      }
-    };
-
-    Fbo.prototype.bind = function() {
-      var gl;
-      gl = CoffeeGL.Context.gl;
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
-      gl.bindRenderbuffer(gl.RENDERBUFFER, this.renderbuffer);
-      return gl.viewport(0, 0, this.width, this.height);
-    };
-
-    Fbo.prototype.unbind = function() {
-      var gl;
-      gl = CoffeeGL.Context.gl;
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      return gl.bindRenderbuffer(gl.RENDERBUFFER, null);
-    };
-
-    Fbo.prototype.clear = function(colour) {
-      var gl;
-      gl = CoffeeGL.Context.gl;
-      if (colour == null) {
-        gl.clearColor(0.0, 0.0, 0.0, 0.0);
-      } else {
-        if (colour instanceof RGBA) {
-          gl.clearColor(colour.r, colour.g, colour.b, colour.a);
-        } else if (colour instanceof RGB) {
-          gl.clearColor(colour.r, colour.g, colour.b, 1.0);
-        }
-      }
-      if (this.depth) {
-        return gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      } else {
-        return gl.clear(gl.COLOR_BUFFER_BIT);
-      }
-    };
-
-    Fbo.prototype.washUp = function() {
-      var gl;
-      gl = CoffeeGL.Context.gl;
-      gl.deleteFramebuffer(this.framebuffer);
-      gl.deleteRenderbuffer(this.renderbuffer);
-      gl.deleteTexture(this.texture.texture);
-      return this;
-    };
-
-    return Fbo;
-
-  })();
-
-  module.exports = {
-    Fbo: Fbo
-  };
-
-}).call(this);
-
-},{"./error":24,"./colour":10,"./math":9,"./texture":17}],17:[function(require,module,exports){
+},{"./math":9,"./light":22,"./shader_library":30,"./error":24}],17:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -6436,7 +6306,492 @@ Texture Objects - uses the request object and callbacks. Is bound to a context
 
 }).call(this);
 
-},{"./request":15}],18:[function(require,module,exports){
+},{"./request":15}],20:[function(require,module,exports){
+// Generated by CoffeeScript 1.6.1
+
+/* ABOUT
+                       __  .__              ________ 
+   ______ ____   _____/  |_|__| ____   ____/   __   \
+  /  ___// __ \_/ ___\   __\  |/  _ \ /    \____    /
+  \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
+ /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
+      \/     \/     \/                    \/         
+                                              CoffeeGL
+                                              Benjamin Blundell - ben@section9.co.uk
+                                              http://www.section9.co.uk
+
+This software is released under the MIT Licence. See LICENCE.txt for details
+
+
+The WebGL End of our basic primitives. Here we match our classes to the WebGL Shaders 
+and buffers
+
+ - TODO
+  * Geometry may or may not have more buffers (should we wish to add them)
+  * Do we put in face duplication here? I.e, if we want to pass in per face details
+    we need to change the buffers
+  * It appears that bufferSubData isnt the thing to use but is this true? (for updateing)
+  * Geometry that has changed totally? Delete and redo buffers is needed
+  * Per Face Brew method - I.e duplicate vertices if there is per-face data specified in
+    the brew parameters
+*/
+
+
+(function() {
+  var CoffeeGLWarning, CoffeeGLWarningOnce, Cuboid, Matrix4, Quad, RGB, RGBA, Sphere, Triangle, TriangleMesh, Vec2, Vec3, Vertex, WebGLNodeDrawable, brew, createArrayBuffer, createElementBuffer, deleteBuffer, drawGeometryGL, makeNodeDrawableGL, setDataBuffer, util, washup, _attribTypeCheckSet, _matchWithShader, _ref, _ref1, _ref2, _ref3, _ref4, _splitRole, _typeCheckSet;
+
+  _ref = require('./math'), Matrix4 = _ref.Matrix4, Vec3 = _ref.Vec3, Vec2 = _ref.Vec2;
+
+  _ref1 = require('./colour'), RGB = _ref1.RGB, RGBA = _ref1.RGBA;
+
+  _ref2 = require('./primitives'), Vertex = _ref2.Vertex, Triangle = _ref2.Triangle, Quad = _ref2.Quad, TriangleMesh = _ref2.TriangleMesh;
+
+  _ref3 = require('./shapes'), Cuboid = _ref3.Cuboid, Sphere = _ref3.Sphere;
+
+  _ref4 = require('./error'), CoffeeGLWarning = _ref4.CoffeeGLWarning, CoffeeGLWarningOnce = _ref4.CoffeeGLWarningOnce;
+
+  util = require("./util");
+
+  setDataBuffer = function(buffer, data, type) {
+    var gl;
+    gl = CoffeeGL.Context.gl;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, data, type);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    return buffer;
+  };
+
+  createArrayBuffer = function(data, type, size) {
+    var buffer, gl;
+    gl = CoffeeGL.Context.gl;
+    buffer = gl.createBuffer();
+    setDataBuffer(buffer, data, type);
+    buffer.itemSize = size;
+    buffer.numItems = data.length / size;
+    return buffer;
+  };
+
+  createElementBuffer = function(data, type, size) {
+    var buffer, gl;
+    gl = CoffeeGL.Context.gl;
+    buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, type);
+    buffer.itemSize = size;
+    buffer.numItems = data.length;
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    return buffer;
+  };
+
+  deleteBuffer = function(buffer) {
+    var gl;
+    gl = CoffeeGL.Context.gl;
+    gl.deleteBuffer(buffer);
+    return this;
+  };
+
+  _attribTypeCheckSet = function(a, v) {
+    var gl;
+    gl = CoffeeGL.Context.gl;
+    if (a.pos === -1) {
+      return;
+    }
+    gl.enableVertexAttribArray(a.pos);
+    gl.bindBuffer(gl.ARRAY_BUFFER, v[a.role]);
+    if (a.type === "int") {
+      gl.vertexAttribPointer(a.pos, 1, gl.INT, false, 0, 0);
+    } else if (a.type === "float") {
+      gl.vertexAttribPointer(a.pos, 1, gl.FLOAT, false, 0, 0);
+    } else if (a.type === "vec2") {
+      gl.vertexAttribPointer(a.pos, 2, gl.FLOAT, false, 0, 0);
+    } else if (a.type === "vec3") {
+      gl.vertexAttribPointer(a.pos, 3, gl.FLOAT, false, 0, 0);
+    } else if (a.type === "vec4") {
+      gl.vertexAttribPointer(a.pos, 4, gl.FLOAT, false, 0, 0);
+    }
+    return this;
+  };
+
+  _typeCheckSet = function(u, v, tag) {
+    var gl, idx, m, role, t, x, _i, _j, _k, _len, _len1, _len2, _ref5, _ref6, _ref7;
+    if (u.pos === -1) {
+      return;
+    }
+    role = u.role;
+    if (tag != null) {
+      role = _splitRole(tag, u.role);
+    }
+    gl = CoffeeGL.Context.gl;
+    if (u.size === 1) {
+      if (u.type === "float") {
+        gl.uniform1f(u.pos, v[role]);
+      } else if (u.type === "int") {
+        gl.uniform1i(u.pos, v[role]);
+      } else if (u.type === "vec2") {
+        gl.uniform2f(u.pos, v[role].x, v[role].y);
+      } else if (u.type === "vec3") {
+        if (v[role].x != null) {
+          gl.uniform3f(u.pos, v[role].x, v[role].y, v[role].z);
+        } else {
+          gl.uniform3f(u.pos, v[role].r, v[role].g, v[role].b);
+        }
+      } else if (u.type === "vec4") {
+        if (v[role].x != null) {
+          gl.uniform4f(u.pos, v[role].x, v[role].y, v[role].z, v[role].w);
+        } else {
+          gl.uniform4f(u.pos, v[role].r, v[role].g, v[role].b, v[role].a);
+        }
+      } else if (u.type === "mat4") {
+        gl.uniformMatrix4fv(u.pos, false, v[role].a);
+      } else if (u.type === "mat3") {
+        gl.uniformMatrix3fv(u.pos, false, v[role].a);
+      } else if (u.type === "sampler2D") {
+        gl.uniform1i(u.pos, v[role]);
+      }
+    } else {
+      if (v[role][0] instanceof Object) {
+        t = [];
+        if (v[role][0].flatten != null) {
+          _ref5 = v[role];
+          for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
+            x = _ref5[_i];
+            t = t.concat(x.flatten());
+          }
+          if (u.type === "vec2") {
+            gl.uniform2fv(u.pos, new Float32Array(t));
+          } else if (u.type === "vec3") {
+            gl.uniform3fv(u.pos, new Float32Array(t));
+          } else if (u.type === "vec4") {
+            gl.uniform4fv(u.pos, new Float32Array(t));
+          }
+        } else if (v[role][0].a) {
+          if (u.type === "mat3") {
+            t = new Float32Array(9 * v[role].length);
+            idx = 0;
+            _ref6 = v[role];
+            for (_j = 0, _len1 = _ref6.length; _j < _len1; _j++) {
+              m = _ref6[_j];
+              t.set(m.a, idx * 9);
+              idx++;
+            }
+            gl.uniformMatrix3fv(u.pos, false, new Float32Array(t));
+          } else if (u.type === "mat4") {
+            t = new Float32Array(16 * v[role].length);
+            idx = 0;
+            _ref7 = v[role];
+            for (_k = 0, _len2 = _ref7.length; _k < _len2; _k++) {
+              m = _ref7[_k];
+              t.set(m.a, idx * 16);
+              idx++;
+            }
+            gl.uniformMatrix4fv(u.pos, false, new Float32Array(t));
+          }
+        }
+      } else {
+        if (u.type === "float") {
+          gl.uniform1fv(u.pos, new Float32Array(v[role]));
+        } else if (u.type === "int") {
+          gl.uniform1iv(u.pos, new Int32Array(v[role]));
+        } else if (u.type === "vec2") {
+          gl.uniform2fv(u.pos, new Float32Array(v[role]));
+        } else if (u.type === "vec3") {
+          gl.uniform3fv(u.pos, new Float32Array(v[role]));
+        } else if (u.type === "vec4") {
+          gl.uniform4fv(u.pos, new Float32Array(v[role]));
+        } else if (u.type === "mat4") {
+          gl.uniformMatrix4fv(u.pos, false, new Float32Array(v[role]));
+        }
+      }
+    }
+    return this;
+  };
+
+  _splitRole = function(tag, role) {
+    if (role.indexOf(tag) !== -1) {
+      return role.split("/")[1];
+    }
+    return role;
+  };
+
+  _matchWithShader = function(node) {
+    var a, attenuations, colours, contract, light, pointlights, positions, shader, speculars, t, u, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _m, _n, _o, _p, _ref10, _ref11, _ref12, _ref5, _ref6, _ref7, _ref8, _ref9;
+    if (CoffeeGL.Context.shader == null) {
+      console.log("CoffeeGL Error - Not Shader bound when calling _matchWithShader");
+      return node;
+    }
+    if (CoffeeGL.Context.shader.contract == null) {
+      console.log("CoffeeGL Error - Not Shader contract when calling _matchWithShader");
+      return node;
+    }
+    contract = CoffeeGL.Context.shader.contract;
+    shader = CoffeeGL.Context.shader;
+    _ref5 = contract.uniforms;
+    for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
+      u = _ref5[_i];
+      if (node[u.role] != null) {
+        _typeCheckSet(u, node);
+      }
+    }
+    if (node._camera != null) {
+      _ref6 = contract.uniforms;
+      for (_j = 0, _len1 = _ref6.length; _j < _len1; _j++) {
+        u = _ref6[_j];
+        if (node._camera[_splitRole("camera", u.role)] != null) {
+          _typeCheckSet(u, node._camera, "camera");
+        }
+      }
+    }
+    if (node._material != null) {
+      _ref7 = contract.uniforms;
+      for (_k = 0, _len2 = _ref7.length; _k < _len2; _k++) {
+        u = _ref7[_k];
+        if (node._material[_splitRole("material", u.role)] != null) {
+          _typeCheckSet(u, node._material, "material");
+        }
+      }
+    }
+    if (node._pointLightsGlobal.length > 0) {
+      positions = [];
+      colours = [];
+      speculars = [];
+      attenuations = [];
+      _ref8 = node._pointLightsGlobal;
+      for (_l = 0, _len3 = _ref8.length; _l < _len3; _l++) {
+        light = _ref8[_l];
+        positions = positions.concat(light.pos.flatten());
+        colours = colours.concat(light.colour.flatten());
+        speculars = speculars.concat(light.specular.flatten());
+        attenuations.push(light.attenuation);
+      }
+      positions = new Float32Array(positions);
+      colours = new Float32Array(colours);
+      speculars = new Float32Array(speculars);
+      attenuations = new Float32Array(attenuations);
+      pointlights = {
+        pos: positions,
+        colour: colours,
+        specular: speculars,
+        attenuations: attenuations
+      };
+      _ref9 = contract.uniforms;
+      for (_m = 0, _len4 = _ref9.length; _m < _len4; _m++) {
+        u = _ref9[_m];
+        if (pointlights[_splitRole("pointlight", u.role)] != null) {
+          _typeCheckSet(u, pointlights, "pointlight");
+        }
+      }
+    }
+    if (node.textures != null) {
+      _ref10 = contract.textures;
+      for (_n = 0, _len5 = _ref10.length; _n < _len5; _n++) {
+        u = _ref10[_n];
+        _ref11 = node.textures;
+        for (_o = 0, _len6 = _ref11.length; _o < _len6; _o++) {
+          t = _ref11[_o];
+          if (t[_splitRole("texture", u.role)] != null) {
+            _typeCheckSet(u, t, "texture");
+          }
+        }
+      }
+    }
+    if (node.geometry != null) {
+      _ref12 = contract.attributes;
+      for (_p = 0, _len7 = _ref12.length; _p < _len7; _p++) {
+        a = _ref12[_p];
+        if (node.geometry[a.role] != null) {
+          _attribTypeCheckSet(a, node.geometry);
+        }
+      }
+    }
+    return node;
+  };
+
+  drawGeometryGL = function(geometry, drawPrimitive) {
+    var gl;
+    gl = CoffeeGL.Context.gl;
+    if (drawPrimitive == null) {
+      if (geometry.layout == null) {
+        drawPrimitive = gl.TRIANGLES;
+      } else {
+        if (geometry.layout === "TRIANGLE_STRIP") {
+          drawPrimitive = gl.TRIANGLE_STRIP;
+        } else if (geometry.layout === "POINTS") {
+          drawPrimitive = gl.POINTS;
+        } else {
+          drawPrimitive = gl.TRIANGLES;
+        }
+      }
+    }
+    if (geometry.vertexIndexBuffer != null) {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, geometry.vertexIndexBuffer);
+      return gl.drawElements(drawPrimitive, geometry.vertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+    } else {
+      return gl.drawArrays(drawPrimitive, 0, geometry.vertexPositionBuffer.numItems);
+    }
+  };
+
+  brew = function(geometry, params) {
+    var access, colours, gl, normals, size, tangents, uvs, v, vertices, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref5, _ref6, _ref7, _ref8, _ref9;
+    if ((geometry.v == null) || geometry.v.length <= 0) {
+      geometry.brewed = false;
+      return this;
+    }
+    gl = CoffeeGL.Context.gl;
+    if (params == null) {
+      params = {};
+    }
+    vertices = [];
+    _ref5 = geometry.v;
+    for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
+      v = _ref5[_i];
+      vertices = vertices.concat(v.p.flatten());
+    }
+    access = params.position_buffer_access != null ? params.position_buffer_access : gl.STATIC_DRAW;
+    if (geometry.vertexPositionBuffer == null) {
+      geometry.vertexPositionBuffer = createArrayBuffer(new Float32Array(vertices), access, 3);
+    } else {
+      if (v.length === geometry.vertexPositionBuffer.numItems) {
+        setDataBuffer(geometry.vertexPositionBuffer, new Float32Array(vertices), access);
+      } else {
+        CoffeeGLWarningOnce("Attemping to update position buffer of different length");
+      }
+    }
+    if (geometry.v[0].c != null) {
+      access = params.colour_buffer_access != null ? params.colour_buffer_access : gl.STATIC_DRAW;
+      colours = [];
+      _ref6 = geometry.v;
+      for (_j = 0, _len1 = _ref6.length; _j < _len1; _j++) {
+        v = _ref6[_j];
+        colours = colours.concat(v.c.flatten());
+      }
+      if (!geometry.vertexColourBuffer) {
+        size = 4;
+        if (geometry.v[0].c instanceof RGB) {
+          size = 3;
+        }
+        geometry.vertexColourBuffer = createArrayBuffer(new Float32Array(colours), access, size);
+      } else {
+        if (v.length === geometry.vertexColourBuffer.numItems) {
+          setDataBuffer(geometry.vertexColourBuffer, new Float32Array(colours), access);
+        } else {
+          CoffeeGLWarningOnce("Attemping to update colour buffer of different length");
+        }
+      }
+    }
+    if (geometry.indices != null) {
+      access = params.indices_buffer_access != null ? params.indices_buffer_access : gl.STATIC_DRAW;
+      if (geometry.vertexIndexBuffer == null) {
+        geometry.vertexIndexBuffer = createElementBuffer(new Uint16Array(geometry.indices), access, 1);
+      } else {
+        if (v.length === geometry.vertexIndexBuffer.numItems) {
+          setDataBuffer(geometry.vertexIndexBuffer, new Float32Array(geometry.indices), access);
+        } else {
+          CoffeeGLWarningOnce("Attemping to update indices buffer of different length");
+        }
+      }
+    }
+    if (geometry.v[0].n != null) {
+      normals = [];
+      access = params.normal_buffer_access != null ? params.normal_buffer_access : gl.STATIC_DRAW;
+      _ref7 = geometry.v;
+      for (_k = 0, _len2 = _ref7.length; _k < _len2; _k++) {
+        v = _ref7[_k];
+        normals = normals.concat(v.n.flatten());
+      }
+      if (geometry.vertexNormalBuffer == null) {
+        geometry.vertexNormalBuffer = createArrayBuffer(new Float32Array(normals), access, 3);
+      } else {
+        if (v.length === geometry.vertexNormalBuffer.numItems) {
+          setDataBuffer(geometry.vertexNormalBuffer, new Float32Array(normals), access);
+        } else {
+          CoffeeGLWarningOnce("Attemping to update normals buffer of different length");
+        }
+      }
+    }
+    if (geometry.v[0].t != null) {
+      uvs = [];
+      access = params.texcoord_buffer_access != null ? params.texcoord_buffer_access : gl.STATIC_DRAW;
+      _ref8 = geometry.v;
+      for (_l = 0, _len3 = _ref8.length; _l < _len3; _l++) {
+        v = _ref8[_l];
+        uvs = uvs.concat(v.t.flatten());
+      }
+      if (geometry.vertexTextureBuffer == null) {
+        geometry.vertexTextureBuffer = createArrayBuffer(new Float32Array(uvs), access, 2);
+      } else {
+        if (v.length === geometry.vertexTextureBuffer.numItems) {
+          setDataBuffer(geometry.vertexIndexBuffer, new Float32Array(uvs), access);
+        } else {
+          CoffeeGLWarningOnce("Attemping to update texture co-ord buffer of different length");
+        }
+      }
+    }
+    if (geometry.v[0].tangent != null) {
+      tangents = [];
+      access = params.tangent_buffer_access != null ? params.tangent_buffer_access : gl.STATIC_DRAW;
+      _ref9 = geometry.v;
+      for (_m = 0, _len4 = _ref9.length; _m < _len4; _m++) {
+        v = _ref9[_m];
+        tangents = tangents.concat(v.tangent.flatten());
+      }
+      if (geometry.vertexTangentBuffer == null) {
+        geometry.vertexTangentBuffer = createArrayBuffer(new Float32Array(tangents), access, 3);
+      } else {
+        if (v.length === geometry.vertexTangentBuffer.numItems) {
+          setDataBuffer(geometry.vertexTangentBuffer, new Float32Array(tangents), access);
+        } else {
+          CoffeeGLWarningOnce("Attemping to update tangent buffer of different length");
+        }
+      }
+    }
+    geometry.brewed = true;
+    return this;
+  };
+
+  washup = function(geometry) {
+    return this;
+  };
+
+  WebGLNodeDrawable = {};
+
+  WebGLNodeDrawable.drawGL = function() {
+    var gl;
+    gl = CoffeeGL.Context.gl;
+    if (this._shader != null) {
+      CoffeeGL.Context.shader = this._shader;
+    }
+    if (CoffeeGL.Context.shader == null) {
+      return this;
+    }
+    CoffeeGL.Context.shader.bind();
+    _matchWithShader(this);
+    if (this.geometry) {
+      drawGeometryGL(this.geometry);
+    }
+    return this;
+  };
+
+  WebGLNodeDrawable.brew = function() {
+    return brew(this.geometry);
+  };
+
+  makeNodeDrawableGL = function(node) {
+    util.extend(node, WebGLNodeDrawable);
+    if (node.geometry != null) {
+      if (node.geometry.brewed == null) {
+        node.geometry.brewed = false;
+      }
+    }
+    return this;
+  };
+
+  module.exports = {
+    makeNodeDrawableGL: makeNodeDrawableGL
+  };
+
+}).call(this);
+
+},{"./math":9,"./colour":10,"./primitives":11,"./shapes":19,"./error":24,"./util":7}],18:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -7109,492 +7464,7 @@ This software is released under the MIT Licence. See LICENCE.txt for details
 
 }).call(this);
 
-},{"./coffeegl":2,"./node":12,"./colour":10,"./math":9,"./primitives":11}],20:[function(require,module,exports){
-// Generated by CoffeeScript 1.6.1
-
-/* ABOUT
-                       __  .__              ________ 
-   ______ ____   _____/  |_|__| ____   ____/   __   \
-  /  ___// __ \_/ ___\   __\  |/  _ \ /    \____    /
-  \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
- /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
-      \/     \/     \/                    \/         
-                                              CoffeeGL
-                                              Benjamin Blundell - ben@section9.co.uk
-                                              http://www.section9.co.uk
-
-This software is released under the MIT Licence. See LICENCE.txt for details
-
-
-The WebGL End of our basic primitives. Here we match our classes to the WebGL Shaders 
-and buffers
-
- - TODO
-  * Geometry may or may not have more buffers (should we wish to add them)
-  * Do we put in face duplication here? I.e, if we want to pass in per face details
-    we need to change the buffers
-  * It appears that bufferSubData isnt the thing to use but is this true? (for updateing)
-  * Geometry that has changed totally? Delete and redo buffers is needed
-  * Per Face Brew method - I.e duplicate vertices if there is per-face data specified in
-    the brew parameters
-*/
-
-
-(function() {
-  var CoffeeGLWarning, CoffeeGLWarningOnce, Cuboid, Matrix4, Quad, RGB, RGBA, Sphere, Triangle, TriangleMesh, Vec2, Vec3, Vertex, WebGLNodeDrawable, brew, createArrayBuffer, createElementBuffer, deleteBuffer, drawGeometryGL, makeNodeDrawableGL, setDataBuffer, util, washup, _attribTypeCheckSet, _matchWithShader, _ref, _ref1, _ref2, _ref3, _ref4, _splitRole, _typeCheckSet;
-
-  _ref = require('./math'), Matrix4 = _ref.Matrix4, Vec3 = _ref.Vec3, Vec2 = _ref.Vec2;
-
-  _ref1 = require('./colour'), RGB = _ref1.RGB, RGBA = _ref1.RGBA;
-
-  _ref2 = require('./primitives'), Vertex = _ref2.Vertex, Triangle = _ref2.Triangle, Quad = _ref2.Quad, TriangleMesh = _ref2.TriangleMesh;
-
-  _ref3 = require('./shapes'), Cuboid = _ref3.Cuboid, Sphere = _ref3.Sphere;
-
-  _ref4 = require('./error'), CoffeeGLWarning = _ref4.CoffeeGLWarning, CoffeeGLWarningOnce = _ref4.CoffeeGLWarningOnce;
-
-  util = require("./util");
-
-  setDataBuffer = function(buffer, data, type) {
-    var gl;
-    gl = CoffeeGL.Context.gl;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, data, type);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    return buffer;
-  };
-
-  createArrayBuffer = function(data, type, size) {
-    var buffer, gl;
-    gl = CoffeeGL.Context.gl;
-    buffer = gl.createBuffer();
-    setDataBuffer(buffer, data, type);
-    buffer.itemSize = size;
-    buffer.numItems = data.length / size;
-    return buffer;
-  };
-
-  createElementBuffer = function(data, type, size) {
-    var buffer, gl;
-    gl = CoffeeGL.Context.gl;
-    buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, type);
-    buffer.itemSize = size;
-    buffer.numItems = data.length;
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    return buffer;
-  };
-
-  deleteBuffer = function(buffer) {
-    var gl;
-    gl = CoffeeGL.Context.gl;
-    gl.deleteBuffer(buffer);
-    return this;
-  };
-
-  _attribTypeCheckSet = function(a, v) {
-    var gl;
-    gl = CoffeeGL.Context.gl;
-    if (a.pos === -1) {
-      return;
-    }
-    gl.enableVertexAttribArray(a.pos);
-    gl.bindBuffer(gl.ARRAY_BUFFER, v[a.role]);
-    if (a.type === "int") {
-      gl.vertexAttribPointer(a.pos, 1, gl.INT, false, 0, 0);
-    } else if (a.type === "float") {
-      gl.vertexAttribPointer(a.pos, 1, gl.FLOAT, false, 0, 0);
-    } else if (a.type === "vec2") {
-      gl.vertexAttribPointer(a.pos, 2, gl.FLOAT, false, 0, 0);
-    } else if (a.type === "vec3") {
-      gl.vertexAttribPointer(a.pos, 3, gl.FLOAT, false, 0, 0);
-    } else if (a.type === "vec4") {
-      gl.vertexAttribPointer(a.pos, 4, gl.FLOAT, false, 0, 0);
-    }
-    return this;
-  };
-
-  _typeCheckSet = function(u, v, tag) {
-    var gl, idx, m, role, t, x, _i, _j, _k, _len, _len1, _len2, _ref5, _ref6, _ref7;
-    if (u.pos === -1) {
-      return;
-    }
-    role = u.role;
-    if (tag != null) {
-      role = _splitRole(tag, u.role);
-    }
-    gl = CoffeeGL.Context.gl;
-    if (u.size === 1) {
-      if (u.type === "float") {
-        gl.uniform1f(u.pos, v[role]);
-      } else if (u.type === "int") {
-        gl.uniform1i(u.pos, v[role]);
-      } else if (u.type === "vec2") {
-        gl.uniform2f(u.pos, v[role].x, v[role].y);
-      } else if (u.type === "vec3") {
-        if (v[role].x != null) {
-          gl.uniform3f(u.pos, v[role].x, v[role].y, v[role].z);
-        } else {
-          gl.uniform3f(u.pos, v[role].r, v[role].g, v[role].b);
-        }
-      } else if (u.type === "vec4") {
-        if (v[role].x != null) {
-          gl.uniform4f(u.pos, v[role].x, v[role].y, v[role].z, v[role].w);
-        } else {
-          gl.uniform4f(u.pos, v[role].r, v[role].g, v[role].b, v[role].a);
-        }
-      } else if (u.type === "mat4") {
-        gl.uniformMatrix4fv(u.pos, false, v[role].a);
-      } else if (u.type === "mat3") {
-        gl.uniformMatrix3fv(u.pos, false, v[role].a);
-      } else if (u.type === "sampler2D") {
-        gl.uniform1i(u.pos, v[role]);
-      }
-    } else {
-      if (v[role][0] instanceof Object) {
-        t = [];
-        if (v[role][0].flatten != null) {
-          _ref5 = v[role];
-          for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-            x = _ref5[_i];
-            t = t.concat(x.flatten());
-          }
-          if (u.type === "vec2") {
-            gl.uniform2fv(u.pos, new Float32Array(t));
-          } else if (u.type === "vec3") {
-            gl.uniform3fv(u.pos, new Float32Array(t));
-          } else if (u.type === "vec4") {
-            gl.uniform4fv(u.pos, new Float32Array(t));
-          }
-        } else if (v[role][0].a) {
-          if (u.type === "mat3") {
-            t = new Float32Array(9 * v[role].length);
-            idx = 0;
-            _ref6 = v[role];
-            for (_j = 0, _len1 = _ref6.length; _j < _len1; _j++) {
-              m = _ref6[_j];
-              t.set(m.a, idx * 9);
-              idx++;
-            }
-            gl.uniformMatrix3fv(u.pos, false, new Float32Array(t));
-          } else if (u.type === "mat4") {
-            t = new Float32Array(16 * v[role].length);
-            idx = 0;
-            _ref7 = v[role];
-            for (_k = 0, _len2 = _ref7.length; _k < _len2; _k++) {
-              m = _ref7[_k];
-              t.set(m.a, idx * 16);
-              idx++;
-            }
-            gl.uniformMatrix4fv(u.pos, false, new Float32Array(t));
-          }
-        }
-      } else {
-        if (u.type === "float") {
-          gl.uniform1fv(u.pos, new Float32Array(v[role]));
-        } else if (u.type === "int") {
-          gl.uniform1iv(u.pos, new Int32Array(v[role]));
-        } else if (u.type === "vec2") {
-          gl.uniform2fv(u.pos, new Float32Array(v[role]));
-        } else if (u.type === "vec3") {
-          gl.uniform3fv(u.pos, new Float32Array(v[role]));
-        } else if (u.type === "vec4") {
-          gl.uniform4fv(u.pos, new Float32Array(v[role]));
-        } else if (u.type === "mat4") {
-          gl.uniformMatrix4fv(u.pos, false, new Float32Array(v[role]));
-        }
-      }
-    }
-    return this;
-  };
-
-  _splitRole = function(tag, role) {
-    if (role.indexOf(tag) !== -1) {
-      return role.split("/")[1];
-    }
-    return role;
-  };
-
-  _matchWithShader = function(node) {
-    var a, attenuations, colours, contract, light, pointlights, positions, shader, speculars, t, u, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _m, _n, _o, _p, _ref10, _ref11, _ref12, _ref5, _ref6, _ref7, _ref8, _ref9;
-    if (CoffeeGL.Context.shader == null) {
-      console.log("CoffeeGL Error - Not Shader bound when calling _matchWithShader");
-      return node;
-    }
-    if (CoffeeGL.Context.shader.contract == null) {
-      console.log("CoffeeGL Error - Not Shader contract when calling _matchWithShader");
-      return node;
-    }
-    contract = CoffeeGL.Context.shader.contract;
-    shader = CoffeeGL.Context.shader;
-    _ref5 = contract.uniforms;
-    for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-      u = _ref5[_i];
-      if (node[u.role] != null) {
-        _typeCheckSet(u, node);
-      }
-    }
-    if (node._camera != null) {
-      _ref6 = contract.uniforms;
-      for (_j = 0, _len1 = _ref6.length; _j < _len1; _j++) {
-        u = _ref6[_j];
-        if (node._camera[_splitRole("camera", u.role)] != null) {
-          _typeCheckSet(u, node._camera, "camera");
-        }
-      }
-    }
-    if (node._material != null) {
-      _ref7 = contract.uniforms;
-      for (_k = 0, _len2 = _ref7.length; _k < _len2; _k++) {
-        u = _ref7[_k];
-        if (node._material[_splitRole("material", u.role)] != null) {
-          _typeCheckSet(u, node._material, "material");
-        }
-      }
-    }
-    if (node._pointLightsGlobal.length > 0) {
-      positions = [];
-      colours = [];
-      speculars = [];
-      attenuations = [];
-      _ref8 = node._pointLightsGlobal;
-      for (_l = 0, _len3 = _ref8.length; _l < _len3; _l++) {
-        light = _ref8[_l];
-        positions = positions.concat(light.pos.flatten());
-        colours = colours.concat(light.colour.flatten());
-        speculars = speculars.concat(light.specular.flatten());
-        attenuations.push(light.attenuation);
-      }
-      positions = new Float32Array(positions);
-      colours = new Float32Array(colours);
-      speculars = new Float32Array(speculars);
-      attenuations = new Float32Array(attenuations);
-      pointlights = {
-        pos: positions,
-        colour: colours,
-        specular: speculars,
-        attenuations: attenuations
-      };
-      _ref9 = contract.uniforms;
-      for (_m = 0, _len4 = _ref9.length; _m < _len4; _m++) {
-        u = _ref9[_m];
-        if (pointlights[_splitRole("pointlight", u.role)] != null) {
-          _typeCheckSet(u, pointlights, "pointlight");
-        }
-      }
-    }
-    if (node.textures != null) {
-      _ref10 = contract.textures;
-      for (_n = 0, _len5 = _ref10.length; _n < _len5; _n++) {
-        u = _ref10[_n];
-        _ref11 = node.textures;
-        for (_o = 0, _len6 = _ref11.length; _o < _len6; _o++) {
-          t = _ref11[_o];
-          if (t[_splitRole("texture", u.role)] != null) {
-            _typeCheckSet(u, t, "texture");
-          }
-        }
-      }
-    }
-    if (node.geometry != null) {
-      _ref12 = contract.attributes;
-      for (_p = 0, _len7 = _ref12.length; _p < _len7; _p++) {
-        a = _ref12[_p];
-        if (node.geometry[a.role] != null) {
-          _attribTypeCheckSet(a, node.geometry);
-        }
-      }
-    }
-    return node;
-  };
-
-  drawGeometryGL = function(geometry, drawPrimitive) {
-    var gl;
-    gl = CoffeeGL.Context.gl;
-    if (drawPrimitive == null) {
-      if (geometry.layout == null) {
-        drawPrimitive = gl.TRIANGLES;
-      } else {
-        if (geometry.layout === "TRIANGLE_STRIP") {
-          drawPrimitive = gl.TRIANGLE_STRIP;
-        } else if (geometry.layout === "POINTS") {
-          drawPrimitive = gl.POINTS;
-        } else {
-          drawPrimitive = gl.TRIANGLES;
-        }
-      }
-    }
-    if (geometry.vertexIndexBuffer != null) {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, geometry.vertexIndexBuffer);
-      return gl.drawElements(drawPrimitive, geometry.vertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-    } else {
-      return gl.drawArrays(drawPrimitive, 0, geometry.vertexPositionBuffer.numItems);
-    }
-  };
-
-  brew = function(geometry, params) {
-    var access, colours, gl, normals, size, tangents, uvs, v, vertices, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref5, _ref6, _ref7, _ref8, _ref9;
-    if ((geometry.v == null) || geometry.v.length <= 0) {
-      geometry.brewed = false;
-      return this;
-    }
-    gl = CoffeeGL.Context.gl;
-    if (params == null) {
-      params = {};
-    }
-    vertices = [];
-    _ref5 = geometry.v;
-    for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-      v = _ref5[_i];
-      vertices = vertices.concat(v.p.flatten());
-    }
-    access = params.position_buffer_access != null ? params.position_buffer_access : gl.STATIC_DRAW;
-    if (geometry.vertexPositionBuffer == null) {
-      geometry.vertexPositionBuffer = createArrayBuffer(new Float32Array(vertices), access, 3);
-    } else {
-      if (v.length === geometry.vertexPositionBuffer.numItems) {
-        setDataBuffer(geometry.vertexPositionBuffer, new Float32Array(vertices), access);
-      } else {
-        CoffeeGLWarningOnce("Attemping to update position buffer of different length");
-      }
-    }
-    if (geometry.v[0].c != null) {
-      access = params.colour_buffer_access != null ? params.colour_buffer_access : gl.STATIC_DRAW;
-      colours = [];
-      _ref6 = geometry.v;
-      for (_j = 0, _len1 = _ref6.length; _j < _len1; _j++) {
-        v = _ref6[_j];
-        colours = colours.concat(v.c.flatten());
-      }
-      if (!geometry.vertexColourBuffer) {
-        size = 4;
-        if (geometry.v[0].c instanceof RGB) {
-          size = 3;
-        }
-        geometry.vertexColourBuffer = createArrayBuffer(new Float32Array(colours), access, size);
-      } else {
-        if (v.length === geometry.vertexColourBuffer.numItems) {
-          setDataBuffer(geometry.vertexColourBuffer, new Float32Array(colours), access);
-        } else {
-          CoffeeGLWarningOnce("Attemping to update colour buffer of different length");
-        }
-      }
-    }
-    if (geometry.indices != null) {
-      access = params.indices_buffer_access != null ? params.indices_buffer_access : gl.STATIC_DRAW;
-      if (geometry.vertexIndexBuffer == null) {
-        geometry.vertexIndexBuffer = createElementBuffer(new Uint16Array(geometry.indices), access, 1);
-      } else {
-        if (v.length === geometry.vertexIndexBuffer.numItems) {
-          setDataBuffer(geometry.vertexIndexBuffer, new Float32Array(geometry.indices), access);
-        } else {
-          CoffeeGLWarningOnce("Attemping to update indices buffer of different length");
-        }
-      }
-    }
-    if (geometry.v[0].n != null) {
-      normals = [];
-      access = params.normal_buffer_access != null ? params.normal_buffer_access : gl.STATIC_DRAW;
-      _ref7 = geometry.v;
-      for (_k = 0, _len2 = _ref7.length; _k < _len2; _k++) {
-        v = _ref7[_k];
-        normals = normals.concat(v.n.flatten());
-      }
-      if (geometry.vertexNormalBuffer == null) {
-        geometry.vertexNormalBuffer = createArrayBuffer(new Float32Array(normals), access, 3);
-      } else {
-        if (v.length === geometry.vertexNormalBuffer.numItems) {
-          setDataBuffer(geometry.vertexNormalBuffer, new Float32Array(normals), access);
-        } else {
-          CoffeeGLWarningOnce("Attemping to update normals buffer of different length");
-        }
-      }
-    }
-    if (geometry.v[0].t != null) {
-      uvs = [];
-      access = params.texcoord_buffer_access != null ? params.texcoord_buffer_access : gl.STATIC_DRAW;
-      _ref8 = geometry.v;
-      for (_l = 0, _len3 = _ref8.length; _l < _len3; _l++) {
-        v = _ref8[_l];
-        uvs = uvs.concat(v.t.flatten());
-      }
-      if (geometry.vertexTextureBuffer == null) {
-        geometry.vertexTextureBuffer = createArrayBuffer(new Float32Array(uvs), access, 2);
-      } else {
-        if (v.length === geometry.vertexTextureBuffer.numItems) {
-          setDataBuffer(geometry.vertexIndexBuffer, new Float32Array(uvs), access);
-        } else {
-          CoffeeGLWarningOnce("Attemping to update texture co-ord buffer of different length");
-        }
-      }
-    }
-    if (geometry.v[0].tangent != null) {
-      tangents = [];
-      access = params.tangent_buffer_access != null ? params.tangent_buffer_access : gl.STATIC_DRAW;
-      _ref9 = geometry.v;
-      for (_m = 0, _len4 = _ref9.length; _m < _len4; _m++) {
-        v = _ref9[_m];
-        tangents = tangents.concat(v.tangent.flatten());
-      }
-      if (geometry.vertexTangentBuffer == null) {
-        geometry.vertexTangentBuffer = createArrayBuffer(new Float32Array(tangents), access, 3);
-      } else {
-        if (v.length === geometry.vertexTangentBuffer.numItems) {
-          setDataBuffer(geometry.vertexTangentBuffer, new Float32Array(tangents), access);
-        } else {
-          CoffeeGLWarningOnce("Attemping to update tangent buffer of different length");
-        }
-      }
-    }
-    geometry.brewed = true;
-    return this;
-  };
-
-  washup = function(geometry) {
-    return this;
-  };
-
-  WebGLNodeDrawable = {};
-
-  WebGLNodeDrawable.drawGL = function() {
-    var gl;
-    gl = CoffeeGL.Context.gl;
-    if (this._shader != null) {
-      CoffeeGL.Context.shader = this._shader;
-    }
-    if (CoffeeGL.Context.shader == null) {
-      return this;
-    }
-    CoffeeGL.Context.shader.bind();
-    _matchWithShader(this);
-    if (this.geometry) {
-      drawGeometryGL(this.geometry);
-    }
-    return this;
-  };
-
-  WebGLNodeDrawable.brew = function() {
-    return brew(this.geometry);
-  };
-
-  makeNodeDrawableGL = function(node) {
-    util.extend(node, WebGLNodeDrawable);
-    if (node.geometry != null) {
-      if (node.geometry.brewed == null) {
-        node.geometry.brewed = false;
-      }
-    }
-    return this;
-  };
-
-  module.exports = {
-    makeNodeDrawableGL: makeNodeDrawableGL
-  };
-
-}).call(this);
-
-},{"./math":9,"./colour":10,"./primitives":11,"./shapes":19,"./error":24,"./util":7}],21:[function(require,module,exports){
+},{"./coffeegl":2,"./node":12,"./colour":10,"./math":9,"./primitives":11}],21:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -7899,7 +7769,73 @@ Influenced by signals.js - an object where listeners and events may be added
 
 }).call(this);
 
-},{"./util":7,"./math":9}],22:[function(require,module,exports){
+},{"./util":7,"./math":9}],23:[function(require,module,exports){
+// Generated by CoffeeScript 1.6.1
+
+/* ABOUT
+                       __  .__              ________ 
+   ______ ____   _____/  |_|__| ____   ____/   __   \
+  /  ___// __ \_/ ___\   __\  |/  _ \ /    \____    /
+  \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
+ /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
+      \/     \/     \/                    \/         
+                                              CoffeeGL
+                                              Benjamin Blundell - ben@section9.co.uk
+                                              http://www.section9.co.uk
+
+This software is released under the MIT Licence. See LICENCE.txt for details
+*/
+
+
+(function() {
+  var Material, RGB, RGBA, _ref;
+
+  _ref = require("./colour"), RGB = _ref.RGB, RGBA = _ref.RGBA;
+
+  /*Material
+  */
+
+
+  Material = (function() {
+
+    function Material(ambient, diffuse, specular, shine, emissive) {
+      this.ambient = ambient;
+      this.diffuse = diffuse;
+      this.specular = specular;
+      this.shine = shine;
+      this.emissive = emissive;
+      if (this.ambient == null) {
+        this.ambient = new RGB(0, 0, 0);
+      }
+      if (this.diffuse == null) {
+        this.diffuse = new RGB(1.0, 1.0, 1.0);
+      }
+      if (this.specular == null) {
+        this.specular = new RGB(1.0, 1.0, 1.0);
+      }
+      if (this.shine == null) {
+        this.shine = 20.0;
+      }
+      if (this.emissive == null) {
+        this.emissive = new RGB(0.0, 0.0, 0.0);
+      }
+    }
+
+    Material.prototype._addToNode = function(node) {
+      return node.material = this;
+    };
+
+    return Material;
+
+  })();
+
+  module.exports = {
+    Material: Material
+  };
+
+}).call(this);
+
+},{"./colour":10}],22:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT 
@@ -7975,7 +7911,181 @@ TODO - updating the pos and the matrix together :S tricksy
 
 }).call(this);
 
-},{"./math":9,"./colour":10}],25:[function(require,module,exports){
+},{"./math":9,"./colour":10}],16:[function(require,module,exports){
+// Generated by CoffeeScript 1.6.1
+
+/* ABOUT
+                       __  .__              ________ 
+   ______ ____   _____/  |_|__| ____   ____/   __   \
+  /  ___// __ \_/ ___\   __\  |/  _ \ /    \____    /
+  \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
+ /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
+      \/     \/     \/                    \/         
+                                              CoffeeGL
+                                              Benjamin Blundell - ben@section9.co.uk
+                                              http://www.section9.co.uk
+
+This software is released under the MIT Licence. See LICENCE.txt for details
+
+
+Framebuffer objects - reads the current active context from the exports and creates a FBO
+
+Basic FBO with depth, linear filtering and RGBA with unsigned bytes
+
+Remember, NPOT textures are support but not with repeats or mipmapping
+
+- TODO
+  * Depth options
+*/
+
+
+(function() {
+  var CoffeeGLDebug, CoffeeGLError, Fbo, RGB, RGBA, TextureBase, Vec2, _ref, _ref1;
+
+  _ref = require('./error'), CoffeeGLError = _ref.CoffeeGLError, CoffeeGLDebug = _ref.CoffeeGLDebug;
+
+  _ref1 = require('./colour'), RGB = _ref1.RGB, RGBA = _ref1.RGBA;
+
+  Vec2 = require('./math').Vec2;
+
+  TextureBase = require('./texture').TextureBase;
+
+  /*Fbo
+  */
+
+
+  Fbo = (function() {
+
+    function Fbo(width, height, channels, datatype, depth) {
+      var gl;
+      this.width = width;
+      this.height = height;
+      this.channels = channels;
+      this.datatype = datatype;
+      this.depth = depth;
+      gl = CoffeeGL.Context.gl;
+      if (!((this.width != null) && (this.height != null))) {
+        this.width = CoffeeGL.Context.width;
+        this.height = CoffeeGL.Context.height;
+      }
+      if (this.channels == null) {
+        this.channels = gl.RGBA;
+      }
+      if (this.datatype == null) {
+        this.datatype = gl.UNSIGNED_BYTE;
+      }
+      if (this.depth == null) {
+        this.depth = true;
+      }
+      this.framebuffer = gl.createFramebuffer();
+      CoffeeGLDebug("Created an FBO  with dimensions: " + this.width + "," + this.height);
+      this._build();
+    }
+
+    Fbo.prototype.resize = function(w, h) {
+      if (w instanceof Vec2) {
+        this.width = w.x;
+        this.height = w.y;
+      } else if ((w != null) && (h != null)) {
+        this.width = w;
+        this.height = h;
+      } else {
+        return this;
+      }
+      this._build();
+      return this;
+    };
+
+    Fbo.prototype._build = function() {
+      var gl, params;
+      gl = CoffeeGL.Context.gl;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+      if (this.texture == null) {
+        params = {
+          "min": gl.LINEAR,
+          "max": gl.LINEAR,
+          "wraps": gl.CLAMP_TO_EDGE,
+          "wrapt": gl.CLAMP_TO_EDGE,
+          "width": this.width,
+          "height": this.height,
+          "channels": this.channels,
+          "datatype": this.datatype
+        };
+        this.texture = new TextureBase(params);
+        this.texture.build();
+      } else {
+        this.texture.bind();
+        gl.texImage2D(gl.TEXTURE_2D, 0, this.channels, this.width, this.height, 0, this.channels, this.datatype, null);
+      }
+      this.renderbuffer = gl.createRenderbuffer();
+      gl.bindRenderbuffer(gl.RENDERBUFFER, this.renderbuffer);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texture.texture, 0);
+      if (this.depth) {
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, this.width, this.height);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.renderbuffer);
+      }
+      gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      this.texture.unbind();
+      if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+        return CoffeeGLError("Failed to Create Framebuffer!");
+      }
+    };
+
+    Fbo.prototype.bind = function() {
+      var gl;
+      gl = CoffeeGL.Context.gl;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+      gl.bindRenderbuffer(gl.RENDERBUFFER, this.renderbuffer);
+      return gl.viewport(0, 0, this.width, this.height);
+    };
+
+    Fbo.prototype.unbind = function() {
+      var gl;
+      gl = CoffeeGL.Context.gl;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      return gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+    };
+
+    Fbo.prototype.clear = function(colour) {
+      var gl;
+      gl = CoffeeGL.Context.gl;
+      if (colour == null) {
+        gl.clearColor(0.0, 0.0, 0.0, 0.0);
+      } else {
+        if (colour instanceof RGBA) {
+          gl.clearColor(colour.r, colour.g, colour.b, colour.a);
+        } else if (colour instanceof RGB) {
+          gl.clearColor(colour.r, colour.g, colour.b, 1.0);
+        }
+      }
+      if (this.depth) {
+        return gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      } else {
+        return gl.clear(gl.COLOR_BUFFER_BIT);
+      }
+    };
+
+    Fbo.prototype.washUp = function() {
+      var gl;
+      gl = CoffeeGL.Context.gl;
+      gl.deleteFramebuffer(this.framebuffer);
+      gl.deleteRenderbuffer(this.renderbuffer);
+      gl.deleteTexture(this.texture.texture);
+      return this;
+    };
+
+    return Fbo;
+
+  })();
+
+  module.exports = {
+    Fbo: Fbo
+  };
+
+}).call(this);
+
+},{"./error":24,"./math":9,"./texture":17,"./colour":10}],25:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT
@@ -8076,73 +8186,7 @@ This software is released under the MIT Licence. See LICENCE.txt for details
 
 }).call(this);
 
-},{"./math":9}],23:[function(require,module,exports){
-// Generated by CoffeeScript 1.6.1
-
-/* ABOUT
-                       __  .__              ________ 
-   ______ ____   _____/  |_|__| ____   ____/   __   \
-  /  ___// __ \_/ ___\   __\  |/  _ \ /    \____    /
-  \___ \\  ___/\  \___|  | |  (  <_> )   |  \ /    / 
- /____  >\___  >\___  >__| |__|\____/|___|  //____/  .co.uk
-      \/     \/     \/                    \/         
-                                              CoffeeGL
-                                              Benjamin Blundell - ben@section9.co.uk
-                                              http://www.section9.co.uk
-
-This software is released under the MIT Licence. See LICENCE.txt for details
-*/
-
-
-(function() {
-  var Material, RGB, RGBA, _ref;
-
-  _ref = require("./colour"), RGB = _ref.RGB, RGBA = _ref.RGBA;
-
-  /*Material
-  */
-
-
-  Material = (function() {
-
-    function Material(ambient, diffuse, specular, shine, emissive) {
-      this.ambient = ambient;
-      this.diffuse = diffuse;
-      this.specular = specular;
-      this.shine = shine;
-      this.emissive = emissive;
-      if (this.ambient == null) {
-        this.ambient = new RGB(0, 0, 0);
-      }
-      if (this.diffuse == null) {
-        this.diffuse = new RGB(1.0, 1.0, 1.0);
-      }
-      if (this.specular == null) {
-        this.specular = new RGB(1.0, 1.0, 1.0);
-      }
-      if (this.shine == null) {
-        this.shine = 20.0;
-      }
-      if (this.emissive == null) {
-        this.emissive = new RGB(0.0, 0.0, 0.0);
-      }
-    }
-
-    Material.prototype._addToNode = function(node) {
-      return node.material = this;
-    };
-
-    return Material;
-
-  })();
-
-  module.exports = {
-    Material: Material
-  };
-
-}).call(this);
-
-},{"./colour":10}],26:[function(require,module,exports){
+},{"./math":9}],26:[function(require,module,exports){
 // Generated by CoffeeScript 1.6.1
 
 /* ABOUT

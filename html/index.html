@@ -47,6 +47,17 @@ equatorie.html
 <script type="text/javascript" src="/js/bootstrap.min.js"></script>
 <script type="text/javascript" src="/js/bootstrap-datepicker.js"></script>
 <script type="text/javascript" src="/js/bootstrap-slider.js"></script>
+
+<script type="text/javascript">
+  // WebGL not supported goes in here. Will basically delete the canvas and load a video
+  window.webGLSupported = true;
+  window.notSupported = function() {
+    alert("No WebGL");
+    window.webGLSupported = false;
+  }
+
+</script>
+
 <script type="text/javascript" src="/js/equatorie.min.js"></script>
 
 <!-- <script src="http://192.168.2.14:8080/target/target-script-min.js"></script> -->
@@ -54,7 +65,7 @@ equatorie.html
 <!-- Zoom Controls -->
 
 <div id = "zoom_container">
-  <input id="zoomslider" type="text" class="span1 slider" value="" data-slider-min="0" data-slider-max="1.0" data-slider-step="0.01" data-slider-value="0.5" data-slider-orientation="vertical" data-slider-selection="after"data-slider-tooltip="hide">
+  <input id="zoomslider" type="text" class="span1 slider" value="" data-slider-min="0" data-slider-max="0.9" data-slider-step="0.01" data-slider-value="0.35" data-slider-orientation="vertical" data-slider-selection="after"data-slider-tooltip="hide">
 
 </div>
 
@@ -75,16 +86,16 @@ equatorie.html
     Action <span class="caret"></span>
   </button>
   <ul class="dropdown-menu" role="menu">
-    <li><a href="#" id="selectMercury">Mercury Longitude</a></li>
-    <li><a href="#" id="selectVenus">Venus Longitude</a></li>
-    <li><a href="#" id="selectMars">Mars Longitude</a></li>
-    <li><a href="#" id="selectJupiter">Jupiter Longitude</a></li>
-    <li><a href="#" id="selectSaturn">Saturn Longitude</a></li>
+    <li><a href="#" id="selectMercury">Mercury: Longitude</a></li>
+    <li><a href="#" id="selectVenus">Venus: Longitude</a></li>
+    <li><a href="#" id="selectMars">Mars: Longitude</a></li>
+    <li><a href="#" id="selectJupiter">Jupiter: Longitude</a></li>
+    <li><a href="#" id="selectSaturn">Saturn: Longitude</a></li>
     <li class="divider"></li>
-    <li><a href="#" id="selectSun">Sun Longitude</a></li>
-    <li><a href="#" id="selectMoon">Moon Longitude</a></li>
+    <li><a href="#" id="selectSun">Sun: Longitude</a></li>
+    <li><a href="#" id="selectMoon">Moon: Longitude</a></li>
     <li class="divider"></li>
-    <li><a href="#" id="selectMoonLat">Moon Latitude</a></li>
+    <li><a href="#" id="selectMoonLat">Moon: Latitude</a></li>
   </ul>
 </div>
 
@@ -148,13 +159,13 @@ equatorie.html
           <p>
             To operate the Equatorie model, follow the steps:
             <ol>
-              <li>Select a date using the the date picker widget at the bottom left of the screen.</li>
-              <li>Choose an action, such as the longitude of Mars. The Next button will appear.</li>
-              <li>Press the next button to step through the different stages of finding the longitude of mars.</li>
-              <li>When you are finished (or at any time) you may press the reset button.</li>
+              <li>Select a date at the bottom left of the screen, or by typing.  The date is preset to 31 December 1392; this is the “radix” (baseline date) of the tables in the manuscript.</li>
+              <li>2. Use the “Action” button to select the operation you would like the equatorium to perform (e.g. to calculate the celestial longitude of Mars). The “Next Step” button will appear..</li>
+              <li>3. Pressing the “Next Step” button will take you, step by step, through the procedure of using the equatorium to find the information you want.</li>
+              <li>Press the “Reset” button to reset the model, or to try different settings.</li>
             </ol>
           </p>
-          <p>You can rotate the equatorie by holding down the left mouse button and moving the mouse. You may also use a finger on your touch-screen device. To zoom in and out, use the mouse wheel or the 'zoom' (or 'pinch') gesture on your touch screen device.</p>
+          <p>You can rotate the equatorium by holding down the left mouse button and moving the mouse. You may also use a finger on your touch-screen device. To zoom in and out, use the mouse wheel or the 'zoom' (or 'pinch') gesture on your touch screen device.</p>
 
           <p>You may move the strings by clicking and holding the mouse button over the pin attached to the string. To move the epicycle, click and hold the mouse over the epicycle, then move the mouse.</p>
         </div>
@@ -176,258 +187,282 @@ equatorie.html
 
 <script type="text/javascript">
 
-loaded = function() {
-  $('#equatorie_text_left').css({display: "block"});
-  $('#equatorie_text_right').css({display: "block"});
-  $('#equatorie_loading').css({display: "none"});
-  $('#zoom_container').css({display: "block"});
+goForIt = function () {
 
-  window.EquatorieMovePOI.add(moving, this);
-  window.EquatorieZoomSignal.add(zooming, this);
-}
+  loaded = function() {
+    $('#equatorie_text_left').css({display: "block"});
+    $('#equatorie_text_right').css({display: "block"});
+    $('#equatorie_loading').css({display: "none"});
+    $('#zoom_container').css({display: "block"});
 
-loading = function (loaded) {
-  $('#loadingProgressBar').width(loaded * 100);
-}
+    window.EquatorieMovePOI.add(moving, this);
+    window.EquatorieZoomSignal.add(zooming, this);
 
-moving = function (pos) {
-
-  // Alter the pos a little so its aligned nicely
-  pos.x += 10;
-  pos.y -= $(".popover").height() / 2;
-
-  $container.css({
-    position: 'absolute',
-    left: pos.x,
-    top: pos.y
-  });
-
-  $(".popover").css({
-    left: pos.x,
-    top: pos.y
-  });
-}
-
-// Called when the zoom signal is dispatched by Equatorie
-zooming = function (level) {
-  $("#zoomslider").slider('setValue',level);
-}
-
-window.EquatorieLoadProgress.add (loading, this);
-window.EquatorieLoaded.addOnce(loaded, this);
-
-// Zoom Slider
-
-$('#zoomslider').slider()
-  .on('slide', function(ev){
-    window.Equatorie.setZoom(ev.value);
-  });
-
-// Date Picker
-
-$('#dp1').datepicker()
-  .on('changeDate', function(ev){
-    d = ev.date;
-    d.setHours(d.getHours() + 12); // Go to midday on each day
-    window.Equatorie.setDate(d);
-  });
-
-
-$('#dp1').on('change', function() {  
-  var datetxt = $('#dp1').val();
-  parts = datetxt.split("/");
-  if (parts.length === 3){
-    d = new Date(parseInt(parts[2]),parseInt(parts[1])-1, parseInt(parts[0]));
-    if( isNaN( d.getTime())){
-      $('#dp1').val("31/12/1392");
-    } else {
-      window.Equatorie.setDate(d);
-    }
-    
-  } else {
-     $('#dp1').val("31/12/1392");
-  }
-})
-
-_initButtons = function() {
-  $("#button_next").show();
-  $("#button_prev").show();
-  $("#button_prev").prop('disabled', true);
-  $("#button_reset").show();
-}
-
-// Functions for selectors for the planets
-
-$("#selectMercury").click(function(){
-  window.Equatorie.chosen_planet = "mercury"; 
-  _initButtons();
-});
-
-$("#selectVenus").click(function(){
-  window.Equatorie.chosen_planet = "venus";
-  _initButtons();
-});
-
-$("#selectMars").click(function(){
-  window.Equatorie.chosen_planet = "mars";
-  _initButtons();
-});
-
-$("#selectJupiter").click(function(){
-  window.Equatorie.chosen_planet = "jupiter";
-  _initButtons();
-});
-
-$("#selectSaturn").click(function(){
-  window.Equatorie.chosen_planet = "saturn";
-  _initButtons();
-});
-
-$("#selectSun").click(function(){
-  window.Equatorie.chosen_planet = "sun";
-  _initButtons();
-});
-
-$("#selectMoon").click(function(){
-  window.Equatorie.chosen_planet = "moon";
-  _initButtons();
-});
-
-$("#selectMoonLat").click(function(){
-  window.Equatorie.chosen_planet = "moon_latitude";
-  _initButtons();
-});
-
-   
-
-var $container = $('#popupContainer');
-
-var options = {
-    trigger: 'manual',
-    placement: 'right'
-};
-
-// Prev button activation
-
-$('#button_prev').click( function() {
-
-  if(window.Equatorie !== undefined) {
-  
-
-    nd = window.Equatorie.stepBackward();
-
-    if (nd.pos !== undefined){
-      $container.css({
-        position: 'absolute',
-        left: nd.pos.x,
-        top: nd.pos.y
-      });
-    }
-
-    if (nd.text !== undefined){
-      $container.popover('destroy');
-    
-      $container.popover($.extend({}, {
-          content: nd.text
-      }, options)).popover('show');
-
-
-    } else {
-      $container.popover('destroy');
-   
-    }
-
-    // Next button activation
-    if (window.Equatorie.stack_idx == window.Equatorie.stack.length - 1){
-      $('#button_next').prop('disabled', true);
-    }
-    else {
-      $('#button_next').prop('disabled', false);
-    }
-
-    // Prev button activation
-    if (window.Equatorie.stack_idx > 0){
-      $('#button_prev').prop('disabled', false);
-    }
-    else {
-      $('#button_prev').prop('disabled', true);
-    }
-
+    window.Equatorie.setZoom(0.35);
   }
 
-
-});
-
-
-// Next button activation
-
-$('#button_next').click( function() {
-
-  if(window.Equatorie !== undefined) {
-    $("#actionSelect button:first-child").prop('disabled', true);
-    $("#dp1").prop('disabled', true);
-
-
-    nd = window.Equatorie.stepForward();
-
-    if (nd.pos !== undefined){
-      $container.css({
-        position: 'absolute',
-        left: nd.pos.x,
-        top: nd.pos.y
-      });
-    }
-
-    if (nd.text !== undefined){
-      $container.popover('destroy');
-    
-      $container.popover($.extend({}, {
-          content: nd.text
-      }, options)).popover('show');
-
-
-    } else {
-      $container.popover('destroy');
-   
-    }
-
-    // Next button activation
-    if (window.Equatorie.stack_idx == window.Equatorie.stack.length - 1){
-      $('#button_next').prop('disabled', true);
-    }
-    else {
-      $('#button_next').prop('disabled', false);
-    }
-
-    // Prev button activation
-    if (window.Equatorie.stack_idx > 0){
-      $('#button_prev').prop('disabled', false);
-    }
-    else {
-      $('#button_prev').prop('disabled', true);
-    }
-
+  loading = function (loaded) {
+    $('#loadingProgressBar').width(loaded * 100);
   }
-});
 
-$('#button_reset').click( function() {
-  if(window.Equatorie !== undefined) {
-    window.Equatorie.reset();
-    $container.popover('destroy');
+  moving = function (pos) {
+
+    // Alter the pos a little so its aligned nicely
+    pos.x += 10;
+    pos.y -= $(".popover").height() / 2;
+
     $container.css({
       position: 'absolute',
-      left: 0,
-      top: 0
+      left: pos.x,
+      top: pos.y
     });
 
-    $("#button_next").hide();
-    $("#button_prev").hide();
-    $("#button_reset").hide();
-    $("#actionSelect button:first-child").prop('disabled', false);
-    $('#button_next').prop('disabled', false);
-    $("#dp1").prop('disabled', false);
+    $(".popover").css({
+      left: pos.x,
+      top: pos.y
+    });
   }
-});
+
+  // Called when the zoom signal is dispatched by Equatorie
+  zooming = function (level) {
+    $("#zoomslider").slider('setValue',level);
+  }
+
+  window.EquatorieLoadProgress.add (loading, this);
+  window.EquatorieLoaded.addOnce(loaded, this);
+
+  // Zoom Slider
+
+  $('#zoomslider').slider()
+    .on('slide', function(ev){
+      window.Equatorie.setZoom(ev.value);
+    });
+
+  // Date Picker
+
+  $('#dp1').datepicker()
+    .on('changeDate', function(ev){
+      d = ev.date;
+      d.setHours(d.getHours() + 12); // Go to midday on each day
+      window.Equatorie.setDate(d);
+    });
+
+
+  $('#dp1').on('change', function() {  
+    var datetxt = $('#dp1').val();
+    parts = datetxt.split("/");
+    if (parts.length === 3){
+      d = new Date(parseInt(parts[2]),parseInt(parts[1])-1, parseInt(parts[0]));
+      if( isNaN( d.getTime())){
+        $('#dp1').val("31/12/1392");
+      } else {
+        window.Equatorie.setDate(d);
+        if (window.Equatorie.stack_idx > 0){
+          nd = window.Equatorie.solveImmediate(); // Naughty - this is normal in a state
+
+          if (nd.text !== undefined){
+            $container.popover('destroy');
+          
+            $container.popover($.extend({}, {
+                content: nd.text
+            }, options)).popover('show');
+
+
+          } else {
+            $container.popover('destroy');
+         
+          }
+        }
+      }
+      
+    } else {
+       $('#dp1').val("31/12/1392");
+    }
+  })
+
+  _initButtons = function() {
+    $("#button_next").show();
+    $("#button_prev").show();
+    $("#button_prev").prop('disabled', true);
+    $("#button_reset").show();
+  }
+
+  // Functions for selectors for the planets
+
+  $("#selectMercury").click(function(){
+    window.Equatorie.chosen_planet = "mercury"; 
+    _initButtons();
+  });
+
+  $("#selectVenus").click(function(){
+    window.Equatorie.chosen_planet = "venus";
+    _initButtons();
+  });
+
+  $("#selectMars").click(function(){
+    window.Equatorie.chosen_planet = "mars";
+    _initButtons();
+  });
+
+  $("#selectJupiter").click(function(){
+    window.Equatorie.chosen_planet = "jupiter";
+    _initButtons();
+  });
+
+  $("#selectSaturn").click(function(){
+    window.Equatorie.chosen_planet = "saturn";
+    _initButtons();
+  });
+
+  $("#selectSun").click(function(){
+    window.Equatorie.chosen_planet = "sun";
+    _initButtons();
+  });
+
+  $("#selectMoon").click(function(){
+    window.Equatorie.chosen_planet = "moon";
+    _initButtons();
+  });
+
+  $("#selectMoonLat").click(function(){
+    window.Equatorie.chosen_planet = "moon_latitude";
+    _initButtons();
+  });
+
+     
+
+  var $container = $('#popupContainer');
+
+  var options = {
+      trigger: 'manual',
+      placement: 'right'
+  };
+
+  // Prev button activation
+
+  $('#button_prev').click( function() {
+
+    if(window.Equatorie !== undefined) {
+    
+
+      nd = window.Equatorie.stepBackward();
+
+      if (nd.pos !== undefined){
+        $container.css({
+          position: 'absolute',
+          left: nd.pos.x,
+          top: nd.pos.y
+        });
+      }
+
+      if (nd.text !== undefined){
+        $container.popover('destroy');
+      
+        $container.popover($.extend({}, {
+            content: nd.text
+        }, options)).popover('show');
+
+
+      } else {
+        $container.popover('destroy');
+     
+      }
+
+      // Next button activation
+      if (window.Equatorie.stack_idx == window.Equatorie.stack.length - 1){
+        $('#button_next').prop('disabled', true);
+      }
+      else {
+        $('#button_next').prop('disabled', false);
+      }
+
+      // Prev button activation
+      if (window.Equatorie.stack_idx > 0){
+        $('#button_prev').prop('disabled', false);
+      }
+      else {
+        $('#button_prev').prop('disabled', true);
+      }
+
+    }
+
+
+  });
+
+
+  // Next button activation
+
+  $('#button_next').click( function() {
+
+    if(window.Equatorie !== undefined) {
+      $("#actionSelect button:first-child").prop('disabled', true);
+      //$("#dp1").prop('disabled', true);
+
+
+      nd = window.Equatorie.stepForward();
+
+      if (nd.pos !== undefined){
+        $container.css({
+          position: 'absolute',
+          left: nd.pos.x,
+          top: nd.pos.y
+        });
+      }
+
+      if (nd.text !== undefined){
+        $container.popover('destroy');
+      
+        $container.popover($.extend({}, {
+            content: nd.text
+        }, options)).popover('show');
+
+
+      } else {
+        $container.popover('destroy');
+     
+      }
+
+      // Next button activation
+      if (window.Equatorie.stack_idx == window.Equatorie.stack.length - 1){
+        $('#button_next').prop('disabled', true);
+      }
+      else {
+        $('#button_next').prop('disabled', false);
+      }
+
+      // Prev button activation
+      if (window.Equatorie.stack_idx > 0){
+        $('#button_prev').prop('disabled', false);
+      }
+      else {
+        $('#button_prev').prop('disabled', true);
+      }
+
+    }
+  });
+
+  $('#button_reset').click( function() {
+    if(window.Equatorie !== undefined) {
+      window.Equatorie.reset();
+      $container.popover('destroy');
+      $container.css({
+        position: 'absolute',
+        left: 0,
+        top: 0
+      });
+
+      $("#button_next").hide();
+      $("#button_prev").hide();
+      $("#button_reset").hide();
+      $("#actionSelect button:first-child").prop('disabled', false);
+      $('#button_next').prop('disabled', false);
+      //$("#dp1").prop('disabled', false);
+    }
+  });
+}
+
+if (window.webGLSupported == true)
+  goForIt.call(this);
 
 
 //using HTML5 for fullscreen (only newest Chrome + FF)

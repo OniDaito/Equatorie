@@ -20,6 +20,22 @@
 class Equatorie
 
   init : () =>
+
+    f = () =>
+      w = $(window).width();
+      h = $(window).height();
+
+      $("#webgl-canvas").attr("width", w)
+      $("#webgl-canvas").attr("height", h)
+
+      $("#webgl-canvas").width(w)
+      $("#webgl-canvas").height(h)
+
+      cgl.resize(w,h)
+      eq.resize(w,h)
+
+    $(window).bind("resize", f)
+    $(window).bind("ready", f)
   
     # All nodes to be drawn in colour
     @top_node = new CoffeeGL.Node()
@@ -404,8 +420,8 @@ class Equatorie
     @shader_picker.unbind()
     @fbo_picking.unbind()
 
-    # Now draw the screen space effects
-    if CoffeeGL.Context.profile.mobile
+    # Now draw the screen space effects - temporarily cancelled to test other machines
+    if CoffeeGL.Context.profile.mobile or true
 
       # FXAA
       @fbo_fxaa.texture.bind()
@@ -484,24 +500,9 @@ class Equatorie
     @
   
 eq = new Equatorie()
-cgl = new CoffeeGL.App('webgl-canvas', eq, eq.init, eq.draw, eq.update)
-
-f = () ->
-  w = $(window).width();
-  h = $(window).height();
-
-  $("#webgl-canvas").attr("width", w)
-  $("#webgl-canvas").attr("height", h)
-
-  $("#webgl-canvas").width(w)
-  $("#webgl-canvas").height(h)
-
-  cgl.resize(w,h)
-  eq.resize(w,h)
+cgl = new CoffeeGL.App('webgl-canvas', eq, eq.init, eq.draw, eq.update, window.notSupported)
 
 
-$(window).bind("resize", f)
-$(window).bind("ready", f)
 
 
 

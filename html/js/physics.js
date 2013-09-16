@@ -19,7 +19,7 @@
       this.children = [];
       this.length = length;
       mass = 1;
-      radius = seglength / 4;
+      radius = seglength / 6;
       for (i = _i = 0, _ref = segments - 2; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
         sphereShape = new CANNON.Sphere(radius);
         sphereBody = new CANNON.RigidBody(mass, sphereShape);

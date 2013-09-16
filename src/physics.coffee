@@ -24,7 +24,7 @@ class PhysicsString
 
 
     mass = 1
-    radius = seglength /4
+    radius = seglength /6
 
     for i in [0..segments-2]
       # Shape and damping
