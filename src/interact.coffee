@@ -235,7 +235,7 @@ class EquatorieInteract
   _stateMoveWhiteThreadMoonInit : () =>
 
     current_state = @stack[@stack_idx]
-    current_state.text = "6. Move the white thread so it runs from the Moon’s equant point (which is opposite the deferent centre on the little circle), over the centre of the epicycle."
+    current_state.text = "Move the white thread so it runs from the Moon’s equant point (which is opposite the deferent centre on the little circle), over the centre of the epicycle."
 
     pv = @system.state.epicyclePosition.copy()
     pv.sub @system.state.equantPosition
@@ -606,7 +606,7 @@ class EquatorieInteract
 
     @stack[@stack_idx].activate()
 
-    
+
     # Return data for the JQuery / Bootstrap front end
     rval = {}
 

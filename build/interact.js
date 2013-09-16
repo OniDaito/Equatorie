@@ -281,7 +281,7 @@
     EquatorieInteract.prototype._stateMoveWhiteThreadMoonInit = function() {
       var current_state, eq, pv;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "6. Move the white thread so it runs from the Moon’s equant point (which is opposite the deferent centre on the little circle), over the centre of the epicycle.";
+      current_state.text = "Move the white thread so it runs from the Moon’s equant point (which is opposite the deferent centre on the little circle), over the centre of the epicycle.";
       pv = this.system.state.epicyclePosition.copy();
       pv.sub(this.system.state.equantPosition);
       pv.normalize();
