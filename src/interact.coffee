@@ -152,8 +152,11 @@ class EquatorieInteract
   _stateCalculateMeanMotusInit : () =>
     current_state = @stack[@stack_idx]
     current_state.text = "Use the annual and daily tables to find the planet’s mean longitude and mean anomaly for the date you want."
+    if @chosen_planet == "moon"
+      current_state.text = "Use the annual and daily tables to find the Moon's mean longitude and mean anomaly for the date you want."
+
     if @chosen_planet == "moon_latitude"
-      current_state.text = "Subract the true motus of Caput Draconis from the Moon's true motus."
+      current_state.text = "To begin using the equatorium, first use the tables in the manuscript to work out the Moon’s true motus and the true motus of Caput Draconis (the lunar node).  Subtract the latter from the former."
 
     if @chosen_planet == "sun"
       current_state.text = "Use the annual and daily tables to find the Sun’s mean longitude for the date you want."
@@ -467,7 +470,7 @@ class EquatorieInteract
 
     current_state = @stack[@stack_idx]
 
-    current_state.text = "Move the black [or white] thread so it is perpendicular to the graduated “Alhudda” line on the disc, and crosses the edge of the disc where the scale shows the value you found in the last step."
+    current_state.text = "Move the black thread so it is perpendicular to the graduated “Alhudda” line on the disc, and crosses the edge of the disc where the scale shows the value you found in the last step."
     
     s = new CoffeeGL.Vec3(@system.state.moonLatitudeLeft.x, 0, @system.state.moonLatitudeLeft.y)
     e = new CoffeeGL.Vec3(@system.state.moonLatitudeRight.x, 0, @system.state.moonLatitudeRight.y)
