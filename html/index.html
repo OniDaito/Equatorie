@@ -245,6 +245,21 @@ goForIt = function () {
       d = ev.date;
       d.setHours(d.getHours() + 12); // Go to midday on each day
       window.Equatorie.setDate(d);
+      if (window.Equatorie.stack_idx > 0){
+        nd = window.Equatorie.solveImmediate(); 
+        if (nd.text !== undefined){
+          $container.popover('destroy');
+        
+          $container.popover($.extend({}, {
+              content: nd.text
+          }, options)).popover('show');
+
+
+        } else {
+          $container.popover('destroy');
+       
+        }
+      }
     });
 
 
