@@ -137,11 +137,6 @@
         _this.plate = _this.equatorie_model.children[2];
         _this.shiny = new CoffeeGL.Node();
         _this.top_node.add(_this.shiny);
-        _this.depth_node.add(_this.epicycle);
-        _this.depth_node.add(_this.rim);
-        _this.depth_node.add(_this.plate);
-        _this.depth_node.add(_this.base);
-        _this.depth_node.add(_this.shader_depth);
         _this._setTangents(_this.pointer.geometry);
         _this._setTangents(_this.epicycle.geometry);
         _this._setTangents(_this.rim.geometry);

@@ -177,12 +177,13 @@ class Equatorie
       @top_node.add @shiny
 
       # Add the Equatorie Model to render to the depth node
-      @depth_node.add @epicycle
-      @depth_node.add @rim
-      @depth_node.add @plate
-      @depth_node.add @base
+      
+      #@depth_node.add @epicycle
+      #@depth_node.add @rim
+      #@depth_node.add @plate
+      #@depth_node.add @base
 
-      @depth_node.add  @shader_depth
+      #@depth_node.add  @shader_depth
 
       # Create the tangents
       @_setTangents @pointer.geometry
@@ -304,7 +305,7 @@ class Equatorie
       CoffeeGL.Context.mouseDown.del @c.onMouseDown, @c
 
       # FXAA/SSAO Shader
- 
+
       @screen_quad = new CoffeeGL.Node new CoffeeGL.Quad()
       @screen_quad.viewportSize = new CoffeeGL.Vec2 CoffeeGL.Context.width, CoffeeGL.Context.height 
       @screen_quad.uRenderedTextureWidth = CoffeeGL.Context.width
