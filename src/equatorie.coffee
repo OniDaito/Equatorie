@@ -304,6 +304,7 @@ class Equatorie
       CoffeeGL.Context.mouseDown.del @c.onMouseDown, @c
 
       # FXAA/SSAO Shader
+ 
       @screen_quad = new CoffeeGL.Node new CoffeeGL.Quad()
       @screen_quad.viewportSize = new CoffeeGL.Vec2 CoffeeGL.Context.width, CoffeeGL.Context.height 
       @screen_quad.uRenderedTextureWidth = CoffeeGL.Context.width
