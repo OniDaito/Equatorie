@@ -458,8 +458,11 @@ class EquatorieSystem
 
   # The moon requires a few more angles and things to be worked out for its latitude
   _calculateMoonEquations : () ->
-    a = @state.equantPosition.copy().normalize()
-    b = @state.epicyclePosition.copy().normalize()
+    
+    a = CoffeeGL.Vec2.sub @state.epicyclePosition, @state.equantPosition
+    a.normalize()
+    b = @state.epicyclePosition.copy().normalize().multScalar(-1)
+
     @state.moonEquationCentre = CoffeeGL.radToDeg Math.acos a.dot b 
     @state.moonTrueMotus = @state.meanMotus + @state.moonEquationCentre
 
@@ -467,12 +470,15 @@ class EquatorieSystem
 
     p = @state.moonTrueMotus
     
-    if p < 0 
-      p = 360 + p
-    l = Math.abs p - @state.caputDraconisMotus
+    l = p - @state.caputDraconisMotus
+
+    if l < 0 
+      l = 360 + l
     
+    sign = 1
     if l > 180
       l = l - 180
+      sign = -1
 
     @state.moonLatitudeDegree = l
 
@@ -480,7 +486,7 @@ class EquatorieSystem
     x = Math.cos CoffeeGL.degToRad -@state.moonLatitudeDegree
     y = Math.sin CoffeeGL.degToRad -@state.moonLatitudeDegree
 
-    @state.moonLatitudeFinal = y * -5
+    @state.moonLatitudeFinal = y * -5 * sign
 
     s = new CoffeeGL.Vec2 x,y
     s.multScalar (@base_radius-@epicycle_thickness)
@@ -495,6 +501,7 @@ class EquatorieSystem
     @state.moonLatitudeRight = e
 
     @state.moonLatitudeCentre = new CoffeeGL.Vec2 0,s.y
+
 
     @
 

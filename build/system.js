@@ -369,24 +369,27 @@
     };
 
     EquatorieSystem.prototype._calculateMoonEquations = function() {
-      var a, b, e, l, p, s, x, x2, y, y2;
-      a = this.state.equantPosition.copy().normalize();
-      b = this.state.epicyclePosition.copy().normalize();
+      var a, b, e, l, p, s, sign, x, x2, y, y2;
+      a = CoffeeGL.Vec2.sub(this.state.epicyclePosition, this.state.equantPosition);
+      a.normalize();
+      b = this.state.epicyclePosition.copy().normalize().multScalar(-1);
       this.state.moonEquationCentre = CoffeeGL.radToDeg(Math.acos(a.dot(b)));
       this.state.moonTrueMotus = this.state.meanMotus + this.state.moonEquationCentre;
       this.state.caputDraconisMotus = (this.planet_data["caput_draconis"].start_motus + (this.state.passed * this.planet_data["caput_draconis"].speed)) % 360;
       p = this.state.moonTrueMotus;
-      if (p < 0) {
-        p = 360 + p;
+      l = p - this.state.caputDraconisMotus;
+      if (l < 0) {
+        l = 360 + l;
       }
-      l = Math.abs(p - this.state.caputDraconisMotus);
+      sign = 1;
       if (l > 180) {
         l = l - 180;
+        sign = -1;
       }
       this.state.moonLatitudeDegree = l;
       x = Math.cos(CoffeeGL.degToRad(-this.state.moonLatitudeDegree));
       y = Math.sin(CoffeeGL.degToRad(-this.state.moonLatitudeDegree));
-      this.state.moonLatitudeFinal = y * -5;
+      this.state.moonLatitudeFinal = y * -5 * sign;
       s = new CoffeeGL.Vec2(x, y);
       s.multScalar(this.base_radius - this.epicycle_thickness);
       x2 = Math.cos(CoffeeGL.degToRad(this.state.moonLatitudeDegree - 180));
