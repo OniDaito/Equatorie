@@ -124,17 +124,17 @@ equatorie.html
         <div class="modal-header">
           <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
           <h4 class="modal-title">About</h4>
-          <p>Equatorie reconstruction by Seb Falk (University of Cambridge) and Benjamin Blundell (<a href="http://www.section9.co.uk">section9.co.uk</a>).</p>
+          <p>Equatorie reconstruction by Seb Falk (University of Cambridge) and Benjamin Blundell (<a href="http://www.section9.co.uk" target="_blank">section9.co.uk</a>).</p>
 
         </div>
         <div class="modal-body">
           <p>Credits
             <ul>
-              <li>Built with <a href="http://www.coffeegl.com">CoffeeGL</a></li>
-              <li>Physics provided by <a href="http://schteppe.github.io/cannon.js/">Cannon.js</a></li>
-              <li>Normal maps by <a href="http://www.crazybump.com">CrazyBump</a></li>
-              <li>Modelled in <a href="http://www.blender.org">Blender</a></li>
-              <li>CSS, courtesy of <a href="http://getbootstrap.com">Twitter Bootstrap</a></li>
+              <li>Built with <a href="http://www.coffeegl.com" target="_blank">CoffeeGL</a></li>
+              <li>Physics provided by <a href="http://schteppe.github.io/cannon.js/" target="_blank">Cannon.js</a></li>
+              <li>Normal maps by <a href="http://www.crazybump.com" target="_blank">CrazyBump</a></li>
+              <li>Modelled in <a href="http://www.blender.org" target="_blank">Blender</a></li>
+              <li>CSS, courtesy of <a href="http://getbootstrap.com" target="_blank">Twitter Bootstrap</a></li>
             </ul>
           </p>
         </div>
@@ -182,7 +182,9 @@ equatorie.html
 <a data-toggle="modal" id="buttonAbout" href="#aboutModal" class="btn btn-info">About</a>
 </div>
 
-<div id = "popupContainer">&nbsp;</div>
+<!-- http://jsfiddle.net/adzFe/14/ -->
+
+<div id = "popupContainer"></div>
 
 
 <script type="text/javascript">
@@ -203,6 +205,24 @@ goForIt = function () {
 
   loading = function (loaded) {
     $('#loadingProgressBar').width(loaded * 100);
+  }
+
+
+  activatePopup = function (text) {
+
+    $container.popover('destroy');
+        
+    $container.popover($.extend({}, {
+        content: text
+    }, options)).popover('show');
+
+
+    $(".popover-content").prepend('<a class="boxclose" id="boxclose"></a>');
+
+    $('#boxclose').click(function(){
+      $container.popover('destroy');
+    });
+
   }
 
   moving = function (pos) {
@@ -248,20 +268,16 @@ goForIt = function () {
       if (window.Equatorie.stack_idx > 0){
         nd = window.Equatorie.solveImmediate(); 
         if (nd.text !== undefined){
-          $container.popover('destroy');
-        
-          $container.popover($.extend({}, {
-              content: nd.text
-          }, options)).popover('show');
-
+          activatePopup(nd.text);
 
         } else {
           $container.popover('destroy');
-       
         }
       }
     });
 
+
+  
 
   $('#dp1').on('change', function() {  
     var datetxt = $('#dp1').val();
@@ -278,9 +294,7 @@ goForIt = function () {
           if (nd.text !== undefined){
             $container.popover('destroy');
           
-            $container.popover($.extend({}, {
-                content: nd.text
-            }, options)).popover('show');
+            activatePopup(nd.text);
 
 
           } else {
@@ -373,10 +387,7 @@ goForIt = function () {
       if (nd.text !== undefined){
         $container.popover('destroy');
       
-        $container.popover($.extend({}, {
-            content: nd.text
-        }, options)).popover('show');
-
+        activatePopup(nd.text);
 
       } else {
         $container.popover('destroy');
@@ -427,9 +438,7 @@ goForIt = function () {
       if (nd.text !== undefined){
         $container.popover('destroy');
       
-        $container.popover($.extend({}, {
-            content: nd.text
-        }, options)).popover('show');
+        activatePopup(nd.text);
 
 
       } else {
