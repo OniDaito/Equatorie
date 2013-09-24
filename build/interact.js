@@ -616,7 +616,7 @@
       this.camera.pos = new CoffeeGL.Vec3(0, 0, 10);
       this.camera.look = new CoffeeGL.Vec3(0, 0, 0);
       this.camera.up = new CoffeeGL.Vec3(0, 1, 0);
-      this.camera.rotateFocal(new CoffeeGL.Vec3(1, 0, 0), CoffeeGL.degToRad(-25));
+      this.camera.orbit(new CoffeeGL.Vec3(1, 0, 0), CoffeeGL.degToRad(-25));
       return this.physics.postMessage({
         cmd: "reset"
       });

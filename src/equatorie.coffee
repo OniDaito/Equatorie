@@ -143,7 +143,7 @@ class Equatorie
     # Cameras
 
     @c = new CoffeeGL.Camera.TouchPerspCamera new CoffeeGL.Vec3(0,0,10), new CoffeeGL.Vec3(0,0,0), new CoffeeGL.Vec3(0,1.0,0.0), 55.0, 0.01, 30.0, 0.1
-    @c.rotateFocal new CoffeeGL.Vec3(1,0,0), CoffeeGL.degToRad -25
+    @c.orbit new CoffeeGL.Vec3(1,0,0), CoffeeGL.degToRad -25
 
     @o = new CoffeeGL.Camera.OrthoCamera new CoffeeGL.Vec3(0,0,0.1)
     # Function called when everything is loaded
@@ -344,8 +344,6 @@ class Equatorie
     GL.enable(GL.DEPTH_TEST)
 
 
-
-
   update : (dt) =>
   
     #date = new Date("May 31, 1585 00:00:00")
@@ -462,8 +460,6 @@ class Equatorie
       @shader_fxaa.unbind()
       @fbo_fxaa.texture.unbind()
 
-
- 
 
 
   onMouseMove : (event) ->

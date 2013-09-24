@@ -120,7 +120,7 @@
       this.black_start.uColour = new CoffeeGL.Colour.RGBA(0.9, 0.2, 0.2, 0.8);
       this.black_end.uColour = new CoffeeGL.Colour.RGBA(0.2, 0.2, 0.9, 0.8);
       this.c = new CoffeeGL.Camera.TouchPerspCamera(new CoffeeGL.Vec3(0, 0, 10), new CoffeeGL.Vec3(0, 0, 0), new CoffeeGL.Vec3(0, 1.0, 0.0), 55.0, 0.01, 30.0, 0.1);
-      this.c.rotateFocal(new CoffeeGL.Vec3(1, 0, 0), CoffeeGL.degToRad(-25));
+      this.c.orbit(new CoffeeGL.Vec3(1, 0, 0), CoffeeGL.degToRad(-25));
       this.o = new CoffeeGL.Camera.OrthoCamera(new CoffeeGL.Vec3(0, 0, 0.1));
       f = function() {
         var child, q, tn, x, _i, _j, _len, _len1, _ref, _ref1;
