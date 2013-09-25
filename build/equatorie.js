@@ -66,6 +66,7 @@
       this.mp = new CoffeeGL.Vec2(-1, -1);
       this.system = new EquatorieSystem();
       this.marker = new CoffeeGL.Node();
+      this.marker.descend = false;
       this.ready = false;
       this.loaded = new CoffeeGL.Signal();
       this.load_progress = new CoffeeGL.Signal();

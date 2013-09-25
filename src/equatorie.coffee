@@ -68,6 +68,7 @@ class Equatorie
     # Marker - passed to interact. A general use thing represented by a needle
 
     @marker = new CoffeeGL.Node()
+    @marker.descend = false
 
     @ready = false
 

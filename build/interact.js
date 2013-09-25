@@ -13,10 +13,66 @@
 
 
 (function() {
-  var CoffeeGL, EquatorieInteract, EquatorieState,
+  var CoffeeGL, EquatorieInteract, EquatorieState, eq_text,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
   CoffeeGL = require('../lib/coffeegl/coffeegl').CoffeeGL;
+
+  eq_text = {};
+
+  eq_text["date_init"] = 'Before using the equatorium, the astronomer would first work out how many years and days had passed since 31 December 1392, the "radix" (baseline date) of the tables in the manuscript. They would consult the annual and daily tables to find the planet’s mean longitude and mean anomaly for the desired date.';
+
+  eq_text["date_init_sun"] = 'Before using the equatorium, the astronomer would first work out how many years and days had passed since 31 December 1392, the "radix" (baseline date) of the tables in the manuscript. They would consult the annual and daily tables to find the Sun’s mean longitude for the desired date.';
+
+  eq_text["date_init_latitude"] = 'Before using the equatorium, the astronomer would first use the tables in the manuscript to work out the Moon’s true motus and the true motus of Caput Draconis (the lunar node).  The latter should be subtracted from the former.';
+
+  eq_text["rotate_plate"] = "The circular brass plate stores information about the planets' apogees. This must be rotated to account for changes in the apogees (owing to precession) since 1392.";
+
+  eq_text["rotate_plate_sun"] = "The circular brass plate stores information about the Sun’s apogee. This rotates to account for changes in the apogees (owing to precession) since 1392.";
+
+  eq_text["mean_motus"] = "Use the annual and daily tables to find the planet’s mean longitude and mean anomaly for the date you want.";
+
+  eq_text["mean_motus_moon"] = "Use the annual and daily tables to find the Moon's mean longitude and mean anomaly for the date you want.";
+
+  eq_text["mean_motus_latitude"] = "To begin using the equatorium, first use the tables in the manuscript to work out the Moon’s true motus and the true motus of Caput Draconis (the lunar node).  Subtract the latter from the former.";
+
+  eq_text["mean_motus_sun"] = "Use the annual and daily tables to find the Sun’s mean longitude for the date you want.";
+
+  eq_text["black_thread"] = "The black thread is moved so it runs from the Earth (centre of the disc) to the mean longitude (the scale on the disc runs anti-clockwise).";
+
+  eq_text["white_thread"] = "The white thread is moved so it is parallel to the black thread, with one end fixed at the planet’s equant point.";
+
+  eq_text["white_thread_mercury"] = "The white thread is moved so it is parallel to the black thread, with one end fixed at the planet’s equant point. Unlike the other planets, Mercury’s equant point is not fixed in the direction of its apogee, but moves on a little circle that is marked on the brass plate.";
+
+  eq_text["white_thread_moon"] = "The white thread is moved so it runs from the Moon’s equant point (which is opposite the deferent centre on the little circle), over the centre of the epicycle.";
+
+  eq_text["white_thread_sun"] = "The white thread is moved so it is parallel to the black thread, with one end fixed at the centre of the Sun’s eccentric circle.  Unlike the planets’ equant circles, the Sun’s eccentric circle is marked in full on the disc.";
+
+  eq_text["black_thread_sun"] = "The black thread is moved so it runs from the Earth, through the point where the white thread cuts the Sun's eccentric circle, to the scale on the disc. The true longitude can be read there: it is ";
+
+  eq_text["epicycle"] = 'The brass epicycle is moved and fixed to the planet’s deferent centre with a pin through its "common deferent centre".';
+
+  eq_text["epicycle_moon"] = 'The brass epicycle is moved and fixed to the Moon\'s deferent centre with a pin through its "common deferent centre". Unlike the planets, the Moon has a deferent centre which moves around the little circle marked near the rim of the brass plate.';
+
+  eq_text["epicycle_align"] = "The epicycle is rotated until its centre is under the white thread.";
+
+  eq_text["epicycle_align_moon"] = "The epicycle is rotated until its centre is over the black thread.";
+
+  eq_text["mean_aux"] = 'The "label" (pointer) is aligned with the white thread.';
+
+  eq_text["label"] = "Taking this position as zero, the label is turned anti-clockwise to mark out the mean anomaly.";
+
+  eq_text["label_moon"] = "Taking this position as zero, turn the label to mark out the mean anomaly.  Note that unlike for the planets, the label should be rotated clockwise.";
+
+  eq_text["black_final"] = "The black thread is moved so it runs from the Earth, through the the planet’s mark on the label, to the scale on the disc.  The true longitude can be read there: it is ";
+
+  eq_text["black_final_moon"] = "The black thread is moved so it runs from the Earth, through the the Moon's mark on the label, to the scale on the disc.  The true longitude can be read there: it is ";
+
+  eq_text["alhudda"] = "The white thread is moved so it is perpendicular to the graduated “Alhudda” line on the disc, and crosses the black thread where it cuts the scale of degrees.";
+
+  eq_text["black_latitude"] = "The black thread is moved so it runs from the Earth (centre of the disc) to the value found in the last step.";
+
+  eq_text["read_latitude"] = "The Moon's latitude can be read on the 0-5° scale marked on the Alhudda line: it is ";
 
   EquatorieState = (function() {
     function EquatorieState(_activate, func, duration) {
@@ -159,13 +215,14 @@
     EquatorieInteract.prototype._stateSetPlanetDateInit = function() {
       var current_state;
       current_state = this.stack[this.stack_idx];
-      current_state.text = 'Before using the equatorium, the astronomer would first work out how many years and days had passed since 31 December 1392, the "radix" (baseline date) of the tables in the manuscript. They would consult the annual and daily tables to find the planet’s mean longitude and mean anomaly for the desired date.';
+      current_state.text = eq_text["date_init"];
       if (this.chosen_planet === "sun") {
-        current_state.text = 'Before using the equatorium, the astronomer would first work out how many years and days had passed since 31 December 1392, the "radix" (baseline date) of the tables in the manuscript. They would consult the annual and daily tables to find the Sun’s mean longitude for the desired date.';
+        current_state.text = eq_text["date_init_sun"];
       } else if (this.chosen_planet === "moon_latitude") {
-        current_state.text = 'Before using the equatorium, the astronomer would first use the tables in the manuscript to work out the Moon\'s true motus and the true motus of Caput Draconis (the lunar node). The latter should be subtracted from the former.';
+        current_state.text = eq_text["date_init_latitude"];
       }
       current_state.pos = this._setPOI(this.epicycle);
+      this.marker.descend = false;
       return this;
     };
 
@@ -177,10 +234,11 @@
     EquatorieInteract.prototype._stateRotatePlateInit = function() {
       var current_state;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "The circular brass plate stores information about the planets' apogees. This must be rotated to account for changes in the apogees (owing to precession) since 1392.";
+      current_state.text = eq_text["rotate_plate"];
       if (this.chosen_planet === "sun") {
-        current_state.text = "The circular brass plate stores information about the Sun’s apogee. This rotates to account for changes in the apogees (owing to precession) since 1392.";
+        current_state.text = eq_text["rotate_plate_sun"];
       }
+      this.marker.descend = false;
       current_state.pos = this._setPOI(this.plate);
       this.plate.matrix.identity();
       return current_state.plate_interp = new CoffeeGL.Interpolation(0, CoffeeGL.degToRad(this.system.precession * this.system.state.passed));
@@ -198,17 +256,18 @@
     EquatorieInteract.prototype._stateCalculateMeanMotusInit = function() {
       var current_state;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Use the annual and daily tables to find the planet’s mean longitude and mean anomaly for the date you want.";
+      current_state.text = eq_text["mean_motus"];
       if (this.chosen_planet === "moon") {
-        current_state.text = "Use the annual and daily tables to find the Moon's mean longitude and mean anomaly for the date you want.";
+        current_state.text = eq_text["mean_motus_moon"];
       }
       if (this.chosen_planet === "moon_latitude") {
-        current_state.text = "To begin using the equatorium, first use the tables in the manuscript to work out the Moon’s true motus and the true motus of Caput Draconis (the lunar node).  Subtract the latter from the former.";
+        current_state.text = eq_text["mean_motus_latitude"];
       }
       if (this.chosen_planet === "sun") {
-        current_state.text = "Use the annual and daily tables to find the Sun’s mean longitude for the date you want.";
+        current_state.text = eq_text["mean_motus_sun"];
       }
       current_state.pos = this._setPOI(this.epicycle);
+      this.marker.descend = false;
       return this;
     };
 
@@ -223,13 +282,14 @@
     EquatorieInteract.prototype._stateMoveBlackThreadInit = function() {
       var current_state, mv;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "The black thread is moved so it runs from the Earth (centre of the disc) to the mean longitude (the scale on the disc runs anti-clockwise).";
+      current_state.text = eq_text["black_thread"];
       current_state.pos = this._setPOI(this.black_end);
       mv = this.system.state.meanMotusPosition.copy();
       mv.normalize();
       mv.multScalar(8.0);
       current_state.end_interp = new CoffeeGL.Interpolation(this.black_end.matrix.getPos(), new CoffeeGL.Vec3(mv.x, this.string_height, mv.y));
-      return current_state.start_interp = new CoffeeGL.Interpolation(this.black_start.matrix.getPos(), new CoffeeGL.Vec3(0, this.string_height, 0));
+      current_state.start_interp = new CoffeeGL.Interpolation(this.black_start.matrix.getPos(), new CoffeeGL.Vec3(0, this.string_height, 0));
+      return this.marker.descend = false;
     };
 
     EquatorieInteract.prototype._stateMoveBlackThread = function(dt) {
@@ -253,9 +313,9 @@
     EquatorieInteract.prototype._stateMoveWhiteThreadInit = function() {
       var current_state, eq, pv;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "The white thread is moved so it is parallel to the black thread, with one end fixed at the planet’s equant point.";
+      current_state.text = eq_text["white_thread"];
       if (this.chosen_planet === "mercury") {
-        current_state.text += " Unlike the other planets, Mercury’s equant point is not fixed in the direction of its apogee, but moves on a little circle that is marked on the brass plate.";
+        current_state.text = eq_text["white_thread_mercury"];
       }
       eq = this.system.state.equantPosition;
       pv = this.system.state.parallelPosition;
@@ -265,7 +325,8 @@
       pv.add(eq);
       current_state.end_interp = new CoffeeGL.Interpolation(this.white_end.matrix.getPos(), new CoffeeGL.Vec3(pv.x, this.string_height, pv.y));
       eq = this.system.state.equantPosition;
-      return current_state.start_interp = new CoffeeGL.Interpolation(this.white_start.matrix.getPos(), new CoffeeGL.Vec3(eq.x, this.string_height, eq.y));
+      current_state.start_interp = new CoffeeGL.Interpolation(this.white_start.matrix.getPos(), new CoffeeGL.Vec3(eq.x, this.string_height, eq.y));
+      return this.marker.descend = false;
     };
 
     EquatorieInteract.prototype._stateMoveWhiteThread = function(dt) {
@@ -288,7 +349,7 @@
     EquatorieInteract.prototype._stateMoveWhiteThreadMoonInit = function() {
       var current_state, eq, pv;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Move the white thread so it runs from the Moon’s equant point (which is opposite the deferent centre on the little circle), over the centre of the epicycle.";
+      current_state.text = eq_text["white_thread_moon"];
       pv = this.system.state.epicyclePosition.copy();
       pv.sub(this.system.state.equantPosition);
       pv.normalize();
@@ -321,7 +382,7 @@
     EquatorieInteract.prototype._stateMoveWhiteThreadSunInit = function() {
       var current_state, ev, pv;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Move the white thread so it is parallel to the black thread, with one end fixed at the centre of the Sun’s eccentric circle.  Unlike the planets’ equant circles, the Sun’s eccentric circle is marked in full on the disc.";
+      current_state.text = eq_text["white_thread_sun"];
       ev = new CoffeeGL.Vec3(this.system.state.equantPosition.x, this.string_height, this.system.state.equantPosition.y);
       current_state.end_interp = new CoffeeGL.Interpolation(this.white_end.matrix.getPos(), ev);
       pv = this.system.state.parallelPosition.copy();
@@ -354,7 +415,7 @@
     EquatorieInteract.prototype._stateMoveBlackThreadSunInit = function() {
       var current_state, pv;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "The black thread is moved so it runs from the Earth, through the point where the white thread cuts the Sun's eccentric circle, to the scale on the disc. The true longitude can be read there: it is " + this.system.state.truePlace.toFixed(2) + ".";
+      current_state.text = eq_text["black_thread_sun"] + this.system.state.truePlace.toFixed(2) + ".";
       current_state.pos = this._setPOIVec(new CoffeeGL.Vec3(this.system.state.sunCirclePoint.x, 0, this.system.state.sunCirclePoint.y));
       pv = this.system.state.sunCirclePoint.copy();
       pv.normalize();
@@ -379,9 +440,9 @@
     EquatorieInteract.prototype._stateMoveEpicycleInit = function() {
       var c, current_state, d, dr, e, v;
       current_state = this.stack[this.stack_idx];
-      current_state.text = 'The brass epicycle is moved and fixed to the planet’s deferent centre with a pin through its "common deferent centre".';
+      current_state.text = eq_text["epicycle"];
       if (this.chosen_planet === "moon") {
-        current_state.text = 'The brass epicycle is moved and fixed to the Moon\'s deferent centre with a pin through its "common deferent centre". Unlike the planets, the Moon has a deferent centre which moves around the little circle marked near the rim of the brass plate.';
+        current_state.text = eq_text["epicycle_moon"];
       }
       d = this.system.state.deferentPosition;
       c = this.system.state.basePosition;
@@ -392,7 +453,8 @@
       }
       e = this.system.state.epicyclePrePosition;
       current_state.pos_interp = new CoffeeGL.Interpolation(this.epicycle.matrix.getPos(), new CoffeeGL.Vec3(e.x, 0, e.y));
-      return current_state.rot_interp = new CoffeeGL.Interpolation(0, -90 - dr);
+      current_state.rot_interp = new CoffeeGL.Interpolation(0, -90 - dr);
+      return this.marker.descend = false;
     };
 
     EquatorieInteract.prototype._stateMoveEpicycle = function(dt) {
@@ -415,11 +477,12 @@
     EquatorieInteract.prototype._stateRotateEpicycleInit = function() {
       var current_state;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "The epicycle is rotated until its centre is under the white thread.";
+      current_state.text = eq_text["epicycle_align"];
       if (this.chosen_planet === "moon") {
-        current_state.text = "Rotate the epicycle until its centre is over the black thread.";
+        current_state.text = eq_text["epicycle_align_moon"];
       }
-      return current_state.rot_interp = new CoffeeGL.Interpolation(0, this.system.state.epicycleRotation);
+      current_state.rot_interp = new CoffeeGL.Interpolation(0, this.system.state.epicycleRotation);
+      return this.marker.descend = true;
     };
 
     EquatorieInteract.prototype._stateRotateEpicycle = function(dt) {
@@ -449,7 +512,7 @@
     EquatorieInteract.prototype._stateRotateMeanAuxInit = function() {
       var current_state;
       current_state = this.stack[this.stack_idx];
-      current_state.text = 'Align the "label" (pointer) with the white thread.';
+      current_state.text = eq_text["mean_aux"];
       return current_state.rot_interp = new CoffeeGL.Interpolation(0, this.system.state.meanAux);
     };
 
@@ -466,9 +529,9 @@
     EquatorieInteract.prototype._stateRotateLabelInit = function() {
       var current_state;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "Taking this position as zero, the label is turned anti-clockwise to mark out the mean anomaly.";
+      current_state.text = eq_text["label"];
       if (this.chosen_planet === "moon") {
-        current_state.text = "Taking this position as zero, turn the label to mark out the mean anomaly.  Note that unlike for the planets, the label should be rotated clockwise.";
+        current_state.text = eq_text["label_moon"];
       }
       return current_state.rot_interp = new CoffeeGL.Interpolation(0, this.system.state.pointerAngle);
     };
@@ -486,9 +549,9 @@
     EquatorieInteract.prototype._stateMoveBlackStringFinalInit = function() {
       var current_state, mv;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "The black thread is moved so it runs from the Earth, through the the planet’s mark on the label, to the scale on the disc.  The true longitude can be read there: it is " + this.system.state.truePlace.toFixed(2) + ".";
+      current_state.text = eq_text["black_final"] + this.system.state.truePlace.toFixed(2) + ".";
       if (this.chosen_planet === "moon") {
-        current_state.text = "Move the black thread so it runs from the Earth, through the the Moon's mark on the label, to the scale on the disc.  The true longitude can be read there: it is " + this.system.state.truePlace.toFixed(2) + ".";
+        current_state.text = eq_text["black_final_moon"] + this.system.state.truePlace.toFixed(2) + ".";
       }
       mv = new CoffeeGL.Vec3(this.system.state.pointerPoint.x, 0, this.system.state.pointerPoint.y);
       mv.normalize();
@@ -513,7 +576,7 @@
     EquatorieInteract.prototype._stateMoveWhiteStringLatitudeInit = function() {
       var current_state, e, s;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "The white thread is moved so it is perpendicular to the graduated “Alhudda” line on the disc, and crosses the black thread where it cuts the scale of degrees.";
+      current_state.text = eq_text["alhudda"];
       s = new CoffeeGL.Vec3(this.system.state.moonLatitudeLeft.x, 0, this.system.state.moonLatitudeLeft.y);
       e = new CoffeeGL.Vec3(this.system.state.moonLatitudeRight.x, 0, this.system.state.moonLatitudeRight.y);
       s.x = -5.5;
@@ -545,7 +608,7 @@
     EquatorieInteract.prototype._stateMoveBlackStringLatitudeInit = function() {
       var current_state, e, s;
       current_state = this.stack[this.stack_idx];
-      current_state.text = "The black thread is moved so it runs from the Earth (centre of the disc) to the value you found in the last step.";
+      current_state.text = eq_text["black_latitude"];
       s = new CoffeeGL.Vec3(0, 0, 0);
       e = new CoffeeGL.Vec3(this.system.state.moonLatitudeRight.x, 0, this.system.state.moonLatitudeRight.y);
       s.y = this.string_height;
@@ -575,7 +638,7 @@
     EquatorieInteract.prototype._stateReadLatitudeInit = function() {
       var current_state;
       current_state = this.stack[this.stack_idx];
-      return current_state.text = "The Moon's latitude can be read on the 0-5° scale marked on the Alhudda line: it is " + this.system.state.moonLatitudeFinal.toFixed(2);
+      return current_state.text = eq_text["read_latitude"] + this.system.state.moonLatitudeFinal.toFixed(2);
     };
 
     EquatorieInteract.prototype._stateReadLatitude = function(dt) {
@@ -649,9 +712,10 @@
       this.camera.look = new CoffeeGL.Vec3(0, 0, 0);
       this.camera.up = new CoffeeGL.Vec3(0, 1, 0);
       this.camera.orbit(new CoffeeGL.Vec3(1, 0, 0), CoffeeGL.degToRad(-25));
-      return this.physics.postMessage({
+      this.physics.postMessage({
         cmd: "reset"
       });
+      return this.marker.descend = false;
     };
 
     EquatorieInteract.prototype.solveImmediate = function() {
