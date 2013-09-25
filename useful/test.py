@@ -1,6 +1,19 @@
 #!/usr/bin/python
 
 import ephem,sys,math
+
+date = sys.argv[1] + " 12:00:00"
+
+moon = ephem.Moon()
+moon.compute(date)
+moone = ephem.Ecliptic(moon)
+print("Moon:", moone.lon, moone.lat)
+
+sys.exit()
+
+
+
+
 '''
 date = sys.argv[1] + " 12:00:00"
 

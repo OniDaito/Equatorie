@@ -127,8 +127,8 @@ class EquatorieSystem
     @planet_data.moon_latitude = @planet_data.moon
 
     @planet_data.caput_draconis = 
-      start_motus : 15.35
-      speed : 0.05295426  # degrees per day
+      start_motus : 344.633333 #15.35
+      speed : -0.05295426  #0.05299066 # degrees per day
 
 
     @epoch = new Date(1392,11,31)
@@ -177,10 +177,11 @@ class EquatorieSystem
       @_calculateDeferentPosition()
       @_calculateEquantPosition()
       @_calculateEpicyclePosition()
-      @_calculateMoonEquations()
+      
       @_calculatePointerAngle()
       @_calculatePointerPoint()
       @_calculateTruePlace()
+      @_calculateMoonEquations()
 
   # set the state of the system to all zeroes
   reset : () ->
@@ -468,25 +469,35 @@ class EquatorieSystem
 
     @state.caputDraconisMotus =  (@planet_data["caput_draconis"].start_motus + ( @state.passed * @planet_data["caput_draconis"].speed)) % 360
 
-    p = @state.moonTrueMotus
-    
+    p = @state.truePlace
+
+
     l = p - @state.caputDraconisMotus
+
+    if l > 360
+      l = 360 - l
 
     if l < 0 
       l = 360 + l
+
+    console.log "L0:", l
     
     sign = 1
     if l > 180
       l = l - 180
+      console.log "L1:", l
       sign = -1
 
     @state.moonLatitudeDegree = l
 
-
+    console.log "LatD:", l
+    
     x = Math.cos CoffeeGL.degToRad -@state.moonLatitudeDegree
     y = Math.sin CoffeeGL.degToRad -@state.moonLatitudeDegree
 
     @state.moonLatitudeFinal = y * -5 * sign
+
+    console.log "Lat:", @state.moonLatitudeFinal
 
     s = new CoffeeGL.Vec2 x,y
     s.multScalar (@base_radius-@epicycle_thickness)
@@ -657,7 +668,7 @@ class EquatorieSystem
 
   # in degrees from the centre of the base and the sign of aries (x axis in this system)
   _calculateTruePlace : () ->
-    if @state.planet in ["mercury","venus","mars","jupiter","saturn","moon"]
+    if @state.planet in ["mercury","venus","mars","jupiter","saturn","moon", "moon_latitude"]
       pp = @state.pointerPoint
       dir = CoffeeGL.Vec2.normalize pp
       xaxis = new CoffeeGL.Vec2(1,0)

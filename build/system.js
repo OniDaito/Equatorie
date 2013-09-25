@@ -112,8 +112,8 @@
       };
       this.planet_data.moon_latitude = this.planet_data.moon;
       this.planet_data.caput_draconis = {
-        start_motus: 15.35,
-        speed: 0.05295426
+        start_motus: 344.633333,
+        speed: -0.05295426
       };
       this.epoch = new Date(1392, 11, 31);
       this.epoch.setHours(12);
@@ -148,10 +148,10 @@
         this._calculateDeferentPosition();
         this._calculateEquantPosition();
         this._calculateEpicyclePosition();
-        this._calculateMoonEquations();
         this._calculatePointerAngle();
         this._calculatePointerPoint();
-        return this._calculateTruePlace();
+        this._calculateTruePlace();
+        return this._calculateMoonEquations();
       }
     };
 
@@ -376,20 +376,27 @@
       this.state.moonEquationCentre = CoffeeGL.radToDeg(Math.acos(a.dot(b)));
       this.state.moonTrueMotus = this.state.meanMotus + this.state.moonEquationCentre;
       this.state.caputDraconisMotus = (this.planet_data["caput_draconis"].start_motus + (this.state.passed * this.planet_data["caput_draconis"].speed)) % 360;
-      p = this.state.moonTrueMotus;
+      p = this.state.truePlace;
       l = p - this.state.caputDraconisMotus;
+      if (l > 360) {
+        l = 360 - l;
+      }
       if (l < 0) {
         l = 360 + l;
       }
+      console.log("L0:", l);
       sign = 1;
       if (l > 180) {
         l = l - 180;
+        console.log("L1:", l);
         sign = -1;
       }
       this.state.moonLatitudeDegree = l;
+      console.log("LatD:", l);
       x = Math.cos(CoffeeGL.degToRad(-this.state.moonLatitudeDegree));
       y = Math.sin(CoffeeGL.degToRad(-this.state.moonLatitudeDegree));
       this.state.moonLatitudeFinal = y * -5 * sign;
+      console.log("Lat:", this.state.moonLatitudeFinal);
       s = new CoffeeGL.Vec2(x, y);
       s.multScalar(this.base_radius - this.epicycle_thickness);
       x2 = Math.cos(CoffeeGL.degToRad(this.state.moonLatitudeDegree - 180));
@@ -508,7 +515,7 @@
 
     EquatorieSystem.prototype._calculateTruePlace = function() {
       var angle, determinate, dir, pp, xaxis, _ref;
-      if ((_ref = this.state.planet) === "mercury" || _ref === "venus" || _ref === "mars" || _ref === "jupiter" || _ref === "saturn" || _ref === "moon") {
+      if ((_ref = this.state.planet) === "mercury" || _ref === "venus" || _ref === "mars" || _ref === "jupiter" || _ref === "saturn" || _ref === "moon" || _ref === "moon_latitude") {
         pp = this.state.pointerPoint;
         dir = CoffeeGL.Vec2.normalize(pp);
         xaxis = new CoffeeGL.Vec2(1, 0);

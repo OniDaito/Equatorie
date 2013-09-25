@@ -178,12 +178,12 @@ class Equatorie
 
       # Add the Equatorie Model to render to the depth node
       
-      #@depth_node.add @epicycle
-      #@depth_node.add @rim
-      #@depth_node.add @plate
-      #@depth_node.add @base
+      @depth_node.add @epicycle
+      @depth_node.add @rim
+      @depth_node.add @plate
+      @depth_node.add @base
 
-      #@depth_node.add  @shader_depth
+      @depth_node.add  @shader_depth
 
       # Create the tangents
       @_setTangents @pointer.geometry
@@ -421,8 +421,7 @@ class Equatorie
     @fbo_picking.unbind()
 
     # Now draw the screen space effects - temporarily cancelled to test other machines
-    if CoffeeGL.Context.profile.mobile or true
-
+    if CoffeeGL.Context.profile.mobile 
       # FXAA
       @fbo_fxaa.texture.bind()
       @shader_fxaa.bind()
@@ -434,7 +433,6 @@ class Equatorie
 
       # SSAO
       @fbo_depth.texture.unit = 1
-
       @fbo_fxaa.bind()
 
       @fbo_fxaa.texture.bind()

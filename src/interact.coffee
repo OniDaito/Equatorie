@@ -115,7 +115,12 @@ class EquatorieInteract
   
   _stateSetPlanetDateInit : () =>
     current_state = @stack[@stack_idx]
-    current_state.text = 'To begin using the equatorium, first work out how many years and days have passed since 31 December 1392, the "radix" (baseline date) of the tables in the manuscript.'
+    current_state.text = 'Before using the equatorium, the astronomer would first work out how many years and days had passed since 31 December 1392, the "radix" (baseline date) of the tables in the manuscript. They would consult the annual and daily tables to find the planet’s mean longitude and mean anomaly for the desired date.'
+    if @chosen_planet == "sun"
+      current_state.text = 'Before using the equatorium, the astronomer would first work out how many years and days had passed since 31 December 1392, the "radix" (baseline date) of the tables in the manuscript. They would consult the annual and daily tables to find the Sun’s mean longitude for the desired date.'
+    else if @chosen_planet == "moon_latitude"
+       current_state.text = 'Before using the equatorium, the astronomer would first use the tables in the manuscript to work out the Moon\'s true motus and the true motus of Caput Draconis (the lunar node). The latter should be subtracted from the former.'
+
     current_state.pos = @_setPOI @epicycle
     @
 
@@ -127,14 +132,12 @@ class EquatorieInteract
   _stateRotatePlateInit : () =>
     # Rotate the centre plate by the precession 
     current_state = @stack[@stack_idx]
-    current_state.text = "The circular brass plate stores information about the planets’ apogees.  This must be rotated to account for changes in the apogees (owing to precession) since 1392."
+    current_state.text = "The circular brass plate stores information about the planets' apogees. This must be rotated to account for changes in the apogees (owing to precession) since 1392."
     
     if @chosen_planet == "sun"
-      current_state.text = "The circular brass plate stores information about the Sun’s apogee.  This must be rotated to account for changes in the apogees (owing to precession) since 1392."
+      current_state.text = "The circular brass plate stores information about the Sun’s apogee. This rotates to account for changes in the apogees (owing to precession) since 1392."
     
-    if @chosen_planet == "moon"
-      current_state.text = "Use the annual and daily tables to find the Moon’s mean longitude and mean anomaly for the date you want."
-
+  
     current_state.pos = @_setPOI @plate
     @plate.matrix.identity()
     current_state.plate_interp = new CoffeeGL.Interpolation 0, CoffeeGL.degToRad(@system.precession * @system.state.passed)
@@ -148,7 +151,7 @@ class EquatorieInteract
     @plate.matrix.identity()
     @plate.matrix.rotate new CoffeeGL.Vec3(0,1,0), current_state.plate_interp.set dt
 
-
+  
   _stateCalculateMeanMotusInit : () =>
     current_state = @stack[@stack_idx]
     current_state.text = "Use the annual and daily tables to find the planet’s mean longitude and mean anomaly for the date you want."
@@ -170,12 +173,12 @@ class EquatorieInteract
     current_state.pos = @_setPOI @epicycle
     @move_poi.dispatch current_state.pos
     @
-
+  
   
   _stateMoveBlackThreadInit : () =>
 
     current_state = @stack[@stack_idx]
-    current_state.text = "Move the black thread so it runs from the Earth (centre of the disc) to the mean longitude (the scale on the disc runs anti-clockwise)."
+    current_state.text = "The black thread is moved so it runs from the Earth (centre of the disc) to the mean longitude (the scale on the disc runs anti-clockwise)."
 
     current_state.pos = @_setPOI(@black_end)
     mv = @system.state.meanMotusPosition.copy()
@@ -204,7 +207,7 @@ class EquatorieInteract
   _stateMoveWhiteThreadInit : () =>
 
     current_state = @stack[@stack_idx]
-    current_state.text = "Move the white thread so it is parallel to the black thread, with one end fixed at the planet’s equant point."
+    current_state.text = "The white thread is moved so it is parallel to the black thread, with one end fixed at the planet’s equant point."
 
 
     if @chosen_planet == "mercury"
@@ -302,7 +305,7 @@ class EquatorieInteract
   _stateMoveBlackThreadSunInit : () =>
   
     current_state = @stack[@stack_idx]
-    current_state.text = "Move the black thread so it runs from the Earth, through the point where the white thread cuts the Sun’s eccentric circle, to the scale on the disc. The true longitude can be read there: it is " + @system.state.truePlace.toFixed(2)
+    current_state.text = "The black thread is moved so it runs from the Earth, through the point where the white thread cuts the Sun's eccentric circle, to the scale on the disc. The true longitude can be read there: it is " + @system.state.truePlace.toFixed(2)  + "."
     current_state.pos = @_setPOIVec new CoffeeGL.Vec3 @system.state.sunCirclePoint.x, 0, @system.state.sunCirclePoint.y
 
     pv = @system.state.sunCirclePoint.copy()
@@ -324,10 +327,10 @@ class EquatorieInteract
   
   _stateMoveEpicycleInit : () =>
     current_state = @stack[@stack_idx]
-    current_state.text = 'Move the brass epicycle and use a pin through its "common deferent centre" to fix it to the planet’s deferent centre.'
+    current_state.text = 'The brass epicycle is moved and fixed to the planet’s deferent centre with a pin through its "common deferent centre".'
 
     if @chosen_planet == "moon"
-          current_state.text = 'Move the brass epicycle and use a pin through its "common deferent centre" to fix it to the Moon’s deferent centre.  Unlike the planets, the Moon has a deferent centre which moves around the little circle marked near the rim of the brass plate.'
+          current_state.text = 'The brass epicycle is moved and fixed to the Moon\'s deferent centre with a pin through its "common deferent centre". Unlike the planets, the Moon has a deferent centre which moves around the little circle marked near the rim of the brass plate.'
 
     d = @system.state.deferentPosition
     c = @system.state.basePosition
@@ -363,7 +366,7 @@ class EquatorieInteract
 
   _stateRotateEpicycleInit : () =>
     current_state = @stack[@stack_idx]
-    current_state.text = "Rotate the epicycle until its centre is over the white thread."
+    current_state.text = "The epicycle is rotated until its centre is under the white thread."
     
     if @chosen_planet == "moon"
       current_state.text = "Rotate the epicycle until its centre is over the black thread."
@@ -423,7 +426,7 @@ class EquatorieInteract
 
   _stateRotateLabelInit : () =>
     current_state = @stack[@stack_idx]
-    current_state.text = "Taking this position as zero, turn the label anti-clockwise to mark out the mean anomaly."
+    current_state.text = "Taking this position as zero, the label is turned anti-clockwise to mark out the mean anomaly."
     
     if @chosen_planet == "moon"
       current_state.text = "Taking this position as zero, turn the label to mark out the mean anomaly.  Note that unlike for the planets, the label should be rotated clockwise."
@@ -445,10 +448,10 @@ class EquatorieInteract
 
   _stateMoveBlackStringFinalInit : () =>
     current_state = @stack[@stack_idx]
-    current_state.text = "Move the black thread so it runs from the Earth, through the the planet’s mark on the label, to the scale on the disc. The true longitude can be read there: it is " + @system.state.truePlace.toFixed(2)
+    current_state.text = "The black thread is moved so it runs from the Earth, through the the planet’s mark on the label, to the scale on the disc.  The true longitude can be read there: it is " + @system.state.truePlace.toFixed(2) + "."
     
     if @chosen_planet == "moon"
-      current_state.text = "Move the black thread so it runs from the Earth, through the the Moon’s mark on the label, to the scale on the disc.  The true longitude can be read there: it is " +  @system.state.truePlace.toFixed(2)
+      current_state.text = "Move the black thread so it runs from the Earth, through the the Moon's mark on the label, to the scale on the disc.  The true longitude can be read there: it is " +  @system.state.truePlace.toFixed(2) + "."
 
     mv = new CoffeeGL.Vec3 @system.state.pointerPoint.x,0, @system.state.pointerPoint.y
     mv.normalize()
@@ -466,11 +469,11 @@ class EquatorieInteract
 
     @
 
-  _stateMoveBlackStringLatitudeInit : () =>
+  _stateMoveWhiteStringLatitudeInit : () =>
 
     current_state = @stack[@stack_idx]
 
-    current_state.text = "Move the black thread so it is perpendicular to the graduated “Alhudda” line on the disc, and crosses the edge of the disc where the scale shows the value you found in the last step."
+    current_state.text = "The white thread is moved so it is perpendicular to the graduated “Alhudda” line on the disc, and crosses the black thread where it cuts the scale of degrees."
     
     s = new CoffeeGL.Vec3(@system.state.moonLatitudeLeft.x, 0, @system.state.moonLatitudeLeft.y)
     e = new CoffeeGL.Vec3(@system.state.moonLatitudeRight.x, 0, @system.state.moonLatitudeRight.y)
@@ -479,6 +482,40 @@ class EquatorieInteract
     #l = s.dist e
     s.x = -5.5
     e.x = 5.5
+
+    s.y = @string_height
+    e.y = @string_height
+
+    
+    current_state.start_interp = new CoffeeGL.Interpolation @white_start.matrix.getPos(), s
+    current_state.end_interp = new CoffeeGL.Interpolation @white_end.matrix.getPos(), e
+
+
+  _stateMoveWhiteStringLatitude : (dt) =>
+
+    current_state = @stack[@stack_idx]
+
+    @white_start.matrix.setPos current_state.start_interp.set dt
+    @white_end.matrix.setPos current_state.end_interp.set dt
+
+    current_state.pos = @_setPOI @white_end
+    @move_poi.dispatch current_state.pos
+
+    @physics.postMessage {cmd : "white_start_move", data: @white_start.matrix.getPos() }
+    @physics.postMessage {cmd : "white_end_move", data: @white_end.matrix.getPos() }
+
+    @
+
+
+  _stateMoveBlackStringLatitudeInit : () =>
+
+    current_state = @stack[@stack_idx]
+
+    current_state.text = "The black thread is moved so it runs from the Earth (centre of the disc) to the value you found in the last step."
+    
+    s = new CoffeeGL.Vec3(0, 0, 0)
+    e = new CoffeeGL.Vec3(@system.state.moonLatitudeRight.x, 0, @system.state.moonLatitudeRight.y)
+
 
     s.y = @string_height
     e.y = @string_height
@@ -505,7 +542,7 @@ class EquatorieInteract
 
   _stateReadLatitudeInit : () =>
     current_state = @stack[@stack_idx]
-    current_state.text = "The Moon’s latitude can be read on the 0-5° scale marked on the Alhudda line: it is " + @system.state.moonLatitudeFinal.toFixed(2)
+    current_state.text = "The Moon's latitude can be read on the 0-5° scale marked on the Alhudda line: it is " + @system.state.moonLatitudeFinal.toFixed(2)
     
 
   _stateReadLatitude : (dt) =>
@@ -519,7 +556,7 @@ class EquatorieInteract
     if planet in ['mars','venus','jupiter','saturn','mercury']
       @stack.push new EquatorieState @_stateSetPlanetDateInit, () => do (planet,date) => @_stateSetPlanetDate(planet,date)
       @stack.push new EquatorieState @_stateRotatePlateInit, @_stateRotatePlate
-      @stack.push new EquatorieState @_stateCalculateMeanMotusInit, @_stateCalculateMeanMotus
+      #@stack.push new EquatorieState @_stateCalculateMeanMotusInit, @_stateCalculateMeanMotus
       @stack.push new EquatorieState @_stateMoveBlackThreadInit, @_stateMoveBlackThread 
       @stack.push new EquatorieState @_stateMoveWhiteThreadInit, @_stateMoveWhiteThread 
       @stack.push new EquatorieState @_stateMoveEpicycleInit, @_stateMoveEpicycle
@@ -530,7 +567,7 @@ class EquatorieInteract
 
     else if planet == 'moon'
       @stack.push new EquatorieState @_stateSetPlanetDateInit, () => do (planet,date) => @_stateSetPlanetDate(planet,date)
-      @stack.push new EquatorieState @_stateCalculateMeanMotusInit, @_stateCalculateMeanMotus
+      #@stack.push new EquatorieState @_stateCalculateMeanMotusInit, @_stateCalculateMeanMotus
       @stack.push new EquatorieState @_stateMoveBlackThreadInit, @_stateMoveBlackThread
       @stack.push new EquatorieState @_stateMoveEpicycleInit, @_stateMoveEpicycle
       @stack.push new EquatorieState @_stateRotateEpicycleInit, @_stateRotateEpicycle
@@ -543,12 +580,13 @@ class EquatorieInteract
       @system.solveForPlanetDate(planet,date)
       @stack.push new EquatorieState @_stateCalculateMeanMotusInit, @_stateCalculateMeanMotus
       @stack.push new EquatorieState @_stateMoveBlackStringLatitudeInit, @_stateMoveBlackStringLatitude
+      @stack.push new EquatorieState @_stateMoveWhiteStringLatitudeInit, @_stateMoveWhiteStringLatitude
       @stack.push new EquatorieState @_stateReadLatitudeInit, @_stateReadLatitude
 
     else if planet == "sun"
       @stack.push new EquatorieState @_stateSetPlanetDateInit, () => do (planet,date) => @_stateSetPlanetDate(planet,date)
       @stack.push new EquatorieState @_stateRotatePlateInit, @_stateRotatePlate
-      @stack.push new EquatorieState @_stateCalculateMeanMotusInit, @_stateCalculateMeanMotus
+      #@stack.push new EquatorieState @_stateCalculateMeanMotusInit, @_stateCalculateMeanMotus
       @stack.push new EquatorieState @_stateMoveBlackThreadInit, @_stateMoveBlackThread
       @stack.push new EquatorieState @_stateMoveWhiteThreadSunInit, @_stateMoveWhiteThreadSun
       @stack.push new EquatorieState @_stateMoveBlackThreadSunInit, @_stateMoveBlackThreadSun

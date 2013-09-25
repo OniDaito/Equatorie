@@ -80,8 +80,8 @@
       cube_thin = new CoffeeGL.Node(new CoffeeGL.Shapes.Cuboid(new CoffeeGL.Vec3(0.01, 0.5, 0.01)));
       cube_thin.matrix.translate(new CoffeeGL.Vec3(0, -0.2, 0));
       sphere.matrix.translate(new CoffeeGL.Vec3(0, 0.1, 0));
-      this.white_string = new EquatorieString(8, 0.015, 20);
-      this.black_string = new EquatorieString(8, 0.015, 20);
+      this.white_string = new EquatorieString(8, 0.025, 20);
+      this.black_string = new EquatorieString(8, 0.025, 20);
       this.pin = new CoffeeGL.Node();
       this.pin.add(sphere);
       this.white_start = new CoffeeGL.Node;
@@ -137,6 +137,11 @@
         _this.plate = _this.equatorie_model.children[2];
         _this.shiny = new CoffeeGL.Node();
         _this.top_node.add(_this.shiny);
+        _this.depth_node.add(_this.epicycle);
+        _this.depth_node.add(_this.rim);
+        _this.depth_node.add(_this.plate);
+        _this.depth_node.add(_this.base);
+        _this.depth_node.add(_this.shader_depth);
         _this._setTangents(_this.pointer.geometry);
         _this._setTangents(_this.epicycle.geometry);
         _this._setTangents(_this.rim.geometry);
@@ -315,7 +320,7 @@
       }
       this.shader_picker.unbind();
       this.fbo_picking.unbind();
-      if (CoffeeGL.Context.profile.mobile || true) {
+      if (CoffeeGL.Context.profile.mobile) {
         this.fbo_fxaa.texture.bind();
         this.shader_fxaa.bind();
         this.screen_quad.draw();

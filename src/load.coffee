@@ -196,8 +196,8 @@ loadAssets = (obj, signal, signal_progress) ->
   lq.add _loadFXAAShader
   lq.add _loadNeedleModel
   lq.add _loadNeedleNormal
-  #lq.add _loadSSAOShader
-  #lq.add _loadDepthShader
+  lq.add _loadSSAOShader
+  lq.add _loadDepthShader
 
   lq.start()
   @
