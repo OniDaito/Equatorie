@@ -370,7 +370,7 @@ class EquatorieInteract
     current_state.pos_interp = new CoffeeGL.Interpolation @epicycle.matrix.getPos(), new CoffeeGL.Vec3 e.x,0,e.y
     current_state.rot_interp = new CoffeeGL.Interpolation 0, -90-dr
 
-    @marker.descend = false
+    @marker.descend = true
 
   _stateMoveEpicycle : (dt) =>
 

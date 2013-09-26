@@ -454,7 +454,7 @@
       e = this.system.state.epicyclePrePosition;
       current_state.pos_interp = new CoffeeGL.Interpolation(this.epicycle.matrix.getPos(), new CoffeeGL.Vec3(e.x, 0, e.y));
       current_state.rot_interp = new CoffeeGL.Interpolation(0, -90 - dr);
-      return this.marker.descend = false;
+      return this.marker.descend = true;
     };
 
     EquatorieInteract.prototype._stateMoveEpicycle = function(dt) {
